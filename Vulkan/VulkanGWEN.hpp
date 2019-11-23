@@ -35,24 +35,22 @@ namespace Gwen
 			size_t currentBuffer = 0;
 			std::vector<VkCommandBuffer> commandBuffers = {};
 
-			std::unordered_map<Vertex, uint32_t> writeUnique_Vertices = {};
-			std::unordered_map<Vertex, uint32_t> drawUnique_Vertices = {};
+			std::vector<Vertex> Total_Vertices = {};
+			std::unordered_map<Vertex, uint32_t> Unique_Vertices = {};
+			std::vector<Vertex> GUI_Vertices = {};
+			uint32_t vertexBufferSize = sizeof(Vertex) * 300000;
+			std::vector<uint32_t> GUI_Indices = {};
+			uint32_t indexBufferSize = sizeof(uint32_t) * 300000;
 
-			std::vector<Vertex> writeVertices = {};
-			std::vector<Vertex> drawVertices = {};
-			uint32_t vertexBufferSize = sizeof(Vertex) * 131072;
+			uint32_t CurIndirectDraw = 0;
+			uint32_t CurIndexCount = 0;
+			uint32_t TotalIndexCount = 0;
+			uint32_t TotalVertCount = 0;
 
-			std::vector<uint32_t> writeIndices = {};
-			std::vector<uint32_t> drawIndices = {};
-			uint32_t indexBufferSize = sizeof(uint32_t) * 131072;
-
-			std::vector<VkDrawIndexedIndirectCommand> indirectCommands;
+			//std::vector<VkDrawIndexedIndirectCommand> indirectCommands;
+			std::vector<VkDrawIndirectCommand> indirectCommands;
 			VkBuffer indirectBuffer = VK_NULL_HANDLE;
 			VmaAllocation indirectAllocation = VMA_NULL;
-			uint32_t CurIndirectDraw = 0;
-			uint32_t CurDrawIndex = 0;
-			uint32_t TotalDrawIndex = 0;
-			uint32_t TotalDrawVerts = 0;
 
 			VkBuffer GUI_VertexBuffer = VK_NULL_HANDLE;
 			VmaAllocation GUI_VertexAllocation = VMA_NULL;
@@ -438,29 +436,26 @@ namespace Gwen
 				VkBuffer vertexBuffers[1] = { GUI_VertexBuffer };
 				VkDeviceSize offsets[1] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, vertexBuffers, offsets);
-				vkCmdBindIndexBuffer(commandBuffers[currentBuffer], GUI_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+				//vkCmdBindIndexBuffer(commandBuffers[currentBuffer], GUI_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			}
 			virtual void End()
 			{
 				//	Vertex Buffer CPU->GPU Copy
-				drawVertices.swap(writeVertices);
-				memcpy(GUI_VertexAllocation->GetMappedData(), drawVertices.data(), sizeof(Vertex) * drawVertices.size());
-				writeVertices.clear();
+				memcpy(GUI_VertexAllocation->GetMappedData(), GUI_Vertices.data(), sizeof(Vertex) * GUI_Vertices.size());
+				GUI_Vertices.clear();
 
 				//	Index Buffer CPU->GPU Copy
-				drawIndices.swap(writeIndices);
-				memcpy(GUI_IndexAllocation->GetMappedData(), drawIndices.data(), sizeof(uint32_t) * drawIndices.size());
-				writeIndices.clear();
+				memcpy(GUI_IndexAllocation->GetMappedData(), GUI_Indices.data(), sizeof(uint32_t) * GUI_Indices.size());
+				GUI_Indices.clear();
 
 				//	Indirect Buffer CPU->GPU Copy
 				memcpy(indirectAllocation->GetMappedData(), indirectCommands.data(), sizeof(VkDrawIndirectCommand) * indirectCommands.size());
 				CurIndirectDraw = 0;
-				TotalDrawIndex = 0;
+				TotalIndexCount = 0;
+				TotalVertCount = 0;
 				indirectCommands.clear();
-				TotalDrawVerts = 0;
-
-				drawUnique_Vertices.swap(writeUnique_Vertices);
-				writeUnique_Vertices.clear();
+				Total_Vertices.clear();
+				Unique_Vertices.clear();
 
 				auto Pipe = _Driver->_MaterialCache->GetPipe(Pipelines::GUI);
 				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &FontTexture_DescriptorSets[currentBuffer], 0, nullptr);
@@ -534,18 +529,29 @@ namespace Gwen
 				clipOld.w += clipOld.x;
 				clipOld.h += clipOld.y;
 
-				//if (drawIndices.size() > 0) {
-				if (CurDrawIndex > 0) {
+				/*if (CurIndexCount > 0) {
 					VkDrawIndexedIndirectCommand iCommand = {};
-					iCommand.firstIndex = TotalDrawIndex - CurDrawIndex;
-					iCommand.indexCount = CurDrawIndex;
+					iCommand.firstIndex = TotalIndexCount - CurIndexCount;
+					iCommand.indexCount = CurIndexCount;
 					iCommand.firstInstance = 0;
 					iCommand.instanceCount = 1;
 					indirectCommands.push_back(iCommand);
 
 					vkCmdDrawIndexedIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 					CurIndirectDraw++;
-					CurDrawIndex = 0;
+					CurIndexCount = 0;
+				}*/
+				if (CurIndexCount > 0) {
+					VkDrawIndirectCommand iCommand = {};
+					iCommand.firstVertex = TotalIndexCount - CurIndexCount;
+					iCommand.vertexCount = CurIndexCount;
+					iCommand.firstInstance = 0;
+					iCommand.instanceCount = 1;
+					indirectCommands.push_back(iCommand);
+
+					vkCmdDrawIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+					CurIndirectDraw++;
+					CurIndexCount = 0;
 				}
 				clipNew = ClipRegion();
 				clipNew.x *= Scale();
@@ -614,29 +620,26 @@ namespace Gwen
 
 			void AddVert(int x, int y, float u = 0.0f, float v = 0.0f)
 			{
-				Vertex NewVertex;
+				Vertex NewVertex = Total_Vertices.emplace_back();
 
 				NewVertex.pos.x = ((float)x / 400) - 1.f;
 				NewVertex.pos.y = ((float)y / 300) - 1.f;
-				//	Our image is 512x512 px
 				NewVertex.texCoord.x = u;
 				NewVertex.texCoord.y = v;
-				//
 				NewVertex.color.r = m_Color.r / 128;
 				NewVertex.color.g = m_Color.g / 128;
 				NewVertex.color.b = m_Color.b / 128;
 				NewVertex.color.a = m_Color.a / 128;
 
-				//if (writeUnique_Vertices.count(NewVertex) == 0) {
-					writeUnique_Vertices[NewVertex] = TotalDrawVerts;
-					writeVertices.push_back(NewVertex);
+				//if (Unique_Vertices.count(NewVertex) == 0) {
+					Unique_Vertices[NewVertex] = TotalVertCount;
+					GUI_Vertices.push_back(NewVertex);
+					TotalVertCount++;
 				//}
-				//writeIndices.push_back(writeUnique_Vertices[NewVertex]);
-					writeIndices.push_back(TotalDrawVerts);
-					TotalDrawVerts++;
+				GUI_Indices.push_back(Unique_Vertices[NewVertex]);
 
-				CurDrawIndex++;
-				TotalDrawIndex++;
+				CurIndexCount++;
+				TotalIndexCount++;
 			}
 		};
 	}
