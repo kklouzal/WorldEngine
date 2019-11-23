@@ -193,22 +193,44 @@ namespace Gwen
 			//	Font Texture
 			//
 			void createFontVertexBuffer() {
+
+				VkBuffer Font_VertexBuffer_Stage = VK_NULL_HANDLE;
+				VmaAllocation Font_VertexAllocation_Stage = VMA_NULL;
+
 				VkBufferCreateInfo vertexBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-				vertexBufferInfo.size = sizeof(Vertex) * 6;
-				vertexBufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+				vertexBufferInfo.size = sizeof(Vertex) * Font_TextureVertices.size();
+				vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 				vertexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 				VmaAllocationCreateInfo vertexAllocInfo = {};
 				vertexAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 				vertexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
+				vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &Font_VertexBuffer_Stage, &Font_VertexAllocation_Stage, nullptr);
+
+				vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+
+				vertexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+				vertexAllocInfo.flags = 0;
+
 				vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &Font_VertexBuffer, &Font_VertexAllocation, nullptr);
 
-				writeBuffer.resize(dst_Size);
+				VkBufferCopy copyRegion = {};
+				copyRegion.size = vertexBufferInfo.size;
+
+				memcpy(Font_VertexAllocation_Stage->GetMappedData(), Font_TextureVertices.data(), vertexBufferInfo.size);
+
+				auto CB = _Driver->_SceneGraph->beginSingleTimeCommands();
+				vkCmdCopyBuffer(CB, Font_VertexBuffer_Stage, Font_VertexBuffer, 1, &copyRegion);
+				_Driver->_SceneGraph->endSingleTimeCommands(CB);
+
+				vmaDestroyBuffer(_Driver->allocator, Font_VertexBuffer_Stage, Font_VertexAllocation_Stage);
 
 				printf("Create Font Vertex Buffer\n");
 			}
 			void createFontTextureBuffer() {
+				writeBuffer.resize(dst_Size);
+
 				VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 				imageInfo.imageType = VK_IMAGE_TYPE_2D;
 				imageInfo.extent.width = static_cast<uint32_t>(WIDTH);
@@ -475,7 +497,6 @@ namespace Gwen
 					1, &imgMemBarrier);
 				_Driver->_SceneGraph->endSingleTimeCommands(CB);
 
-				memcpy(Font_VertexAllocation->GetMappedData(), Font_TextureVertices.data(), sizeof(Vertex) * Font_TextureVertices.size());
 				VkBuffer vertexBuffers2[] = { Font_VertexBuffer };
 				VkDeviceSize offsets2[] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, vertexBuffers2, offsets2);
