@@ -47,8 +47,7 @@ namespace Gwen
 			uint32_t TotalIndexCount = 0;
 			uint32_t TotalVertCount = 0;
 
-			//std::vector<VkDrawIndexedIndirectCommand> indirectCommands;
-			std::vector<VkDrawIndirectCommand> indirectCommands;
+			std::vector<VkDrawIndexedIndirectCommand> indirectCommands;
 			VkBuffer indirectBuffer = VK_NULL_HANDLE;
 			VmaAllocation indirectAllocation = VMA_NULL;
 
@@ -436,7 +435,7 @@ namespace Gwen
 				VkBuffer vertexBuffers[1] = { GUI_VertexBuffer };
 				VkDeviceSize offsets[1] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, vertexBuffers, offsets);
-				//vkCmdBindIndexBuffer(commandBuffers[currentBuffer], GUI_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+				vkCmdBindIndexBuffer(commandBuffers[currentBuffer], GUI_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			}
 			virtual void End()
 			{
@@ -529,7 +528,7 @@ namespace Gwen
 				clipOld.w += clipOld.x;
 				clipOld.h += clipOld.y;
 
-				/*if (CurIndexCount > 0) {
+				if (CurIndexCount > 0) {
 					VkDrawIndexedIndirectCommand iCommand = {};
 					iCommand.firstIndex = TotalIndexCount - CurIndexCount;
 					iCommand.indexCount = CurIndexCount;
@@ -538,18 +537,6 @@ namespace Gwen
 					indirectCommands.push_back(iCommand);
 
 					vkCmdDrawIndexedIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
-					CurIndirectDraw++;
-					CurIndexCount = 0;
-				}*/
-				if (CurIndexCount > 0) {
-					VkDrawIndirectCommand iCommand = {};
-					iCommand.firstVertex = TotalIndexCount - CurIndexCount;
-					iCommand.vertexCount = CurIndexCount;
-					iCommand.firstInstance = 0;
-					iCommand.instanceCount = 1;
-					indirectCommands.push_back(iCommand);
-
-					vkCmdDrawIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 					CurIndirectDraw++;
 					CurIndexCount = 0;
 				}
@@ -620,23 +607,24 @@ namespace Gwen
 
 			void AddVert(int x, int y, float u = 0.0f, float v = 0.0f)
 			{
-				Vertex NewVertex = Total_Vertices.emplace_back();
+				Vertex* NewVertex = &Total_Vertices.emplace_back();
+				//Vertex* NewVertex = &GUI_Vertices.emplace_back();
 
-				NewVertex.pos.x = ((float)x / 400) - 1.f;
-				NewVertex.pos.y = ((float)y / 300) - 1.f;
-				NewVertex.texCoord.x = u;
-				NewVertex.texCoord.y = v;
-				NewVertex.color.r = m_Color.r / 128;
-				NewVertex.color.g = m_Color.g / 128;
-				NewVertex.color.b = m_Color.b / 128;
-				NewVertex.color.a = m_Color.a / 128;
+				NewVertex->pos.x = ((float)x / 400) - 1.f;
+				NewVertex->pos.y = ((float)y / 300) - 1.f;
+				NewVertex->texCoord.x = u;
+				NewVertex->texCoord.y = v;
+				NewVertex->color.r = m_Color.r / 128;
+				NewVertex->color.g = m_Color.g / 128;
+				NewVertex->color.b = m_Color.b / 128;
+				NewVertex->color.a = m_Color.a / 128;
 
-				//if (Unique_Vertices.count(NewVertex) == 0) {
-					Unique_Vertices[NewVertex] = TotalVertCount;
-					GUI_Vertices.push_back(NewVertex);
+				if (Unique_Vertices.count(*NewVertex) == 0) {
+					Unique_Vertices[*NewVertex] = TotalVertCount;
+					GUI_Vertices.emplace_back(*NewVertex);
 					TotalVertCount++;
-				//}
-				GUI_Indices.push_back(Unique_Vertices[NewVertex]);
+				}
+				GUI_Indices.push_back(Unique_Vertices[*NewVertex]);
 
 				CurIndexCount++;
 				TotalIndexCount++;
