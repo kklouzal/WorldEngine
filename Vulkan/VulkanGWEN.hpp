@@ -37,7 +37,7 @@ namespace Gwen
 			std::vector<VkCommandBuffer> commandBuffers = {};
 
 			std::vector<Vertex> GUI_Vertices = {};
-			uint32_t vertexBufferSize = sizeof(Vertex) * 300000;
+			uint32_t vertexBufferSize = sizeof(Vertex) * 150000;
 
 			uint32_t CurIndirectDraw = 0;
 			uint32_t CurVertexCount = 0;
@@ -66,6 +66,8 @@ namespace Gwen
 
 			Gwen::Rect clipOld;
 			Gwen::Rect clipNew;
+
+			Gwen::Color	m_Color;
 
 			const std::vector<Vertex> Font_TextureVertices = {
 			{{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
@@ -348,16 +350,33 @@ namespace Gwen
 
 				printf("Create Indirect Buffer\n");
 			}
+
+			void AddVert(int x, int y, float u = 0.0f, float v = 0.0f)
+			{
+				Vertex NewVertex{};
+
+				NewVertex.pos.x = ((float)x / 400) - 1.f;
+				NewVertex.pos.y = ((float)y / 300) - 1.f;
+				NewVertex.texCoord.x = u;
+				NewVertex.texCoord.y = v;
+				NewVertex.color.r = m_Color.r / 128;
+				NewVertex.color.g = m_Color.g / 128;
+				NewVertex.color.b = m_Color.b / 128;
+				NewVertex.color.a = m_Color.a / 128;
+
+				GUI_Vertices.emplace_back(NewVertex);
+
+				CurVertexCount++;
+				TotalVertexCount++;
+			}
 		public:
 
 			void SetBuffer(size_t BufferNumber) {
 				currentBuffer = BufferNumber;
 			}
-
 			VkCommandBuffer GetBuffer(size_t BufferNumber) {
 				return commandBuffers[BufferNumber];
 			}
-
 			Vulkan(VulkanDriver* Driver) : _Driver(Driver) {
 				Pipe = _Driver->_MaterialCache->GetPipe(Pipelines::GUI);
 			}
@@ -371,7 +390,6 @@ namespace Gwen
 				vmaDestroyImage(_Driver->allocator, Font_TextureImage, Font_TextureAllocation);
 				vkDestroyDescriptorPool(_Driver->device, FontTexture_DescriptorPool, nullptr);
 			}
-
 			virtual void Init() {
 				printf("GWEN Vulkan Renderer Initialize\n");
 				initFreeType();
@@ -386,6 +404,8 @@ namespace Gwen
 				createFontTextureBuffer();
 			}
 
+			//
+			//	Begin Render
 			virtual void Begin()
 			{
 				vkResetCommandBuffer(commandBuffers[currentBuffer], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
@@ -436,16 +456,43 @@ namespace Gwen
 
 				VkDeviceSize offsets[1] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, &GUI_VertexBuffer, offsets);
-
-				CurIndirectDraw = 0;
-				TotalVertexCount = 0;
-				indirectCommands.clear();
 			}
+			//
+			//	Start Clip
+			void StartClip()
+			{
+				clipOld = clipNew;
+				clipOld.w += clipOld.x;
+				clipOld.h += clipOld.y;
+
+				if (CurVertexCount > 0) {
+					VkDrawIndirectCommand iCommand = {};
+					iCommand.firstVertex = TotalVertexCount - CurVertexCount;
+					iCommand.vertexCount = CurVertexCount;
+					iCommand.firstInstance = 0;
+					iCommand.instanceCount = 1;
+					indirectCommands.push_back(iCommand);
+
+					vkCmdDrawIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndirectCommand), 1, sizeof(VkDrawIndirectCommand));
+					CurIndirectDraw++;
+					CurVertexCount = 0;
+				}
+				clipNew = ClipRegion();
+				clipNew.x *= Scale();
+				clipNew.y *= Scale();
+				clipNew.w *= Scale();
+				clipNew.h *= Scale();
+				VkRect2D scissor = {};
+				scissor.offset = { static_cast<int32_t>(clipNew.x), static_cast<int32_t>(clipNew.y) };
+				scissor.extent = { static_cast<uint32_t>(clipNew.w), static_cast<uint32_t>(clipNew.h) };
+				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &scissor);
+			};
+			//
+			//	End Render
 			virtual void End()
 			{
 				//	Vertex Buffer CPU->GPU Copy
 				memcpy(GUI_VertexAllocation->GetMappedData(), GUI_Vertices.data(), sizeof(Vertex) * GUI_Vertices.size());
-				GUI_Vertices.clear();
 
 				//	Indirect Buffer CPU->GPU Copy
 				memcpy(indirectAllocation->GetMappedData(), indirectCommands.data(), sizeof(VkDrawIndirectCommand) * indirectCommands.size());
@@ -502,6 +549,11 @@ namespace Gwen
 				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, vertexBuffers2, offsets2);
 				vkCmdDraw(commandBuffers[currentBuffer], static_cast<uint32_t>(Font_TextureVertices.size()), 1, 0, 0);
 				vkEndCommandBuffer(commandBuffers[currentBuffer]);
+
+				CurIndirectDraw = 0;
+				TotalVertexCount = 0;
+				indirectCommands.clear();
+				GUI_Vertices.clear();
 			}
 			virtual void DrawFilledRect(Gwen::Rect rect)
 			{
@@ -513,36 +565,6 @@ namespace Gwen
 				AddVert(rect.x + rect.w, rect.y + rect.h);
 				AddVert(rect.x, rect.y + rect.h);
 			}
-
-			void StartClip()
-			{
-				clipOld = clipNew;
-				clipOld.w += clipOld.x;
-				clipOld.h += clipOld.y;
-
-				if (CurVertexCount > 0) {
-					VkDrawIndirectCommand iCommand = {};
-					iCommand.firstVertex = TotalVertexCount - CurVertexCount;
-					iCommand.vertexCount = CurVertexCount;
-					iCommand.firstInstance = 0;
-					iCommand.instanceCount = 1;
-					indirectCommands.push_back(iCommand);
-
-					vkCmdDrawIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndirectCommand), 1, sizeof(VkDrawIndirectCommand));
-					CurIndirectDraw++;
-					CurVertexCount = 0;
-				}
-				clipNew = ClipRegion();
-				clipNew.x *= Scale();
-				clipNew.y *= Scale();
-				clipNew.w *= Scale();
-				clipNew.h *= Scale();
-				VkRect2D scissor = {};
-				scissor.offset = { static_cast<int32_t>(clipNew.x), static_cast<int32_t>(clipNew.y) };
-				scissor.extent = { static_cast<uint32_t>(clipNew.w), static_cast<uint32_t>(clipNew.h) };
-				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &scissor);
-			};
-
 			void DrawTexturedRect(Gwen::Texture* pTexture, Gwen::Rect pTargetRect, float u1 = 0.0f, float v1 = 0.0f, float u2 = 1.0f, float v2 = 1.0f)
 			{
 				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &((TextureObject*)pTexture->data)->DescriptorSets[currentBuffer], 0, nullptr);
@@ -586,31 +608,9 @@ namespace Gwen
 				//	iOffset = r; iOffset+1 = g; iOffset+2 = b; iOffset+3 = a;
 				return Gwen::Color(tex->Pixels[iOffset], tex->Pixels[iOffset+1], tex->Pixels[iOffset+2], tex->Pixels[iOffset+3]);
 			}
-
 			virtual void SetDrawColor(Gwen::Color color)
 			{
 				m_Color = color;
-			}
-
-		protected:
-
-			Gwen::Color	m_Color;
-
-			void AddVert(int x, int y, float u = 0.0f, float v = 0.0f)
-			{
-				GUI_Vertices.emplace_back();
-
-				GUI_Vertices.back().pos.x = ((float)x / 400) - 1.f;
-				GUI_Vertices.back().pos.y = ((float)y / 300) - 1.f;
-				GUI_Vertices.back().texCoord.x = u;
-				GUI_Vertices.back().texCoord.y = v;
-				GUI_Vertices.back().color.r = m_Color.r / 128;
-				GUI_Vertices.back().color.g = m_Color.g / 128;
-				GUI_Vertices.back().color.b = m_Color.b / 128;
-				GUI_Vertices.back().color.a = m_Color.a / 128;
-
-				CurVertexCount++;
-				TotalVertexCount++;
 			}
 		};
 	}
