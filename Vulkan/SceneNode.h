@@ -13,5 +13,5 @@ SceneNode::~SceneNode() {
 #endif
 }
 
-//#include "TriangleMeshSceneNode.hpp"
+#include "TriangleMeshSceneNode.hpp"
 //#include "SkinnedMeshSceneNode.hpp"

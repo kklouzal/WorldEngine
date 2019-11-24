@@ -4,18 +4,13 @@
 
 #include <chrono>
 
-struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
-};
-
 class TriangleMesh {
 
 public:
 
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
 	SceneGraph* _SceneGraph = nullptr;
+	Pipeline::Default* Pipe;
 
 	const std::vector<Vertex> vertices;
 	const std::vector<uint16_t> indices;
@@ -34,92 +29,28 @@ public:
 	std::vector<VkBuffer> uniformBuffers = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
 
-	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	std::vector<VkDescriptorSet> descriptorSets = {};
+	TextureObject* Texture;
+	DescriptorObject* Descriptor;
 
 public:
 
 	TriangleMesh(VulkanDriver* Driver, SceneGraph* SceneGraph, const std::vector<Vertex> Vertices, const std::vector<uint16_t> Indices)
 		: _Driver(Driver), _SceneGraph(SceneGraph),	vertices(Vertices), indices(Indices),
-		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint16_t)* indices.size()) {
-		//createDescriptorPool();
-		//createDescriptorSets();
+		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint16_t)* indices.size()),
+		Pipe(_Driver->_MaterialCache->GetPipe_Default()){
 		createVertexBuffer();
+		createUniformBuffers();
+		Texture = Pipe->createTextureImage("statue.jpg");
+		Descriptor = Pipe->createDescriptor(Texture, uniformBuffers);
 		draw();
 	}
 
 	~TriangleMesh() {
 		destroyVertexBuffer();
 		destroyUniformBuffers();
-		vkDestroyDescriptorPool(_Driver->device, descriptorPool, nullptr);
+		delete Descriptor;
 	}
 
-	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 2> poolSizes = {};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
-
-		VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChainImages.size());
-
-		if (vkCreateDescriptorPool(_Driver->device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
-#ifdef _DEBUG
-			throw std::runtime_error("failed to create descriptor pool!");
-#endif
-		}
-	}
-
-	void createDescriptorSets() {
-		auto Pipe = _Driver->_MaterialCache->GetPipe(Pipelines::Default);
-		std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChainImages.size(), Pipe->descriptorSetLayout);
-		VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-		allocInfo.descriptorPool = descriptorPool;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
-		allocInfo.pSetLayouts = layouts.data();
-
-		descriptorSets.resize(_Driver->swapChainImages.size());
-		if (vkAllocateDescriptorSets(_Driver->device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
-#ifdef _DEBUG
-			throw std::runtime_error("failed to allocate descriptor sets!");
-#endif
-		}
-
-		for (size_t i = 0; i < _Driver->swapChainImages.size(); i++) {
-			VkDescriptorBufferInfo bufferInfo = {};
-			bufferInfo.buffer = uniformBuffers[i];
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
-
-			VkDescriptorImageInfo imageInfo = {};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = _SceneGraph->textureImageView;
-			imageInfo.sampler = _SceneGraph->textureSampler;
-
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
-
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = descriptorSets[i];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = descriptorSets[i];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-
-			vkUpdateDescriptorSets(_Driver->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-		}
-	}
 
 	void createUniformBuffers() {
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
@@ -209,10 +140,6 @@ public:
 		//	Destroy Staging Buffers
 		vmaDestroyBuffer(_Driver->allocator, stagingVertexBuffer, stagingVertexBufferAlloc);
 		vmaDestroyBuffer(_Driver->allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
-
-		createUniformBuffers();
-		createDescriptorPool();
-		createDescriptorSets();
 	}
 
 	void destroyVertexBuffer() {
@@ -232,14 +159,13 @@ public:
 #ifdef _DEBUG
 		std::cout << "TriangleMesh Draw" << std::endl;
 #endif
-		auto Pipe = _Driver->_MaterialCache->GetPipe(Pipelines::Default);
 		//	Command buffers are returned in the recording state
 		commandBuffers = _SceneGraph->newCommandBuffer();
 		for (size_t i = 0; i < commandBuffers.size(); i++) {
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);
 			//	Bind Descriptor Sets
-			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[i], 0, nullptr);
 			
 			//	Draw Vertex Buffer
 			VkBuffer vertexBuffers[] = { vertexBuffer };
