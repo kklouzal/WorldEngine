@@ -9,7 +9,6 @@ class TriangleMesh {
 public:
 
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
-	SceneGraph* _SceneGraph = nullptr;
 	Pipeline::Default* Pipe;
 
 	const std::vector<Vertex> vertices;
@@ -34,14 +33,15 @@ public:
 
 public:
 
-	TriangleMesh(VulkanDriver* Driver, SceneGraph* SceneGraph, const std::vector<Vertex> Vertices, const std::vector<uint16_t> Indices)
-		: _Driver(Driver), _SceneGraph(SceneGraph),	vertices(Vertices), indices(Indices),
+	TriangleMesh(VulkanDriver* Driver, const std::vector<Vertex> Vertices, const std::vector<uint16_t> Indices)
+		: _Driver(Driver), vertices(Vertices), indices(Indices),
 		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint16_t)* indices.size()),
 		Pipe(_Driver->_MaterialCache->GetPipe_Default()){
 		createVertexBuffer();
 		createUniformBuffers();
 		Texture = Pipe->createTextureImage("statue.jpg");
 		Descriptor = Pipe->createDescriptor(Texture, uniformBuffers);
+
 		draw();
 	}
 
@@ -124,7 +124,7 @@ public:
 
 		//
 		//	CPU->GPU Copy
-		VkCommandBuffer commandBuffer = _SceneGraph->beginSingleTimeCommands();
+		VkCommandBuffer commandBuffer = _Driver->_SceneGraph->beginSingleTimeCommands();
 
 		VkBufferCopy vertexCopyRegion = {};
 		vertexCopyRegion.size = vertexBufferSize;
@@ -134,7 +134,7 @@ public:
 		indexCopyRegion.size = indexBufferInfo.size;
 		vkCmdCopyBuffer(commandBuffer, stagingIndexBuffer, indexBuffer, 1, &indexCopyRegion);
 
-		_SceneGraph->endSingleTimeCommands(commandBuffer);
+		_Driver->_SceneGraph->endSingleTimeCommands(commandBuffer);
 
 		//
 		//	Destroy Staging Buffers
@@ -160,7 +160,7 @@ public:
 		std::cout << "TriangleMesh Draw" << std::endl;
 #endif
 		//	Command buffers are returned in the recording state
-		commandBuffers = _SceneGraph->newCommandBuffer();
+		commandBuffers = _Driver->_SceneGraph->newCommandBuffer();
 		for (size_t i = 0; i < commandBuffers.size(); i++) {
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);

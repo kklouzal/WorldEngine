@@ -70,14 +70,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\stb-master;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\stb-master;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\lib\vs2017\x64\debug;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\stb-master;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\stb-master;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\lib\vs2017\x64\release;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
@@ -103,7 +103,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;ozz_animation_d.lib;ozz_base_d.lib;ozz_geometry_d.lib;gwen_static_d.lib;unittest_d.lib;FreeImage.lib;freetyped.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;ozz_animation_d.lib;ozz_base_d.lib;ozz_geometry_d.lib;gwen_static_d.lib;unittest_d.lib;FreeImage.lib;freetyped.lib;libfbxsdk.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -134,12 +134,15 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;ozz_animation_r.lib;ozz_base_r.lib;ozz_geometry_r.lib;gwen_static.lib;unittest.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;ozz_animation_r.lib;ozz_base_r.lib;ozz_geometry_r.lib;gwen_static.lib;unittest.lib;freetype.lib;libfbxsdk.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>

@@ -31,8 +31,9 @@ public:
 //	SceneGraph Create Function
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint16_t> indices) {
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, this, vertices, indices);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, vertices, indices);
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
+	importFBX("media/test/test.fbx");
 	SceneNodes.push_back(MeshNode);
 	this->invalidate();
 	return MeshNode;
