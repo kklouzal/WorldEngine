@@ -62,9 +62,9 @@ class EventReceiver {
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
 			Rcvr->m_Canvas->InputMouseButton(1, false);
 		}
-		/*Event NewEvent;
+		Event NewEvent;
 		NewEvent.Action = EventTypes::Mouse;
-		Rcvr->OnEvent(NewEvent);*/
+		Rcvr->OnEvent(NewEvent);
 	}
 
 	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
@@ -140,7 +140,7 @@ public:
 				0, 1, 2, 2, 3, 0,
 				4, 5, 6, 6, 7, 4
 			};
-			//_Driver->_SceneGraph->createTriangleMeshSceneNode(vertices, indices);
+			_Driver->_SceneGraph->createTriangleMeshSceneNode(vertices, indices);
 		}
 	}
 };

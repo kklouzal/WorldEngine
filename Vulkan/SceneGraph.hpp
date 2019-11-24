@@ -47,156 +47,19 @@ public:
 
 	//
 	//	Create SceneNode Functions
-	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint16_t> indices);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint16_t> indices);
 	//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint16_t> indices);
-
-	/*VmaAllocation textureAllocation = VMA_NULL;
-	VkImage textureImage;
-	VkImageView textureImageView;
-	VkSampler textureSampler;
-	void createTextureImage() {
-		int texWidth, texHeight, texChannels;
-		stbi_uc* pixels = stbi_load("missingimage.png", &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-		VkDeviceSize imageSize = texWidth * texHeight * 4;
-		printf("Texture Size: %i %i\n", texWidth, texHeight);
-
-		if (!pixels) {
-			throw std::runtime_error("failed to load texture image!");
-		}
-
-		//
-		//	Image Staging Buffer
-		VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-		stagingBufferInfo.size = imageSize;
-		stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-
-		VmaAllocationCreateInfo allocInfo = {};
-		allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-		allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-		VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
-		VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
-		VmaAllocationInfo stagingImageBufferAllocInfo = {};
-		vmaCreateBuffer(_Driver->allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, &stagingImageBufferAllocInfo);
-
-		memcpy(stagingImageBufferAllocInfo.pMappedData, pixels, static_cast<size_t>(imageSize));
-
-		stbi_image_free(pixels);
-
-		VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-		imageInfo.imageType = VK_IMAGE_TYPE_2D;
-		imageInfo.extent.width = static_cast<uint32_t>(texWidth);
-		imageInfo.extent.height = static_cast<uint32_t>(texHeight);
-		imageInfo.extent.depth = 1;
-		imageInfo.mipLevels = 1;
-		imageInfo.arrayLayers = 1;
-		imageInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
-		imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-		imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-		imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-
-		allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-		VmaAllocationInfo imageBufferAllocInfo = {};
-		vmaCreateImage(_Driver->allocator, &imageInfo, &allocInfo, &textureImage, &textureAllocation, nullptr);
-		//
-//		CPU->GPU Copy
-		VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-		VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-		imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgMemBarrier.subresourceRange.baseMipLevel = 0;
-		imgMemBarrier.subresourceRange.levelCount = 1;
-		imgMemBarrier.subresourceRange.baseArrayLayer = 0;
-		imgMemBarrier.subresourceRange.layerCount = 1;
-		imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imgMemBarrier.image = textureImage;
-		imgMemBarrier.srcAccessMask = 0;
-		imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		vkCmdPipelineBarrier(
-			commandBuffer,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &imgMemBarrier);
-
-		VkBufferImageCopy region = {};
-		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.imageSubresource.layerCount = 1;
-		region.imageExtent.width = static_cast<uint32_t>(texWidth);
-		region.imageExtent.height = static_cast<uint32_t>(texHeight);
-		region.imageExtent.depth = 1;
-
-		vkCmdCopyBufferToImage(commandBuffer, stagingImageBuffer, textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-		imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imgMemBarrier.image = textureImage;
-		imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		vkCmdPipelineBarrier(
-			commandBuffer,
-			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			0,
-			0, nullptr,
-			0, nullptr,
-			1, &imgMemBarrier);
-
-		endSingleTimeCommands(commandBuffer);
-
-		vmaDestroyBuffer(_Driver->allocator, stagingImageBuffer, stagingImageBufferAlloc);
-
-		VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-		textureImageViewInfo.image = textureImage;
-		textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		textureImageViewInfo.format = VK_FORMAT_B8G8R8A8_SRGB;
-		textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		textureImageViewInfo.subresourceRange.baseMipLevel = 0;
-		textureImageViewInfo.subresourceRange.levelCount = 1;
-		textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
-		textureImageViewInfo.subresourceRange.layerCount = 1;
-		vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &textureImageView);
-	}
-	void createTextureSampler() {
-		VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = 16;
-		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
-		if (vkCreateSampler(_Driver->device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS) {
-#ifdef _DEBUG
-			throw std::runtime_error("failed to create texture sampler!");
-#endif
-		}
-	}*/
 };
+
+#include "Pipe_Default.hpp"
+#include "Pipe_GUI.hpp"
 
 #include "MaterialCache.hpp"
 
 //
 //	Include All SceneNode Types
 
-//#include "TriangleMesh.hpp"
+#include "TriangleMesh.hpp"
 #include "SceneNode.h"
 
 //

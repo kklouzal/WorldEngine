@@ -153,10 +153,12 @@
     <None Include="Vertex2.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Pipe_Default.hpp" />
     <ClInclude Include="EventReceiver.hpp" />
     <ClInclude Include="Forwards.hpp" />
     <ClInclude Include="MaterialCache.hpp" />
     <ClInclude Include="PipelineObject.hpp" />
+    <ClInclude Include="Pipe_GUI.hpp" />
     <ClInclude Include="PlaybackController.hpp" />
     <ClInclude Include="SceneGraph.hpp" />
     <ClInclude Include="SceneNode.h" />

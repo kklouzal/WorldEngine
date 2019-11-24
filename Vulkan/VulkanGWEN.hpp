@@ -11,6 +11,14 @@
 #include <array>
 #include <map>
 
+struct GWENTex {
+	DescriptorObject* Descriptor;
+	TextureObject* Texture;
+	~GWENTex() {
+		delete Descriptor;
+	}
+};
+
 typedef struct GWENFaceRec_ {
 	const char*	file_path;
 	int			face_index;
@@ -28,27 +36,32 @@ namespace Gwen
 		class Vulkan : public Gwen::Renderer::Base
 		{
 			VulkanDriver* _Driver;
-			PipelineObject* Pipe;
-
-			VkDescriptorPool FontTexture_DescriptorPool = VK_NULL_HANDLE;
-			std::vector<VkDescriptorSet> FontTexture_DescriptorSets = {};
+			Pipeline::GUI* Pipe;
 
 			size_t currentBuffer = 0;
 			std::vector<VkCommandBuffer> commandBuffers = {};
 
+			std::unordered_map<Vertex, uint32_t> GUI_UniqueVertices = {};
+
 			std::vector<Vertex> GUI_Vertices = {};
-			uint32_t vertexBufferSize = sizeof(Vertex) * 150000;
+			uint32_t vertexBufferSize = sizeof(Vertex) * 64000;
+			std::vector<uint32_t> GUI_Indices = {};
+			uint32_t indexBufferSize = sizeof(uint32_t) * 192000;
 
 			uint32_t CurIndirectDraw = 0;
-			uint32_t CurVertexCount = 0;
+			uint32_t CurIndexCount = 0;
+			uint32_t TotalIndexCount = 0;
 			uint32_t TotalVertexCount = 0;
 
-			std::vector<VkDrawIndirectCommand> indirectCommands;
+			std::vector<VkDrawIndexedIndirectCommand> indirectCommands;
 			VkBuffer indirectBuffer = VK_NULL_HANDLE;
 			VmaAllocation indirectAllocation = VMA_NULL;
 
 			VkBuffer GUI_VertexBuffer = VK_NULL_HANDLE;
 			VmaAllocation GUI_VertexAllocation = VMA_NULL;
+
+			VkBuffer GUI_IndexBuffer = VK_NULL_HANDLE;
+			VmaAllocation GUI_IndexAllocation = VMA_NULL;
 
 			VkBuffer Font_VertexBuffer = VK_NULL_HANDLE;
 			VmaAllocation Font_VertexAllocation = VMA_NULL;
@@ -57,6 +70,8 @@ namespace Gwen
 			VkImage Font_TextureImage;
 			VkImageView Font_TextureImageView;
 			VkSampler Font_TextureSampler;
+
+			DescriptorObject* Font_Descriptor;
 
 			FT_Library library;
 
@@ -68,15 +83,6 @@ namespace Gwen
 			Gwen::Rect clipNew;
 
 			Gwen::Color	m_Color;
-
-			const std::vector<Vertex> Font_TextureVertices = {
-			{{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-			{{1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-			{{1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-			{{1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-			{{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-			{ {-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}
-			};
 
 			const unsigned int HEIGHT = 600;
 			const unsigned int WIDTH = 800;
@@ -190,11 +196,32 @@ namespace Gwen
 
 				vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &GUI_VertexBuffer, &GUI_VertexAllocation, nullptr);
 				printf("Create GUI Vertex Buffer\n");
+				//	Vertex Buffer
+				VkBufferCreateInfo indexBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+				indexBufferInfo.size = vertexBufferSize;
+				indexBufferInfo.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+				indexBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+				VmaAllocationCreateInfo indexAllocInfo = {};
+				indexAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+				indexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+				vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &GUI_IndexBuffer, &GUI_IndexAllocation, nullptr);
+				printf("Create GUI Index Buffer\n");
 			}
 			//
 			//	Font Texture
 			//
 			void createFontVertexBuffer() {
+
+				const std::vector<Vertex> Font_TextureVertices = {
+				{{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+				{{1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+				{{1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+				{{1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+				{{-1.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+				{ {-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}}
+				};
 
 				VkBuffer Font_VertexBuffer_Stage = VK_NULL_HANDLE;
 				VmaAllocation Font_VertexAllocation_Stage = VMA_NULL;
@@ -214,7 +241,7 @@ namespace Gwen
 
 				vertexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 				vertexAllocInfo.flags = 0;
-
+				
 				vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &Font_VertexBuffer, &Font_VertexAllocation, nullptr);
 
 				VkBufferCopy copyRegion = {};
@@ -286,59 +313,15 @@ namespace Gwen
 					throw std::runtime_error("failed to create texture sampler!");
 #endif
 				}
-				//	Descriptor Pool
-				std::array<VkDescriptorPoolSize, 1> poolSizes = {};
-				poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
 
-				VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-				poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-				poolInfo.pPoolSizes = poolSizes.data();
-				poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChainImages.size());
-
-				if (vkCreateDescriptorPool(_Driver->device, &poolInfo, nullptr, &FontTexture_DescriptorPool) != VK_SUCCESS) {
-#ifdef _DEBUG
-					throw std::runtime_error("failed to create descriptor pool!");
-#endif
-				}
-				//	Descriptor Sets
-				std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChainImages.size(), Pipe->descriptorSetLayout);
-				VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-				allocInfo.descriptorPool = FontTexture_DescriptorPool;
-				allocInfo.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
-				allocInfo.pSetLayouts = layouts.data();
-
-				FontTexture_DescriptorSets.resize(_Driver->swapChainImages.size());
-				if (vkAllocateDescriptorSets(_Driver->device, &allocInfo, FontTexture_DescriptorSets.data()) != VK_SUCCESS) {
-#ifdef _DEBUG
-					throw std::runtime_error("failed to allocate descriptor sets!");
-#endif
-				}
-				for (size_t i = 0; i < _Driver->swapChainImages.size(); i++) {
-
-					VkDescriptorImageInfo imageInfo = {};
-					imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					imageInfo.imageView = Font_TextureImageView;
-					imageInfo.sampler = Font_TextureSampler;
-
-					std::array<VkWriteDescriptorSet, 1> descriptorWrites = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-
-					descriptorWrites[0].dstSet = FontTexture_DescriptorSets[i];
-					descriptorWrites[0].dstBinding = 0;
-					descriptorWrites[0].dstArrayElement = 0;
-					descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-					descriptorWrites[0].descriptorCount = 1;
-					descriptorWrites[0].pImageInfo = &imageInfo;
-
-					vkUpdateDescriptorSets(_Driver->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-				}
+				Font_Descriptor = Pipe->createRawDescriptor(Font_TextureImageView, Font_TextureSampler);
 			}
 			//
 			//	Indirect Drawing
 			//
 			void createIndirectBuffer() {
 				VkBufferCreateInfo indirectBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-				indirectBufferInfo.size = sizeof(VkDrawIndirectCommand) * 1024;
+				indirectBufferInfo.size = sizeof(VkDrawIndexedIndirectCommand) * 1024;
 				indirectBufferInfo.usage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 				indirectBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -364,10 +347,14 @@ namespace Gwen
 				NewVertex.color.b = m_Color.b / 128;
 				NewVertex.color.a = m_Color.a / 128;
 
-				GUI_Vertices.emplace_back(NewVertex);
+				if (GUI_UniqueVertices.count(NewVertex) == 0) {
+					GUI_UniqueVertices.emplace(NewVertex, TotalVertexCount++);// [TotalVertexCount++] = NewVertex;
+					GUI_Vertices.emplace_back(NewVertex);
+				}
+				GUI_Indices.push_back(GUI_UniqueVertices[NewVertex]);
 
-				CurVertexCount++;
-				TotalVertexCount++;
+				CurIndexCount++;
+				TotalIndexCount++;
 			}
 		public:
 
@@ -378,17 +365,18 @@ namespace Gwen
 				return commandBuffers[BufferNumber];
 			}
 			Vulkan(VulkanDriver* Driver) : _Driver(Driver) {
-				Pipe = _Driver->_MaterialCache->GetPipe(Pipelines::GUI);
+				Pipe = _Driver->_MaterialCache->GetPipe_GUI();
 			}
 			~Vulkan() {
 				printf("Delete GWEN\n");
 				vmaDestroyBuffer(_Driver->allocator, indirectBuffer, indirectAllocation);
 				vmaDestroyBuffer(_Driver->allocator, GUI_VertexBuffer, GUI_VertexAllocation);
+				vmaDestroyBuffer(_Driver->allocator, GUI_IndexBuffer, GUI_IndexAllocation);
 				vmaDestroyBuffer(_Driver->allocator, Font_VertexBuffer, Font_VertexAllocation);
 				vkDestroySampler(_Driver->device, Font_TextureSampler, nullptr);
 				vkDestroyImageView(_Driver->device, Font_TextureImageView, nullptr);
 				vmaDestroyImage(_Driver->allocator, Font_TextureImage, Font_TextureAllocation);
-				vkDestroyDescriptorPool(_Driver->device, FontTexture_DescriptorPool, nullptr);
+				delete Font_Descriptor;
 			}
 			virtual void Init() {
 				printf("GWEN Vulkan Renderer Initialize\n");
@@ -423,7 +411,8 @@ namespace Gwen
 				scissor.extent = _Driver->swapChainExtent;
 				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &scissor);
 
-				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &FontTexture_DescriptorSets[currentBuffer], 0, nullptr);
+				//	ToDo: Do I really need this here?
+				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
 
 				if (FirstCopy) {
 					auto CB = _Driver->_SceneGraph->beginSingleTimeCommands();
@@ -456,6 +445,7 @@ namespace Gwen
 
 				VkDeviceSize offsets[1] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, &GUI_VertexBuffer, offsets);
+				vkCmdBindIndexBuffer(commandBuffers[currentBuffer], GUI_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			}
 			//
 			//	Start Clip
@@ -465,17 +455,17 @@ namespace Gwen
 				clipOld.w += clipOld.x;
 				clipOld.h += clipOld.y;
 
-				if (CurVertexCount > 0) {
-					VkDrawIndirectCommand iCommand = {};
-					iCommand.firstVertex = TotalVertexCount - CurVertexCount;
-					iCommand.vertexCount = CurVertexCount;
+				if (CurIndexCount > 0) {
+					VkDrawIndexedIndirectCommand iCommand = {};
+					iCommand.firstIndex = TotalIndexCount - CurIndexCount;
+					iCommand.indexCount = CurIndexCount;
 					iCommand.firstInstance = 0;
 					iCommand.instanceCount = 1;
 					indirectCommands.push_back(iCommand);
 
-					vkCmdDrawIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndirectCommand), 1, sizeof(VkDrawIndirectCommand));
+					vkCmdDrawIndexedIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 					CurIndirectDraw++;
-					CurVertexCount = 0;
+					CurIndexCount = 0;
 				}
 				clipNew = ClipRegion();
 				clipNew.x *= Scale();
@@ -494,10 +484,13 @@ namespace Gwen
 				//	Vertex Buffer CPU->GPU Copy
 				memcpy(GUI_VertexAllocation->GetMappedData(), GUI_Vertices.data(), sizeof(Vertex) * GUI_Vertices.size());
 
-				//	Indirect Buffer CPU->GPU Copy
-				memcpy(indirectAllocation->GetMappedData(), indirectCommands.data(), sizeof(VkDrawIndirectCommand) * indirectCommands.size());
+				//	Index Buffer CPU->GPU Copy
+				memcpy(GUI_IndexAllocation->GetMappedData(), GUI_Indices.data(), sizeof(uint32_t) * GUI_Indices.size());
 
-				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &FontTexture_DescriptorSets[currentBuffer], 0, nullptr);
+				//	Indirect Buffer CPU->GPU Copy
+				memcpy(indirectAllocation->GetMappedData(), indirectCommands.data(), sizeof(VkDrawIndexedIndirectCommand) * indirectCommands.size());
+
+				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
 
 				auto CB = _Driver->_SceneGraph->beginSingleTimeCommands();
 				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -544,16 +537,18 @@ namespace Gwen
 					1, &imgMemBarrier);
 				_Driver->_SceneGraph->endSingleTimeCommands(CB);
 
-				VkBuffer vertexBuffers2[] = { Font_VertexBuffer };
 				VkDeviceSize offsets2[] = { 0 };
-				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, vertexBuffers2, offsets2);
-				vkCmdDraw(commandBuffers[currentBuffer], static_cast<uint32_t>(Font_TextureVertices.size()), 1, 0, 0);
+				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, &Font_VertexBuffer, offsets2);
+				vkCmdDraw(commandBuffers[currentBuffer], Font_VertexAllocation->GetSize(), 1, 0, 0);
 				vkEndCommandBuffer(commandBuffers[currentBuffer]);
 
 				CurIndirectDraw = 0;
 				TotalVertexCount = 0;
+				TotalIndexCount = 0;
 				indirectCommands.clear();
 				GUI_Vertices.clear();
+				GUI_Indices.clear();
+				GUI_UniqueVertices.clear();
 			}
 			virtual void DrawFilledRect(Gwen::Rect rect)
 			{
@@ -567,7 +562,7 @@ namespace Gwen
 			}
 			void DrawTexturedRect(Gwen::Texture* pTexture, Gwen::Rect pTargetRect, float u1 = 0.0f, float v1 = 0.0f, float u2 = 1.0f, float v2 = 1.0f)
 			{
-				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &((TextureObject*)pTexture->data)->DescriptorSets[currentBuffer], 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &(static_cast<GWENTex*>(pTexture->data)->Descriptor)->DescriptorSets[currentBuffer], 0, nullptr);
 				Translate(pTargetRect);
 
 				AddVert(pTargetRect.x, pTargetRect.y, u1, v1);
@@ -580,33 +575,38 @@ namespace Gwen
 			void LoadTexture(Gwen::Texture* pTexture)
 			{
 				const char* FileName = pTexture->name.c_str();
-				TextureObject* Tex = _Driver->_MaterialCache->createTextureImage(FileName);
+				TextureObject* Tex = Pipe->createTextureImage(FileName);
+				DescriptorObject* Descriptor = Pipe->createDescriptor(Tex);
+				GWENTex* TexObj = new GWENTex;
+				TexObj->Descriptor = Descriptor;
+				TexObj->Texture = Tex;
 				if (Tex == nullptr) {
+					printf("GWEN: Load Texture Failed\n");
 					pTexture->failed = true;
 					return;
 				}
-				pTexture->data = Tex;
+				pTexture->data = TexObj;
 				pTexture->width = Tex->Width;
 				pTexture->height = Tex->Height;
 			}
 			void FreeTexture(Gwen::Texture* pTexture)
 			{
-				TextureObject* tex = (TextureObject* ) pTexture->data;
+				GWENTex* TexObj = static_cast<GWENTex*>(pTexture->data);
 
-				if ( !tex ) { return; }
+				if ( !TexObj) { return; }
 
-				delete tex;
+				delete TexObj;
 				pTexture->data = NULL;
 			}
 			Gwen::Color PixelColour(Gwen::Texture* pTexture, unsigned int x, unsigned int y, const Gwen::Color& col_default)
 			{
-				TextureObject* tex = (TextureObject* ) pTexture->data;
+				GWENTex* TexObj = static_cast<GWENTex*>(pTexture->data);
 
-				if ( !tex ) { return col_default; }
+				if ( !TexObj) { return col_default; }
 
 				const unsigned int iOffset = ( (y * pTexture->width) + x ) * 4;
 				//	iOffset = r; iOffset+1 = g; iOffset+2 = b; iOffset+3 = a;
-				return Gwen::Color(tex->Pixels[iOffset], tex->Pixels[iOffset+1], tex->Pixels[iOffset+2], tex->Pixels[iOffset+3]);
+				return Gwen::Color(TexObj->Texture->Pixels[iOffset], TexObj->Texture->Pixels[iOffset+1], TexObj->Texture->Pixels[iOffset+2], TexObj->Texture->Pixels[iOffset+3]);
 			}
 			virtual void SetDrawColor(Gwen::Color color)
 			{

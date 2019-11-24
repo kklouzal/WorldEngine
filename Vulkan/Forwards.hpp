@@ -1,6 +1,14 @@
 #pragma once
 
 //
+//	Uniform Buffer Object
+struct UniformBufferObject {
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+};
+
+//
 //	Vertex
 struct Vertex {
 	glm::vec3 pos;
@@ -52,96 +60,34 @@ namespace std {
 	};
 }
 
-struct PipelineObject {
+struct DescriptorObject {
 	VulkanDriver* _Driver;
+	VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> DescriptorSets = {};
 
-	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
-	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
-	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
-
-	PipelineObject(VulkanDriver* Driver) : _Driver(Driver) {}
-
-	~PipelineObject() {
-		vkDestroyPipeline(_Driver->device, graphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(_Driver->device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(_Driver->device, descriptorSetLayout, nullptr);
-	}
-
-	//
-	//	Create Descriptor Set Layout
-	void createDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo LayoutInfo) {
-		if (vkCreateDescriptorSetLayout(_Driver->device, &LayoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-#ifdef _DEBUG
-			throw std::runtime_error("failed to create descriptor set layout!");
-#endif
-		}
-	}
-
-	//
-	//	Create Pipeline Layout & Graphics Pipeline
-	void createPipeline(
-		VkPipelineShaderStageCreateInfo shaderStages[],
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo,
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly,
-		VkPipelineViewportStateCreateInfo viewportState,
-		VkPipelineRasterizationStateCreateInfo rasterizer,
-		VkPipelineMultisampleStateCreateInfo multisampling,
-		VkPipelineDepthStencilStateCreateInfo depthStencil,
-		VkPipelineColorBlendStateCreateInfo colorBlending,
-		VkPipelineDynamicStateCreateInfo dynamicState) {
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-
-		if (vkCreatePipelineLayout(_Driver->device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-#ifdef _DEBUG
-			throw std::runtime_error("failed to create pipeline layout!");
-#endif
-		}
-
-		VkGraphicsPipelineCreateInfo pipelineInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-		pipelineInfo.stageCount = 2;
-		pipelineInfo.pStages = shaderStages;
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-		pipelineInfo.pInputAssemblyState = &inputAssembly;
-		pipelineInfo.pViewportState = &viewportState;
-		pipelineInfo.pRasterizationState = &rasterizer;
-		pipelineInfo.pMultisampleState = &multisampling;
-		pipelineInfo.pDepthStencilState = &depthStencil;
-		pipelineInfo.pColorBlendState = &colorBlending;
-		pipelineInfo.pDynamicState = &dynamicState;
-		pipelineInfo.layout = pipelineLayout;
-		pipelineInfo.renderPass = _Driver->renderPass;
-		pipelineInfo.subpass = 0;
-
-		if (vkCreateGraphicsPipelines(_Driver->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
-#ifdef _DEBUG
-			throw std::runtime_error("failed to create graphics pipeline!");
-#endif
-		}
+	DescriptorObject(VulkanDriver* Driver) : _Driver(Driver) {}
+	~DescriptorObject() {
+		vkDestroyDescriptorPool(_Driver->device, DescriptorPool, nullptr);
 	}
 };
 
 struct TextureObject {
-
+	VulkanDriver* _Driver;
 	VmaAllocation Allocation = VMA_NULL;
 	VkImage Image = VK_NULL_HANDLE;
 	VkImageView ImageView = VK_NULL_HANDLE;
 	VkSampler Sampler = VK_NULL_HANDLE;
-	VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
-	std::vector<VkDescriptorSet> DescriptorSets = {};
 	int Width;
 	int Height;
 	stbi_uc* Pixels;
-
-	VulkanDriver* _Driver;
 
 	TextureObject(VulkanDriver* Driver, int W, int H, stbi_uc* P) : _Driver(Driver), Width(W), Height(H), Pixels(P) {}
 	~TextureObject() {
 		vkDestroySampler(_Driver->device, Sampler, nullptr);
 		vkDestroyImageView(_Driver->device, ImageView, nullptr);
 		vmaDestroyImage(_Driver->allocator, Image, Allocation);
-		vkDestroyDescriptorPool(_Driver->device, DescriptorPool, nullptr);
 		stbi_image_free(Pixels);
 	}
 };
+
+#include "PipelineObject.hpp"

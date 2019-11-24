@@ -16,6 +16,9 @@
     <Filter Include="Header Files\SceneNodes">
       <UniqueIdentifier>{967751bb-140d-4035-9336-2cb094c7f493}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Pipelines">
+      <UniqueIdentifier>{c45fc0e6-2d89-4885-b625-970c970f2656}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -70,11 +73,17 @@
     <ClInclude Include="VulkanGWEN.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PipelineObject.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Forwards.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PipelineObject.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipe_GUI.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipe_Default.hpp">
+      <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
