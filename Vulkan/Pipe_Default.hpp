@@ -216,10 +216,12 @@ namespace Pipeline {
 			int texWidth, texHeight, texChannels;
 			stbi_uc* pixels = stbi_load(File, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
 			VkDeviceSize imageSize = texWidth * texHeight * 4;
-			printf("Texture Size: %i %i\n", texWidth, texHeight);
 
 			if (!pixels) {
 				throw std::runtime_error("failed to load texture image!");
+			}
+			else {
+				printf("Default - Load Texture (%s) %ix%ix%i\n", File, texWidth, texHeight, texChannels);
 			}
 
 			auto Tex = Textures.emplace_back(new TextureObject(_Driver, texWidth, texHeight, pixels));

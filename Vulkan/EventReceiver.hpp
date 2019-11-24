@@ -63,7 +63,16 @@ class EventReceiver {
 			Rcvr->m_Canvas->InputMouseButton(1, false);
 		}
 		Event NewEvent;
-		NewEvent.Action = EventTypes::Mouse;
+		NewEvent.Type = EventTypes::Mouse;
+		if (action == GLFW_PRESS) {
+			NewEvent.Action = EventActions::Press;
+		}
+		else if (action == GLFW_RELEASE) {
+			NewEvent.Action = EventActions::Release;
+		}
+		else if (action == GLFW_REPEAT) {
+			NewEvent.Action = EventActions::Repeat;
+		}
 		Rcvr->OnEvent(NewEvent);
 	}
 
@@ -85,8 +94,15 @@ protected:
 		Mouse = 2
 	};
 
+	enum EventActions {
+		Press = 1,
+		Release = 2,
+		Repeat = 3
+	};
+
 	struct Event {
-		EventTypes Action;
+		EventTypes Type;
+		EventActions Action;
 		//	Other Event Related Values
 	};
 
@@ -108,9 +124,9 @@ public:
 	}
 
 	void OnEvent(Event& NewEvent) {
-		if (NewEvent.Action == EventTypes::Keyboard) {
+		if (NewEvent.Type == EventTypes::Keyboard) {
 #ifdef _DEBUG
-			std::cout << "Keyboard" << std::endl;
+			printf("Keyboard\n");
 #endif
 			const std::vector<Vertex> vertices2 = {
 			{{-0.7f, -0.7f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
@@ -124,23 +140,37 @@ public:
 			};
 			//_Driver->_SceneGraph->createSkinnedMeshSceneNode(vertices2, indices);
 		}
-		else if (NewEvent.Action == EventTypes::Mouse) {
+		else if (NewEvent.Type == EventTypes::Mouse) {
 #ifdef _DEBUG
-			std::cout << "Mouse" << std::endl;
+			printf("Mouse ");
 #endif
+			if (NewEvent.Action == EventActions::Press) {
+#ifdef _DEBUG
+				printf("Press\n");
+#endif
+				const std::vector<Vertex> vertices = {
+					{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+					{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+					{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+					{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+				};
 
-			const std::vector<Vertex> vertices = {
-				{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-				{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-				{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-				{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-			};
-
-			const std::vector<uint16_t> indices = {
-				0, 1, 2, 2, 3, 0,
-				4, 5, 6, 6, 7, 4
-			};
-			_Driver->_SceneGraph->createTriangleMeshSceneNode(vertices, indices);
+				const std::vector<uint16_t> indices = {
+					0, 1, 2, 2, 3, 0,
+					4, 5, 6, 6, 7, 4
+				};
+				_Driver->_SceneGraph->createTriangleMeshSceneNode(vertices, indices);
+			}
+			else if (NewEvent.Action = EventActions::Release) {
+#ifdef _DEBUG
+				printf("Release\n");
+#endif
+			}
+			else if (NewEvent.Action = EventActions::Repeat) {
+#ifdef _DEBUG
+				printf("Repeat\n");
+#endif
+			}
 		}
 	}
 };

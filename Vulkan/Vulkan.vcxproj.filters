@@ -85,5 +85,8 @@
     <ClInclude Include="Pipe_Default.hpp">
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
+    <ClInclude Include="Import_FBX.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

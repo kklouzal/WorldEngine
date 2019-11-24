@@ -12,7 +12,7 @@ public:
 	Pipeline::Default* Pipe;
 
 	const std::vector<Vertex> vertices;
-	const std::vector<uint16_t> indices;
+	const std::vector<uint32_t> indices;
 	size_t vertexBufferSize;
 	size_t indexBufferSize;
 
@@ -33,9 +33,9 @@ public:
 
 public:
 
-	TriangleMesh(VulkanDriver* Driver, const std::vector<Vertex> Vertices, const std::vector<uint16_t> Indices)
+	TriangleMesh(VulkanDriver* Driver, const std::vector<Vertex> Vertices, const std::vector<uint32_t> Indices)
 		: _Driver(Driver), vertices(Vertices), indices(Indices),
-		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint16_t)* indices.size()),
+		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint32_t)* indices.size()),
 		Pipe(_Driver->_MaterialCache->GetPipe_Default()){
 		createVertexBuffer();
 		createUniformBuffers();
@@ -171,7 +171,7 @@ public:
 			VkBuffer vertexBuffers[] = { vertexBuffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 			//
@@ -189,14 +189,14 @@ public:
 		UniformBufferObject ubo = {};
 		if (alt) {
 			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 10.0f);
+			ubo.view = glm::lookAt(glm::vec3(1000.0f, 1000.0f, 1000.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 100.0f);
 			ubo.proj[1][1] *= -1;
 		}
 		else {
 			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 10.0f);
+			ubo.view = glm::lookAt(glm::vec3(10.0f, 10.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 100.0f);
 			ubo.proj[1][1] *= -1;
 		}
 

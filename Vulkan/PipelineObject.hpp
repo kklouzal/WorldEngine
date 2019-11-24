@@ -10,7 +10,6 @@ struct PipelineObject {
 
 	~PipelineObject() {
 		for (auto Tex : Textures) {
-			printf("Delete Texture\n");
 			delete Tex;
 		}
 		vkDestroyPipeline(_Driver->device, graphicsPipeline, nullptr);

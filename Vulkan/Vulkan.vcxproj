@@ -156,6 +156,7 @@
     <None Include="Vertex2.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Import_FBX.hpp" />
     <ClInclude Include="Pipe_Default.hpp" />
     <ClInclude Include="EventReceiver.hpp" />
     <ClInclude Include="Forwards.hpp" />

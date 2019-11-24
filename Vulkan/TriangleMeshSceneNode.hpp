@@ -31,10 +31,12 @@ public:
 //	SceneGraph Create Function
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint16_t> indices) {
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, vertices, indices);
+	FBXObject* FBX = _ImportFBX->Import("media/apt2/apt2.fbx");
+
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, FBX->Vertices, FBX->Indices);
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
-	importFBX("media/test/test.fbx");
 	SceneNodes.push_back(MeshNode);
+	delete FBX;
 	this->invalidate();
 	return MeshNode;
 }
