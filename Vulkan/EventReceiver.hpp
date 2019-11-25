@@ -42,9 +42,18 @@ class EventReceiver {
 			Rcvr->m_Canvas->InputKey(iKey, true);
 			Rcvr->m_Canvas->InputKey(iKey, false);
 		}
-		/*Event NewEvent;
-		NewEvent.Action = EventTypes::Keyboard;
-		static_cast<EventReceiver*>(glfwGetWindowUserPointer(window))->OnEvent(NewEvent);*/
+		Event NewEvent;
+		NewEvent.Type = EventTypes::Keyboard;
+		if (action == GLFW_PRESS) {
+			NewEvent.Action = EventActions::Press;
+		}
+		else if (action == GLFW_RELEASE) {
+			NewEvent.Action = EventActions::Release;
+		}
+		else if (action == GLFW_REPEAT) {
+			NewEvent.Action = EventActions::Repeat;
+		}
+		Rcvr->OnEvent(NewEvent);
 	}
 
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -107,7 +116,7 @@ protected:
 	};
 
 public:
-	virtual void OnEvent(Event& NewEvent) = 0;
+	virtual void OnEvent(const Event &NewEvent) = 0;
 
 	void SetGWEN(Gwen::Controls::Canvas* Canvas) {
 		m_Canvas = Canvas;
@@ -123,22 +132,39 @@ public:
 
 	}
 
-	void OnEvent(Event& NewEvent) {
+	void OnEvent(const Event &NewEvent) {
 		if (NewEvent.Type == EventTypes::Keyboard) {
 #ifdef _DEBUG
-			printf("Keyboard\n");
+			printf("Keyboard ");
 #endif
-			const std::vector<Vertex> vertices2 = {
-			{{-0.7f, -0.7f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-			{{0.7f, -0.7f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-			{{0.7f, 0.7f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-			{{-0.7f, 0.7f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-			};
+			if (NewEvent.Action == EventActions::Press) {
+#ifdef _DEBUG
+				printf("Press\n");
+#endif
+				const std::vector<Vertex> vertices = {
+				{{-0.7f, -0.7f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+				{{0.7f, -0.7f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+				{{0.7f, 0.7f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+				{{-0.7f, 0.7f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+				};
 
-			const std::vector<uint16_t> indices = {
-			0, 1, 2, 2, 3, 0
-			};
-			//_Driver->_SceneGraph->createSkinnedMeshSceneNode(vertices2, indices);
+				const std::vector<uint16_t> indices = {
+				0, 1, 2, 2, 3, 0
+				};
+				//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/test/test.fbx");
+				//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/lua.fbx");
+				_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/arnaud.fbx");
+			}
+			else if (NewEvent.Action == EventActions::Release) {
+#ifdef _DEBUG
+				printf("Release\n");
+#endif
+			}
+			else if (NewEvent.Action == EventActions::Repeat) {
+#ifdef _DEBUG
+				printf("Repeat\n");
+#endif
+			}
 		}
 		else if (NewEvent.Type == EventTypes::Mouse) {
 #ifdef _DEBUG
@@ -159,14 +185,14 @@ public:
 					0, 1, 2, 2, 3, 0,
 					4, 5, 6, 6, 7, 4
 				};
-				_Driver->_SceneGraph->createTriangleMeshSceneNode(vertices, indices);
+				//_Driver->_SceneGraph->createSkinnedMeshSceneNode(vertices, indices);
 			}
-			else if (NewEvent.Action = EventActions::Release) {
+			else if (NewEvent.Action == EventActions::Release) {
 #ifdef _DEBUG
 				printf("Release\n");
 #endif
 			}
-			else if (NewEvent.Action = EventActions::Repeat) {
+			else if (NewEvent.Action == EventActions::Repeat) {
 #ifdef _DEBUG
 				printf("Repeat\n");
 #endif

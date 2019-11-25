@@ -33,21 +33,27 @@ public:
 
 public:
 
-	TriangleMesh(VulkanDriver* Driver, const std::vector<Vertex> Vertices, const std::vector<uint32_t> Indices)
+	TriangleMesh(VulkanDriver* Driver, const std::vector<Vertex> &Vertices, const std::vector<uint32_t> &Indices)
 		: _Driver(Driver), vertices(Vertices), indices(Indices),
 		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint32_t)* indices.size()),
 		Pipe(_Driver->_MaterialCache->GetPipe_Default()){
 		createVertexBuffer();
 		createUniformBuffers();
-		Texture = Pipe->createTextureImage("statue.jpg");
+		//Texture = Pipe->createTextureImage("media/test/VR_Base_Color.png");
+		Texture = Pipe->createTextureImage("media/lua2.png");
 		Descriptor = Pipe->createDescriptor(Texture, uniformBuffers);
 
 		draw();
 	}
 
 	~TriangleMesh() {
-		destroyVertexBuffer();
-		destroyUniformBuffers();
+		//	Destroy VMA Buffers
+		vmaDestroyBuffer(_Driver->allocator, vertexBuffer, vertexAllocation);
+		vmaDestroyBuffer(_Driver->allocator, indexBuffer, indexAllocation);
+		//	Destroy VMA Buffers
+		for (size_t i = 0; i < uniformBuffers.size(); i++) {
+			vmaDestroyBuffer(_Driver->allocator, uniformBuffers[i], uniformAllocations[i]);
+		}
 		delete Descriptor;
 	}
 
@@ -142,19 +148,6 @@ public:
 		vmaDestroyBuffer(_Driver->allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
 	}
 
-	void destroyVertexBuffer() {
-		//	Destroy VMA Buffers
-		vmaDestroyBuffer(_Driver->allocator, vertexBuffer, vertexAllocation);
-		vmaDestroyBuffer(_Driver->allocator, indexBuffer, indexAllocation);
-	}
-
-	void destroyUniformBuffers() {
-		//	Destroy VMA Buffers
-		for (size_t i = 0; i < uniformBuffers.size(); i++) {
-			vmaDestroyBuffer(_Driver->allocator, uniformBuffers[i], uniformAllocations[i]);
-		}
-	}
-
 	void draw() {
 #ifdef _DEBUG
 		std::cout << "TriangleMesh Draw" << std::endl;
@@ -180,30 +173,16 @@ public:
 		}
 	}
 
-	void updateUniformBuffer(uint32_t currentImage, bool alt) {
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-	
-		UniformBufferObject ubo = {};
-		if (alt) {
-			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(45.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.view = glm::lookAt(glm::vec3(1000.0f, 1000.0f, 1000.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 100.0f);
+	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo) {
+			//ubo.view = glm::lookAt(glm::vec3(512.0f, 512.0f, 128.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.view = glm::lookAt(glm::vec3(32.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.5f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 1024.0f);
 			ubo.proj[1][1] *= -1;
-		}
-		else {
-			ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.view = glm::lookAt(glm::vec3(10.0f, 10.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 100.0f);
-			ubo.proj[1][1] *= -1;
-		}
 
 		memcpy(uniformAllocations[currentImage]->GetMappedData(), &ubo, sizeof(ubo));
 	}
 
-	void drawFrame(VkCommandBuffer primaryCommandBuffer) {
+	void drawFrame(const VkCommandBuffer &primaryCommandBuffer) {
 		//std::cout << "TriangleMesh DrawFrame" << std::endl;
 		vkCmdExecuteCommands(primaryCommandBuffer, commandBuffers.size(), commandBuffers.data());
 	}

@@ -42,8 +42,8 @@ public:
 public:
 	EventReceiver* _EventReceiver;
 	GLFWwindow* _Window = nullptr;
-	const uint32_t WIDTH = 800;
-	const uint32_t HEIGHT = 600;
+	const uint32_t WIDTH = 1024;
+	const uint32_t HEIGHT = 768;
 	VkInstance instance = VK_NULL_HANDLE;
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;

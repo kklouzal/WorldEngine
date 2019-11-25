@@ -88,13 +88,18 @@ public:
 		}
 	}
 
+	struct VertexBoneInfo {
+		std::vector<int> Bones = {};
+		std::vector<float> Weights = {};
+	};
+
+	//	Only the first UV set is used for each mesh
 	FBXObject* Import(const char* File) {
 		FbxImporter* Importer = FbxImporter::Create(_FbxManager, "");
 		if (!Importer->Initialize(File, -1, _FbxManager->GetIOSettings())) {
 			printf("FBX Import Initialize Failed: %s", Importer->GetStatus().GetErrorString());
 			return nullptr;
 		}
-
 
 		FbxScene* Scene = FbxScene::Create(_FbxManager, "NewScene");
 		Importer->Import(Scene);
@@ -109,32 +114,155 @@ public:
 
 			std::vector<Vertex> OutVertices = {};
 			std::vector<uint32_t> OutIndices = {};
+			std::unordered_map<int, VertexBoneInfo> BoneData = {};
 
 			uint32_t IndexCount = 0;
 			for (auto Node : Nodes) {
 				FbxMesh* Mesh = (FbxMesh*)Node->GetNodeAttribute();
-
 				FbxVector4* Vertices = Mesh->GetControlPoints();
+				FbxSkin* pSkin = (FbxSkin*)Mesh->GetDeformer(0, FbxDeformer::eSkin);
+				if (pSkin) {
+					int ncBones = pSkin->GetClusterCount();
+					printf("Bones: %i\n", ncBones);
+					for (int boneIndex = 0; boneIndex < ncBones; ++boneIndex)
+					{
+						FbxCluster* cluster = pSkin->GetCluster(boneIndex);
+						FbxNode* pBone = cluster->GetLink();
 
+						//FbxAMatrix bindPoseMatrix, transformMatrix;
+						//cluster->GetTransformMatrix(transformMatrix);
+						//cluster->GetTransformLinkMatrix(bindPoseMatrix);
+						//vS = bindPoseMatrix.GetS();
+						//vR = bindPoseMatrix.GetR();
+						//vT = bindPoseMatrix.GetT();
+
+						int* pVertexIndices = cluster->GetControlPointIndices();
+						double* pVertexWeights = cluster->GetControlPointWeights();
+
+						// Iterate through all the vertices, which are affected by the bone
+						int ncVertexIndices = cluster->GetControlPointIndicesCount();
+
+						for (int iBoneVertexIndex = 0; iBoneVertexIndex < ncVertexIndices; iBoneVertexIndex++)
+						{
+							// vertex
+							int niVertex = pVertexIndices[iBoneVertexIndex];
+							// weight
+							float fWeight = (float)pVertexWeights[iBoneVertexIndex];
+							
+							BoneData[niVertex].Bones.push_back(boneIndex);
+							BoneData[niVertex].Weights.push_back(fWeight);
+						}
+					}
+				}
+				else {
+					printf("Model Has No Skin\n");
+				}
+				//
+				//	UV Mapping
+				FbxStringList lUVSetNameList;
+				Mesh->GetUVSetNames(lUVSetNameList);
+				int UVSets = lUVSetNameList.GetCount();
+				printf("UV Sets: %i\n", UVSets);
+				//if (UVSets > 0) {
+					const char* lUVSetName = lUVSetNameList.GetStringAt(0);
+					const FbxGeometryElementUV* lUVElement = Mesh->GetElementUV(lUVSetName);
+					printf("UV Set Name: %s\n", lUVSetName);
+					//if (lUVElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex) {
+						printf("Polygon Vertex Mapping\n");
+						const bool lUseIndex = lUVElement->GetReferenceMode() != FbxGeometryElement::eDirect;
+						const int lIndexCount = (lUseIndex) ? lUVElement->GetIndexArray().GetCount() : 0;
+					//}
+				//}
+				
+				//
+				//	Normal Mapping
+				FbxGeometryElementNormal* lNormalElement = Mesh->GetElementNormal();
+
+				int lPolyIndexCounter = 0;
 				for (int j = 0; j < Mesh->GetPolygonCount(); j++) {
 					int NumVerts = Mesh->GetPolygonSize(j);
-					//printf("NumVerts: %i\n", NumVerts);
 					if (NumVerts != 3 ) { continue; }
 					for (int k = 0; k < NumVerts; k++) {
-						int VertID = Mesh->GetPolygonVertex(j, k);
 						Vertex NewVertex{};
+						//
+						//	Bone Data
+						if (BoneData.count(j) == 1) {
+							const unsigned int BoneSize = BoneData[j].Bones.size();
+							if (BoneSize > 0) {
+								NewVertex.Bones.x = BoneData[j].Bones[0];
+							}
+							if (BoneSize > 1) {
+								NewVertex.Bones.y = BoneData[j].Bones[1];
+							}
+							if (BoneSize > 2) {
+								NewVertex.Bones.z = BoneData[j].Bones[2];
+							}
+							if (BoneSize > 3) {
+								NewVertex.Bones.w = BoneData[j].Bones[3];
+							}
+
+							const unsigned int WeightSize = BoneData[j].Weights.size();
+							if (WeightSize > 0) {
+								NewVertex.Weights.x = BoneData[j].Weights[0];
+							}
+							if (WeightSize > 1) {
+								NewVertex.Weights.y = BoneData[j].Weights[1];
+							}
+							if (WeightSize > 2) {
+								NewVertex.Weights.z = BoneData[j].Weights[2];
+							}
+							if (WeightSize > 3) {
+								NewVertex.Weights.w = BoneData[j].Weights[3];
+							}
+						}
+						//
+						//	Normap Mapping Data
+						int lNormalIndex = 0;
+						//reference mode is direct, the normal index is same as lIndexByPolygonVertex.
+						if (lNormalElement->GetReferenceMode() == FbxGeometryElement::eDirect)
+							lNormalIndex = lPolyIndexCounter;
+
+						//reference mode is index-to-direct, get normals by the index-to-direct
+						if (lNormalElement->GetReferenceMode() == FbxGeometryElement::eIndexToDirect)
+							lNormalIndex = lNormalElement->GetIndexArray().GetAt(lPolyIndexCounter);
+
+						//Got normals of each polygon-vertex.
+						FbxVector4 lNormal = lNormalElement->GetDirectArray().GetAt(lNormalIndex);
+
+						NewVertex.normal.x = lNormal[0];
+						NewVertex.normal.y = lNormal[1];
+						NewVertex.normal.z = lNormal[2];
+						//
+						//	UV Mapping Data
+						if (lPolyIndexCounter < lIndexCount)
+						{
+							FbxVector2 lUVValue;
+
+							//the UV index depends on the reference mode
+							int lUVIndex = lUseIndex ? lUVElement->GetIndexArray().GetAt(lPolyIndexCounter) : lPolyIndexCounter;
+
+							lUVValue = lUVElement->GetDirectArray().GetAt(lUVIndex);
+
+							NewVertex.texCoord.x = lUVValue.mData[0];
+							NewVertex.texCoord.y = -lUVValue.mData[1];
+
+							lPolyIndexCounter++;
+						}
+						//
+						//	Vertex & Index data
+						int VertID = Mesh->GetPolygonVertex(j, k);
 						NewVertex.pos.x = (float)Vertices[VertID].mData[0];
 						NewVertex.pos.y = (float)Vertices[VertID].mData[1];
 						NewVertex.pos.z = (float)Vertices[VertID].mData[2];
 						OutVertices.push_back(NewVertex);
-						OutIndices.push_back(++IndexCount);
+						OutIndices.push_back(IndexCount++);
 					}
 				}
 			}
 			FBXObject* NewFBX = new FBXObject;
 			NewFBX->Vertices.swap(OutVertices);
 			NewFBX->Indices.swap(OutIndices);
-			printf("Out Vertex Count: %i\n", OutVertices.size());
+			printf("Out Vertex Count: %i\n", NewFBX->Vertices.size());
 			return NewFBX;
 		}
 	}

@@ -16,11 +16,20 @@ public:
 		delete _Mesh;
 	}
 
-	void updateUniformBuffer(uint32_t currentImage) {
-		_Mesh->updateUniformBuffer(currentImage, false);
+	void updateUniformBuffer(const uint32_t &currentImage) {
+
+		static auto startTime = std::chrono::high_resolution_clock::now();
+
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+		UniformBufferObject ubo = {};
+		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+		_Mesh->updateUniformBuffer(currentImage, ubo);
 	}
 
-	void drawFrame(VkCommandBuffer primaryCommandBuffer) {
+	void drawFrame(const VkCommandBuffer &primaryCommandBuffer) {
 		if (!Valid) {
 			_Mesh->drawFrame(primaryCommandBuffer);
 		}
@@ -29,14 +38,22 @@ public:
 
 //
 //	SceneGraph Create Function
-TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint16_t> indices) {
+TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX) {
 
-	FBXObject* FBX = _ImportFBX->Import("media/apt2/apt2.fbx");
+	FBXObject* FBX = _ImportFBX->Import(FileFBX);
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, FBX->Vertices, FBX->Indices);
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 	SceneNodes.push_back(MeshNode);
 	delete FBX;
+	this->invalidate();
+	return MeshNode;
+}
+TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> Vertices, const std::vector<uint32_t> Indices) {
+
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Vertices, Indices);
+	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
+	SceneNodes.push_back(MeshNode);
 	this->invalidate();
 	return MeshNode;
 }

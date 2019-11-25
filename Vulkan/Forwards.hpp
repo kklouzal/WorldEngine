@@ -6,6 +6,7 @@ struct UniformBufferObject {
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
+	glm::mat4 bones[64];
 };
 
 //
@@ -14,6 +15,10 @@ struct Vertex {
 	glm::vec3 pos;
 	glm::vec4 color;
 	glm::vec2 texCoord;
+	glm::vec3 normal;
+
+	glm::ivec4 Bones;
+	glm::vec4 Weights;
 
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription = {};
@@ -24,8 +29,8 @@ struct Vertex {
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
+	static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 6> attributeDescriptions = {};
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
@@ -41,6 +46,21 @@ struct Vertex {
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
 		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
+
+		attributeDescriptions[3].binding = 0;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+		attributeDescriptions[3].offset = offsetof(Vertex, normal);
+
+		attributeDescriptions[4].binding = 0;
+		attributeDescriptions[4].location = 4;
+		attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SINT;
+		attributeDescriptions[4].offset = offsetof(Vertex, Bones);
+
+		attributeDescriptions[5].binding = 0;
+		attributeDescriptions[5].location = 5;
+		attributeDescriptions[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+		attributeDescriptions[5].offset = offsetof(Vertex, Weights);
 
 		return attributeDescriptions;
 	}
@@ -72,21 +92,24 @@ struct DescriptorObject {
 };
 
 struct TextureObject {
-	VulkanDriver* _Driver;
+	VulkanDriver* _Driver = nullptr;
 	VmaAllocation Allocation = VMA_NULL;
 	VkImage Image = VK_NULL_HANDLE;
 	VkImageView ImageView = VK_NULL_HANDLE;
 	VkSampler Sampler = VK_NULL_HANDLE;
-	int Width;
-	int Height;
-	stbi_uc* Pixels;
+	unsigned int Width = 0;
+	unsigned int Height = 0;
+	std::vector<unsigned char> Pixels = {};
+	bool Empty = true;
 
-	TextureObject(VulkanDriver* Driver, int W, int H, stbi_uc* P) : _Driver(Driver), Width(W), Height(H), Pixels(P) {}
+	//	ToDo: vector.swap image(p)
+	TextureObject(VulkanDriver* Driver) : _Driver(Driver) {}
 	~TextureObject() {
-		vkDestroySampler(_Driver->device, Sampler, nullptr);
-		vkDestroyImageView(_Driver->device, ImageView, nullptr);
-		vmaDestroyImage(_Driver->allocator, Image, Allocation);
-		stbi_image_free(Pixels);
+		if (!Empty) {
+			vkDestroySampler(_Driver->device, Sampler, nullptr);
+			vkDestroyImageView(_Driver->device, ImageView, nullptr);
+			vmaDestroyImage(_Driver->allocator, Image, Allocation);
+		}
 	}
 };
 

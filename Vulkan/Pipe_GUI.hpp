@@ -242,19 +242,18 @@ namespace Pipeline {
 		//
 		//
 		TextureObject* createTextureImage(const char* File) {
-			int texWidth, texHeight, texChannels;
-			stbi_uc* pixels = stbi_load(File, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-			VkDeviceSize imageSize = texWidth * texHeight * 4;
 
-			if (!pixels) {
-				printf("failed to load texture image! (%s)\n", File);
-				return nullptr;
-			}
-			else {
-				printf("GUI - Load Texture (%s) %ix%ix%i\n", File, texWidth, texHeight, texChannels);
-			}
+			auto Tex = Textures.emplace_back(new TextureObject(_Driver));
 
-			auto Tex = Textures.emplace_back(new TextureObject(_Driver, texWidth, texHeight, pixels));
+			//decode
+			unsigned error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
+
+			//if there's an error, display it
+			if (error) printf("PNG Decoder error: (%i) %s", error, lodepng_error_text(error));
+
+			Tex->Empty = false;
+
+			VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
 
 			//
 			//	Image Staging Buffer
@@ -269,19 +268,19 @@ namespace Pipeline {
 
 			VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
 			VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
-			VmaAllocationInfo stagingImageBufferAllocInfo = {};
-			vmaCreateBuffer(_Driver->allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, &stagingImageBufferAllocInfo);
+			vmaCreateBuffer(_Driver->allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
 
-			memcpy(stagingImageBufferAllocInfo.pMappedData, pixels, static_cast<size_t>(imageSize));
+			memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
+
 
 			VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 			imageInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageInfo.extent.width = static_cast<uint32_t>(texWidth);
-			imageInfo.extent.height = static_cast<uint32_t>(texHeight);
+			imageInfo.extent.width = static_cast<uint32_t>(Tex->Width);
+			imageInfo.extent.height = static_cast<uint32_t>(Tex->Height);
 			imageInfo.extent.depth = 1;
 			imageInfo.mipLevels = 1;
 			imageInfo.arrayLayers = 1;
-			imageInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+			imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -321,8 +320,8 @@ namespace Pipeline {
 			VkBufferImageCopy region = {};
 			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			region.imageSubresource.layerCount = 1;
-			region.imageExtent.width = static_cast<uint32_t>(texWidth);
-			region.imageExtent.height = static_cast<uint32_t>(texHeight);
+			region.imageExtent.width = static_cast<uint32_t>(Tex->Width);
+			region.imageExtent.height = static_cast<uint32_t>(Tex->Height);
 			region.imageExtent.depth = 1;
 
 			vkCmdCopyBufferToImage(commandBuffer, stagingImageBuffer, Tex->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
@@ -349,7 +348,7 @@ namespace Pipeline {
 			VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 			textureImageViewInfo.image = Tex->Image;
 			textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			textureImageViewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+			textureImageViewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 			textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			textureImageViewInfo.subresourceRange.baseMipLevel = 0;
 			textureImageViewInfo.subresourceRange.levelCount = 1;

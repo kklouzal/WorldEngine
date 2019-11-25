@@ -84,12 +84,10 @@ namespace Gwen
 
 			Gwen::Color	m_Color;
 
-			const unsigned int HEIGHT = 600;
-			const unsigned int WIDTH = 800;
 			std::vector<uint8_t> writeBuffer = {};
 			std::vector<uint8_t> drawBuffer = {};
-			const unsigned int dst_Size = (WIDTH * HEIGHT) * 4;
-			const unsigned int dst_Pitch = WIDTH * 4;
+			const unsigned int dst_Size;
+			const unsigned int dst_Pitch;
 			GWENFace Face1;
 			FTC_Scaler Face1Scale;
 			FTC_ImageType Face1Rec;
@@ -151,12 +149,12 @@ namespace Gwen
 						startOfLine += Bit->pitch;
 						const unsigned int dstY = (y - Bit->top + (PenY + 12));
 						//	Check if Y position is within image bounds and clip rect
-						if (dstY < static_cast<uint32_t>(clipOld.y) || dstY > HEIGHT || dstY > static_cast<uint32_t>(clipOld.h)) { continue; }
+						if (dstY < static_cast<uint32_t>(clipOld.y) || dstY > _Driver->HEIGHT || dstY > static_cast<uint32_t>(clipOld.h)) { continue; }
 						for (unsigned int x = 0; x < Bit->width; ++x) {
 							const unsigned int dstX = x + PenX + dst_Cursor_X;
 							const uint8_t value = *src++;
 							//	Check if X position is within image bounds and clip rect
-							if (dstX < static_cast<uint32_t>(clipOld.x) || dstX > WIDTH || dstX > static_cast<uint32_t>(clipOld.w)) { continue; }
+							if (dstX < static_cast<uint32_t>(clipOld.x) || dstX > _Driver->WIDTH || dstX > static_cast<uint32_t>(clipOld.w)) { continue; }
 							//	y * dst_Pitch	== Image Row Destination Bit
 							//	x * 4			== Image Column Destination Bit
 							const unsigned int dstBit = (dstY * dst_Pitch) + (dstX * 4);
@@ -262,8 +260,8 @@ namespace Gwen
 
 				VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 				imageInfo.imageType = VK_IMAGE_TYPE_2D;
-				imageInfo.extent.width = static_cast<uint32_t>(WIDTH);
-				imageInfo.extent.height = static_cast<uint32_t>(HEIGHT);
+				imageInfo.extent.width = static_cast<uint32_t>(_Driver->WIDTH);
+				imageInfo.extent.height = static_cast<uint32_t>(_Driver->HEIGHT);
 				imageInfo.extent.depth = 1;
 				imageInfo.mipLevels = 1;
 				imageInfo.arrayLayers = 1;
@@ -338,8 +336,8 @@ namespace Gwen
 			{
 				Vertex NewVertex{};
 
-				NewVertex.pos.x = ((float)x / 400) - 1.f;
-				NewVertex.pos.y = ((float)y / 300) - 1.f;
+				NewVertex.pos.x = ((float)x / (_Driver->WIDTH/2)) - 1.f;
+				NewVertex.pos.y = ((float)y / (_Driver->HEIGHT/2)) - 1.f;
 				NewVertex.texCoord.x = u;
 				NewVertex.texCoord.y = v;
 				NewVertex.color.r = m_Color.r / 128;
@@ -364,7 +362,7 @@ namespace Gwen
 			VkCommandBuffer GetBuffer(size_t BufferNumber) {
 				return commandBuffers[BufferNumber];
 			}
-			Vulkan(VulkanDriver* Driver) : _Driver(Driver) {
+			Vulkan(VulkanDriver* Driver) : _Driver(Driver), dst_Size((_Driver->WIDTH* _Driver->HEIGHT) * 4), dst_Pitch(_Driver->WIDTH * 4) {
 				Pipe = _Driver->_MaterialCache->GetPipe_GUI();
 			}
 			~Vulkan() {

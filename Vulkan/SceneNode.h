@@ -3,8 +3,8 @@
 class SceneNode {
 public:
 	virtual ~SceneNode() = 0;
-	virtual void updateUniformBuffer(uint32_t currentImage) = 0;
-	virtual void drawFrame(VkCommandBuffer primaryCommandBuffer) = 0;
+	virtual void updateUniformBuffer(const uint32_t &currentImage) = 0;
+	virtual void drawFrame(const VkCommandBuffer &primaryCommandBuffer) = 0;
 };
 
 SceneNode::~SceneNode() {
@@ -14,4 +14,4 @@ SceneNode::~SceneNode() {
 }
 
 #include "TriangleMeshSceneNode.hpp"
-//#include "SkinnedMeshSceneNode.hpp"
+#include "SkinnedMeshSceneNode.hpp"

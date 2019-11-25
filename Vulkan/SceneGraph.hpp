@@ -50,8 +50,10 @@ public:
 
 	//
 	//	Create SceneNode Functions
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint16_t> indices);
-	//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint16_t> indices);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
+	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
+	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 };
 
 #include "Pipe_Default.hpp"
@@ -98,23 +100,23 @@ void SceneGraph::validate(uint32_t currentImage) {
 
 		vkCmdBeginRenderPass(primaryCommandBuffers[currentImage], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-//
-//	Submit SceneNode Sub-Command Buffers
-for (size_t i = 0; i < SceneNodes.size(); i++) {
-	SceneNodes[i]->drawFrame(primaryCommandBuffers[currentImage]);
-}
+		//
+		//	Submit SceneNode Sub-Command Buffers
+		for (size_t i = 0; i < SceneNodes.size(); i++) {
+			SceneNodes[i]->drawFrame(primaryCommandBuffers[currentImage]);
+		}
 
-_Driver->DrawExternal(currentImage);
+		_Driver->DrawExternal(currentImage);
 
-vkCmdEndRenderPass(primaryCommandBuffers[currentImage]);
+		vkCmdEndRenderPass(primaryCommandBuffers[currentImage]);
 
-if (vkEndCommandBuffer(primaryCommandBuffers[currentImage]) != VK_SUCCESS) {
-#ifdef _DEBUG
-	throw std::runtime_error("failed to record command buffer!");
-#endif
-}
-//	IsValid[currentImage] = true;
-//}
+		if (vkEndCommandBuffer(primaryCommandBuffers[currentImage]) != VK_SUCCESS) {
+		#ifdef _DEBUG
+			throw std::runtime_error("failed to record command buffer!");
+		#endif
+		}
+	//	IsValid[currentImage] = true;
+	//}
 }
 
 void SceneGraph::updateUniformBuffer(uint32_t currentImage) {
