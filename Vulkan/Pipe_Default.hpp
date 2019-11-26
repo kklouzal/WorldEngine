@@ -6,7 +6,6 @@ namespace Pipeline {
 		VulkanDriver* _Driver;
 
 		Default(VulkanDriver* Driver) : PipelineObject(Driver), _Driver(Driver) {
-
 			//
 			//	DescriptorSetLayout
 			//
@@ -33,8 +32,8 @@ namespace Pipeline {
 			//
 			//	Graphics Pipeline
 			//
-			auto vertShaderCode = readFile("Vertex.vert.spv");
-			auto fragShaderCode = readFile("Fragment.frag.spv");
+			auto vertShaderCode = readFile("Vertex_Default.vert.spv");
+			auto fragShaderCode = readFile("Fragment_Default.frag.spv");
 			VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 			VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
@@ -134,13 +133,37 @@ namespace Pipeline {
 
 			vkDestroyShaderModule(_Driver->device, fragShaderModule, nullptr);
 			vkDestroyShaderModule(_Driver->device, vertShaderModule, nullptr);
+
+			//
+			//	Image Sampler For Entire Pipeline
+			VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+			samplerInfo.magFilter = VK_FILTER_LINEAR;
+			samplerInfo.minFilter = VK_FILTER_LINEAR;
+			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+			samplerInfo.anisotropyEnable = VK_TRUE;
+			samplerInfo.maxAnisotropy = 16;
+			samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+			samplerInfo.unnormalizedCoordinates = VK_FALSE;
+			samplerInfo.compareEnable = VK_FALSE;
+			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+			samplerInfo.mipLodBias = 0.0f;
+			samplerInfo.minLod = 0.0f;
+			samplerInfo.maxLod = 0.0f;
+			if (vkCreateSampler(_Driver->device, &samplerInfo, nullptr, &Sampler) != VK_SUCCESS) {
+#ifdef _DEBUG
+				throw std::runtime_error("failed to create texture sampler!");
+#endif
+			}
 		}
 		//
 		//
 		//	Create Descriptor
 		//
 		//
-		DescriptorObject* createDescriptor(TextureObject* Texture, std::vector<VkBuffer>& UniformBuffers) {
+		DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
 
 			std::array<VkDescriptorPoolSize, 2> poolSizes = {};
@@ -182,7 +205,7 @@ namespace Pipeline {
 				VkDescriptorImageInfo imageInfo = {};
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				imageInfo.imageView = Texture->ImageView;
-				imageInfo.sampler = Texture->Sampler;
+				imageInfo.sampler = Sampler;
 
 				std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
 
@@ -216,15 +239,13 @@ namespace Pipeline {
 
 			auto Tex = Textures.emplace_back(new TextureObject(_Driver));
 
-			//decode
-			unsigned error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
+			const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
-			//if there's an error, display it
 			if (error) printf("PNG Decoder error: (%i) %s", error, lodepng_error_text(error));
 
 			Tex->Empty = false;
 
-			VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
+			const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
 
 			//
 			//	Image Staging Buffer
@@ -259,7 +280,6 @@ namespace Pipeline {
 
 			allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-			VmaAllocationInfo imageBufferAllocInfo = {};
 			vmaCreateImage(_Driver->allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
 			//
 			//	CPU->GPU Copy
@@ -325,28 +345,6 @@ namespace Pipeline {
 			textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
 			textureImageViewInfo.subresourceRange.layerCount = 1;
 			vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &Tex->ImageView);
-
-			VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-			samplerInfo.magFilter = VK_FILTER_LINEAR;
-			samplerInfo.minFilter = VK_FILTER_LINEAR;
-			samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			samplerInfo.anisotropyEnable = VK_TRUE;
-			samplerInfo.maxAnisotropy = 16;
-			samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-			samplerInfo.unnormalizedCoordinates = VK_FALSE;
-			samplerInfo.compareEnable = VK_FALSE;
-			samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-			samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-			samplerInfo.mipLodBias = 0.0f;
-			samplerInfo.minLod = 0.0f;
-			samplerInfo.maxLod = 0.0f;
-			if (vkCreateSampler(_Driver->device, &samplerInfo, nullptr, &Tex->Sampler) != VK_SUCCESS) {
-		#ifdef _DEBUG
-				throw std::runtime_error("failed to create texture sampler!");
-		#endif
-			}
 
 			return Tex;
 		}

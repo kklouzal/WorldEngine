@@ -9,6 +9,26 @@ class TriangleMesh;
 class TriangleMeshSceneNode;
 class SkinnedMeshSceneNode;
 
+class Camera {
+public:
+	glm::vec3 Pos;
+	glm::vec3 Ang;
+	glm::vec3 Center;
+
+public:
+	Camera() : Pos(glm::vec3(0,0,0)), Ang(glm::vec3(0,0,0)), Center(glm::vec3(0,0,0)) {}
+
+	void SetPosition(const glm::vec3& NewPosition) {
+		Pos = NewPosition;
+		Center = Pos + Ang;
+	}
+
+	void SetAngle(const glm::vec3& NewAngle) {
+		Ang = NewAngle;
+		Center = Pos + Ang;
+	}
+};
+
 //
 //	Define SceneGraph Interface
 
@@ -18,6 +38,7 @@ class SceneGraph {
 	//	One IsValid bool for each primary-command-buffer.
 	//	When false, each SceneNode Sub-Command-Buffer will be resubmitted.
 	std::vector<bool> IsValid = {};
+	Camera _Camera;
 
 public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
@@ -33,18 +54,21 @@ public:
 	SceneGraph(VulkanDriver* Driver);
 	~SceneGraph();
 
-public:
+	Camera &GetCamera() {
+		return _Camera;
+	}
+
 	void createCommandPool();
 	void createPrimaryCommandBuffers();
 
-	VkCommandBuffer beginSingleTimeCommands();
-	void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+	const VkCommandBuffer beginSingleTimeCommands();
+	void endSingleTimeCommands(const VkCommandBuffer commandBuffer);
 
-	std::vector<VkCommandBuffer> newCommandBuffer();
+	const std::vector<VkCommandBuffer> newCommandBuffer();
 
-	void validate(uint32_t currentImage);
+	void validate(const uint32_t &currentImage);
 
-	void updateUniformBuffer(uint32_t currentImage);
+	void updateUniformBuffer(const uint32_t &currentImage);
 
 	void invalidate();
 
@@ -53,11 +77,11 @@ public:
 	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX);
 	TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
-	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 };
 
 #include "Pipe_Default.hpp"
 #include "Pipe_GUI.hpp"
+#include "Pipe_Skinned.hpp"
 
 #include "MaterialCache.hpp"
 
@@ -70,7 +94,7 @@ public:
 //
 //	Define SceneGraph Implementation
 
-void SceneGraph::validate(uint32_t currentImage) {
+void SceneGraph::validate(const uint32_t& currentImage) {
 	//
 	//	SceneNode Vaidation
 	//if (!IsValid[currentImage]) {
@@ -97,7 +121,6 @@ void SceneGraph::validate(uint32_t currentImage) {
 		renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 		renderPassInfo.pClearValues = clearValues.data();
 		
-
 		vkCmdBeginRenderPass(primaryCommandBuffers[currentImage], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 		//
@@ -119,7 +142,7 @@ void SceneGraph::validate(uint32_t currentImage) {
 	//}
 }
 
-void SceneGraph::updateUniformBuffer(uint32_t currentImage) {
+void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
 		SceneNodes[i]->updateUniformBuffer(currentImage);
 	}
@@ -133,7 +156,7 @@ void SceneGraph::invalidate() {
 
 //
 //	Buffers are returned in the recording state
-std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
+const std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
 	std::vector<VkCommandBuffer> newCommandBuffers = {};
 	newCommandBuffers.resize(1);
 	VkCommandBufferAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -214,7 +237,7 @@ void SceneGraph::createPrimaryCommandBuffers() {
 	}
 }
 
-VkCommandBuffer SceneGraph::beginSingleTimeCommands() {
+const VkCommandBuffer SceneGraph::beginSingleTimeCommands() {
 	VkCommandBufferAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandPool = commandPool;
@@ -231,7 +254,7 @@ VkCommandBuffer SceneGraph::beginSingleTimeCommands() {
 	return commandBuffer;
 }
 
-void SceneGraph::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void SceneGraph::endSingleTimeCommands(const VkCommandBuffer commandBuffer) {
 	vkEndCommandBuffer(commandBuffer);
 
 	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };

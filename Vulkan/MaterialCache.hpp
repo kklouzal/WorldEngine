@@ -2,7 +2,8 @@
 
 enum Pipelines {
 	Default,
-	GUI
+	GUI,
+	Skinned
 };
 
 class MaterialCache {
@@ -15,6 +16,7 @@ public:
 	MaterialCache(VulkanDriver* Driver) : _Driver(Driver) {
 		CreateDefault();
 		CreateGUI();
+		CreateSkinned();
 	}
 
 	~MaterialCache() {
@@ -28,6 +30,9 @@ public:
 	}
 	Pipeline::GUI* GetPipe_GUI() {
 		return static_cast<Pipeline::GUI*>(Pipes[GUI]);
+	}
+	Pipeline::Skinned* GetPipe_Skinned() {
+		return static_cast<Pipeline::Skinned*>(Pipes[Skinned]);
 	}
 
 	//
@@ -43,5 +48,12 @@ public:
 	void CreateGUI() {
 		printf("Create GUI Pipe\n");
 		Pipes.emplace_back(new Pipeline::GUI(_Driver));
+	}
+
+	//
+	//	Create Skinned Pipe
+	void CreateSkinned() {
+		printf("Create Skinned Pipe\n");
+		Pipes.emplace_back(new Pipeline::Skinned(_Driver));
 	}
 };

@@ -6,7 +6,7 @@ struct UniformBufferObject {
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
-	glm::mat4 bones[64];
+	glm::mat4 bones[128];
 };
 
 //
@@ -96,7 +96,6 @@ struct TextureObject {
 	VmaAllocation Allocation = VMA_NULL;
 	VkImage Image = VK_NULL_HANDLE;
 	VkImageView ImageView = VK_NULL_HANDLE;
-	VkSampler Sampler = VK_NULL_HANDLE;
 	unsigned int Width = 0;
 	unsigned int Height = 0;
 	std::vector<unsigned char> Pixels = {};
@@ -106,7 +105,6 @@ struct TextureObject {
 	TextureObject(VulkanDriver* Driver) : _Driver(Driver) {}
 	~TextureObject() {
 		if (!Empty) {
-			vkDestroySampler(_Driver->device, Sampler, nullptr);
 			vkDestroyImageView(_Driver->device, ImageView, nullptr);
 			vmaDestroyImage(_Driver->allocator, Image, Allocation);
 		}

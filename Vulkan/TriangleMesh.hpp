@@ -9,7 +9,7 @@ class TriangleMesh {
 public:
 
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
-	Pipeline::Default* Pipe;
+	PipelineObject* Pipe;
 
 	const std::vector<Vertex> vertices;
 	const std::vector<uint32_t> indices;
@@ -32,11 +32,10 @@ public:
 	DescriptorObject* Descriptor;
 
 public:
-
-	TriangleMesh(VulkanDriver* Driver, const std::vector<Vertex> &Vertices, const std::vector<uint32_t> &Indices)
-		: _Driver(Driver), vertices(Vertices), indices(Indices),
-		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint32_t)* indices.size()),
-		Pipe(_Driver->_MaterialCache->GetPipe_Default()){
+	
+	TriangleMesh(VulkanDriver* Driver, PipelineObject* Pipeline, const std::vector<Vertex> &Vertices, const std::vector<uint32_t> &Indices)
+		: _Driver(Driver), Pipe(Pipeline), vertices(Vertices), indices(Indices),
+		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint32_t)* indices.size()) {
 		createVertexBuffer();
 		createUniformBuffers();
 		//Texture = Pipe->createTextureImage("media/test/VR_Base_Color.png");
@@ -95,10 +94,9 @@ public:
 
 		VkBuffer stagingVertexBuffer = VK_NULL_HANDLE;
 		VmaAllocation stagingVertexBufferAlloc = VK_NULL_HANDLE;
-		VmaAllocationInfo stagingVertexBufferAllocInfo = {};
-		vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &stagingVertexBuffer, &stagingVertexBufferAlloc, &stagingVertexBufferAllocInfo);
+		vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &stagingVertexBuffer, &stagingVertexBufferAlloc, nullptr);
 
-		memcpy(stagingVertexBufferAllocInfo.pMappedData, vertices.data(), vertexBufferSize);
+		memcpy(stagingVertexBufferAlloc->GetMappedData(), vertices.data(), vertexBufferSize);
 
 		vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		vertexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -118,10 +116,9 @@ public:
 
 		VkBuffer stagingIndexBuffer = VK_NULL_HANDLE;
 		VmaAllocation stagingIndexBufferAlloc = VK_NULL_HANDLE;
-		VmaAllocationInfo stagingIndexBufferAllocInfo = {};
-		vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &stagingIndexBuffer, &stagingIndexBufferAlloc, &stagingIndexBufferAllocInfo);
+		vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &stagingIndexBuffer, &stagingIndexBufferAlloc, nullptr);
 
-		memcpy(stagingIndexBufferAllocInfo.pMappedData, indices.data(), indexBufferSize);
+		memcpy(stagingIndexBufferAlloc->GetMappedData(), indices.data(), indexBufferSize);
 
 		indexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		indexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -161,9 +158,8 @@ public:
 			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[i], 0, nullptr);
 			
 			//	Draw Vertex Buffer
-			VkBuffer vertexBuffers[] = { vertexBuffer };
 			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer, offsets);
 			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
 			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
@@ -174,8 +170,11 @@ public:
 	}
 
 	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo) {
+		Camera Cam = _Driver->_SceneGraph->GetCamera();
+		Cam.SetPosition(glm::vec3(-48.0f, 0.0f, 48.0f));
+		Cam.SetAngle(glm::vec3(1.0f, 0.0f, -0.5f));
 			//ubo.view = glm::lookAt(glm::vec3(512.0f, 512.0f, 128.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.view = glm::lookAt(glm::vec3(32.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.5f), glm::vec3(0.0f, 0.0f, 1.0f));
+			ubo.view = glm::lookAt(Cam.Pos, Cam.Center, glm::vec3(0.0f, 0.0f, 1.0f));
 			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 1024.0f);
 			ubo.proj[1][1] *= -1;
 

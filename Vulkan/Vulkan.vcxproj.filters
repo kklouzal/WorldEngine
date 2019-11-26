@@ -19,6 +19,15 @@
     <Filter Include="Header Files\Pipelines">
       <UniqueIdentifier>{c45fc0e6-2d89-4885-b625-970c970f2656}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Shaders">
+      <UniqueIdentifier>{047743e7-11cb-40c4-bda0-0e65a36856c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Shaders\Frag">
+      <UniqueIdentifier>{72e1a8dc-73ad-4c7b-9a3f-84d083bb95fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Shaders\Vert">
+      <UniqueIdentifier>{d7c1df62-77e5-4fa9-b94d-cbddbb55515e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -29,17 +38,23 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Vertex.vert">
-      <Filter>Source Files</Filter>
+    <None Include="Fragment_GUI.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
     </None>
-    <None Include="Fragment.frag">
-      <Filter>Source Files</Filter>
+    <None Include="Fragment_Default.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
     </None>
-    <None Include="Vertex2.vert">
-      <Filter>Source Files</Filter>
+    <None Include="Fragment_Skinned.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
     </None>
-    <None Include="Fragment2.frag">
-      <Filter>Source Files</Filter>
+    <None Include="Vertex_GUI.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="Vertex_Skinned.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="Vertex_Default.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -93,6 +108,9 @@
     </ClInclude>
     <ClInclude Include="lodepng.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipe_Skinned.hpp">
+      <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

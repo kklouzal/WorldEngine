@@ -42,7 +42,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 	FBXObject* FBX = _ImportFBX->Import(FileFBX);
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, FBX->Vertices, FBX->Indices);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, _Driver->_MaterialCache->GetPipe_Default(), FBX->Vertices, FBX->Indices);
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 	SceneNodes.push_back(MeshNode);
 	delete FBX;
@@ -51,7 +51,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 }
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> Vertices, const std::vector<uint32_t> Indices) {
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Vertices, Indices);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, _Driver->_MaterialCache->GetPipe_Default(), Vertices, Indices);
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 	SceneNodes.push_back(MeshNode);
 	this->invalidate();

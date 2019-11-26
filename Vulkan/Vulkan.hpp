@@ -124,7 +124,7 @@ public:
 
 	void setEventReceiver(EventReceiver* _EventRcvr);
 
-	void DrawExternal(uint32_t currentImage);
+	void DrawExternal(const uint32_t& currentImage);
 };
 
 QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
@@ -258,7 +258,8 @@ void VulkanDriver::initGWEN() {
 	pUnit->SetPos(10, 10);
 }
 
-void VulkanDriver::DrawExternal(uint32_t currentImage) {
+void VulkanDriver::DrawExternal(const uint32_t &currentImage) {
+	//printf("Draw %i\n", currentImage);
 	//
 	//	Update GWEN
 	pRenderer->SetBuffer(currentImage);
@@ -280,6 +281,13 @@ void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
 }
 
 void VulkanDriver::drawFrame() {
+	const VkResult Status = vkGetFenceStatus(device, inFlightFences[currentFrame]);
+	if (Status == VK_SUCCESS) {
+		//printf("Success\n");
+	}
+	else {
+		//printf("Wait\n");
+	}
 	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 	vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
@@ -464,10 +472,11 @@ void VulkanDriver::createSwapChain() {
 	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
-	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 2;
 	if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
 		imageCount = swapChainSupport.capabilities.maxImageCount;
 	}
+	printf("[Vulkan]: Swap Chain Count (%i)\n", imageCount);
 
 	VkSwapchainCreateInfoKHR createInfo = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 	createInfo.surface = surface;

@@ -151,10 +151,12 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Fragment.frag" />
-    <None Include="Fragment2.frag" />
-    <None Include="Vertex.vert" />
-    <None Include="Vertex2.vert" />
+    <None Include="Fragment_Default.frag" />
+    <None Include="Fragment_Skinned.frag" />
+    <None Include="Fragment_GUI.frag" />
+    <None Include="Vertex_Default.vert" />
+    <None Include="Vertex_Skinned.vert" />
+    <None Include="Vertex_GUI.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Import_FBX.hpp" />
@@ -165,6 +167,7 @@
     <ClInclude Include="MaterialCache.hpp" />
     <ClInclude Include="PipelineObject.hpp" />
     <ClInclude Include="Pipe_GUI.hpp" />
+    <ClInclude Include="Pipe_Skinned.hpp" />
     <ClInclude Include="PlaybackController.hpp" />
     <ClInclude Include="SceneGraph.hpp" />
     <ClInclude Include="SceneNode.h" />

@@ -41,12 +41,12 @@ namespace Gwen
 			size_t currentBuffer = 0;
 			std::vector<VkCommandBuffer> commandBuffers = {};
 
-			std::unordered_map<Vertex, uint32_t> GUI_UniqueVertices = {};
+			std::unordered_map<Vertex, const uint32_t> GUI_UniqueVertices = {};
 
 			std::vector<Vertex> GUI_Vertices = {};
-			uint32_t vertexBufferSize = sizeof(Vertex) * 64000;
+			const uint32_t vertexBufferSize = sizeof(Vertex) * 64000;
 			std::vector<uint32_t> GUI_Indices = {};
-			uint32_t indexBufferSize = sizeof(uint32_t) * 192000;
+			const uint32_t indexBufferSize = sizeof(uint32_t) * 192000;
 
 			uint32_t CurIndirectDraw = 0;
 			uint32_t CurIndexCount = 0;
@@ -69,7 +69,6 @@ namespace Gwen
 			VmaAllocation Font_TextureAllocation = VMA_NULL;
 			VkImage Font_TextureImage;
 			VkImageView Font_TextureImageView;
-			VkSampler Font_TextureSampler;
 
 			DescriptorObject* Font_Descriptor;
 
@@ -79,6 +78,7 @@ namespace Gwen
 			FTC_SBitCache sbitCache;
 			FTC_CMapCache cmapCache;
 
+			std::vector<VkRect2D> ClipScissors = {};
 			Gwen::Rect clipOld;
 			Gwen::Rect clipNew;
 
@@ -122,7 +122,7 @@ namespace Gwen
 				error = FTC_CMapCache_New(manager, &cmapCache);
 			}
 
-			virtual Gwen::Point MeasureText(Gwen::Font* pFont, const Gwen::UnicodeString& text) {
+			Gwen::Point MeasureText(Gwen::Font* pFont, const Gwen::UnicodeString& text) {
 				unsigned int dst_Cursor_X = 0;
 
 				for (const wchar_t c : text) {
@@ -159,9 +159,9 @@ namespace Gwen
 							//	x * 4			== Image Column Destination Bit
 							const unsigned int dstBit = (dstY * dst_Pitch) + (dstX * 4);
 
-							writeBuffer[dstBit]		= 0xff;		// +0 == B
-							writeBuffer[dstBit +1]	= 0xff;		// +1 == G
-							writeBuffer[dstBit +2]	= 0xff;		// +2 == R
+							writeBuffer[dstBit]		= m_Color.r;// +0 == R
+							writeBuffer[dstBit +1]	= m_Color.g;// +1 == G
+							writeBuffer[dstBit +2]	= m_Color.b;// +2 == B
 							writeBuffer[dstBit +3]	= value;	// +3 == A
 						}
 					}
@@ -169,14 +169,12 @@ namespace Gwen
 				}
 			}
 
-			virtual void RenderText(Gwen::Font* pFont, Gwen::Point pos, const Gwen::UnicodeString& text) {
+			void RenderText(Gwen::Font* pFont, Gwen::Point pos, const Gwen::UnicodeString& text) {
 				int x = pos.x;
 				int y = pos.y;
 				Translate(x, y);
 				DrawText(text, x, y);
 			}
-
-			bool FirstCopy = true;
 
 			//
 			//	GUI Vertex/Index Buffers
@@ -276,7 +274,6 @@ namespace Gwen
 				textureAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 				textureAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-				VmaAllocationInfo imageBufferAllocInfo = {};
 				vmaCreateImage(_Driver->allocator, &imageInfo, &textureAllocInfo, &Font_TextureImage, &Font_TextureAllocation, nullptr);
 
 				VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
@@ -290,29 +287,35 @@ namespace Gwen
 				textureImageViewInfo.subresourceRange.layerCount = 1;
 				vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &Font_TextureImageView);
 
-				VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-				samplerInfo.magFilter = VK_FILTER_LINEAR;
-				samplerInfo.minFilter = VK_FILTER_LINEAR;
-				samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-				samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-				samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-				samplerInfo.anisotropyEnable = VK_TRUE;
-				samplerInfo.maxAnisotropy = 16;
-				samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-				samplerInfo.unnormalizedCoordinates = VK_FALSE;
-				samplerInfo.compareEnable = VK_FALSE;
-				samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-				samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-				samplerInfo.mipLodBias = 0.0f;
-				samplerInfo.minLod = 0.0f;
-				samplerInfo.maxLod = 0.0f;
-				if (vkCreateSampler(_Driver->device, &samplerInfo, nullptr, &Font_TextureSampler) != VK_SUCCESS) {
-#ifdef _DEBUG
-					throw std::runtime_error("failed to create texture sampler!");
-#endif
-				}
+				//
+				//	Transition image from initial state to workable state
+				auto CB = _Driver->_SceneGraph->beginSingleTimeCommands();
+				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				imgMemBarrier.subresourceRange.baseMipLevel = 0;
+				imgMemBarrier.subresourceRange.levelCount = 1;
+				imgMemBarrier.subresourceRange.baseArrayLayer = 0;
+				imgMemBarrier.subresourceRange.layerCount = 1;
+				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imgMemBarrier.image = Font_TextureImage;
+				imgMemBarrier.srcAccessMask = 0;
+				imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-				Font_Descriptor = Pipe->createRawDescriptor(Font_TextureImageView, Font_TextureSampler);
+				vkCmdPipelineBarrier(
+					CB,
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					0,
+					0, nullptr,
+					0, nullptr,
+					1, &imgMemBarrier);
+
+				_Driver->_SceneGraph->endSingleTimeCommands(CB);
+
+				Font_Descriptor = Pipe->createRawDescriptor(Font_TextureImageView, Pipe->Sampler);
 			}
 			//
 			//	Indirect Drawing
@@ -332,7 +335,7 @@ namespace Gwen
 				printf("Create Indirect Buffer\n");
 			}
 
-			void AddVert(int x, int y, float u = 0.0f, float v = 0.0f)
+			void AddVert(const int x, const int y, const float u = 0.0f, const float v = 0.0f)
 			{
 				Vertex NewVertex{};
 
@@ -356,10 +359,10 @@ namespace Gwen
 			}
 		public:
 
-			void SetBuffer(size_t BufferNumber) {
+			void SetBuffer(const size_t &BufferNumber) {
 				currentBuffer = BufferNumber;
 			}
-			VkCommandBuffer GetBuffer(size_t BufferNumber) {
+			const VkCommandBuffer& GetBuffer(const size_t &BufferNumber) {
 				return commandBuffers[BufferNumber];
 			}
 			Vulkan(VulkanDriver* Driver) : _Driver(Driver), dst_Size((_Driver->WIDTH* _Driver->HEIGHT) * 4), dst_Pitch(_Driver->WIDTH * 4) {
@@ -371,15 +374,16 @@ namespace Gwen
 				vmaDestroyBuffer(_Driver->allocator, GUI_VertexBuffer, GUI_VertexAllocation);
 				vmaDestroyBuffer(_Driver->allocator, GUI_IndexBuffer, GUI_IndexAllocation);
 				vmaDestroyBuffer(_Driver->allocator, Font_VertexBuffer, Font_VertexAllocation);
-				vkDestroySampler(_Driver->device, Font_TextureSampler, nullptr);
 				vkDestroyImageView(_Driver->device, Font_TextureImageView, nullptr);
 				vmaDestroyImage(_Driver->allocator, Font_TextureImage, Font_TextureAllocation);
 				delete Font_Descriptor;
 			}
-			virtual void Init() {
+			void Init() {
 				printf("GWEN Vulkan Renderer Initialize\n");
 				initFreeType();
-				for (size_t i = 0; i < _Driver->swapChainImages.size(); i++) {
+				const size_t SwapChainCount = _Driver->swapChainImages.size();
+				ClipScissors.resize(SwapChainCount);
+				for (size_t i = 0; i < SwapChainCount; i++) {
 					auto NewBuffer = _Driver->_SceneGraph->newCommandBuffer();
 					commandBuffers.insert(commandBuffers.end(), NewBuffer.begin(), NewBuffer.end());
 				}
@@ -392,7 +396,7 @@ namespace Gwen
 
 			//
 			//	Begin Render
-			virtual void Begin()
+			void Begin()
 			{
 				vkResetCommandBuffer(commandBuffers[currentBuffer], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 				VkCommandBufferInheritanceInfo inheritanceInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
@@ -409,36 +413,6 @@ namespace Gwen
 				scissor.extent = _Driver->swapChainExtent;
 				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &scissor);
 
-				//	ToDo: Do I really need this here?
-				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
-
-				if (FirstCopy) {
-					auto CB = _Driver->_SceneGraph->beginSingleTimeCommands();
-					VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-					imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-					imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-					imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-					imgMemBarrier.subresourceRange.baseMipLevel = 0;
-					imgMemBarrier.subresourceRange.levelCount = 1;
-					imgMemBarrier.subresourceRange.baseArrayLayer = 0;
-					imgMemBarrier.subresourceRange.layerCount = 1;
-					imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-					imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-					imgMemBarrier.image = Font_TextureImage;
-					imgMemBarrier.srcAccessMask = 0;
-					imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-					vkCmdPipelineBarrier(
-						CB,
-						VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-						VK_PIPELINE_STAGE_TRANSFER_BIT,
-						0,
-						0, nullptr,
-						0, nullptr,
-						1, &imgMemBarrier);
-					FirstCopy = false;
-					_Driver->_SceneGraph->endSingleTimeCommands(CB);
-				}
 				vkCmdBindPipeline(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);
 
 				VkDeviceSize offsets[1] = { 0 };
@@ -470,14 +444,13 @@ namespace Gwen
 				clipNew.y *= Scale();
 				clipNew.w *= Scale();
 				clipNew.h *= Scale();
-				VkRect2D scissor = {};
-				scissor.offset = { static_cast<int32_t>(clipNew.x), static_cast<int32_t>(clipNew.y) };
-				scissor.extent = { static_cast<uint32_t>(clipNew.w), static_cast<uint32_t>(clipNew.h) };
-				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &scissor);
+				ClipScissors[currentBuffer].offset = { static_cast<int32_t>(clipNew.x), static_cast<int32_t>(clipNew.y) };
+				ClipScissors[currentBuffer].extent = { static_cast<uint32_t>(clipNew.w), static_cast<uint32_t>(clipNew.h) };
+				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &ClipScissors[currentBuffer]);
 			};
 			//
 			//	End Render
-			virtual void End()
+			void End()
 			{
 				//	Vertex Buffer CPU->GPU Copy
 				memcpy(GUI_VertexAllocation->GetMappedData(), GUI_Vertices.data(), sizeof(Vertex) * GUI_Vertices.size());
@@ -548,7 +521,7 @@ namespace Gwen
 				GUI_Indices.clear();
 				GUI_UniqueVertices.clear();
 			}
-			virtual void DrawFilledRect(Gwen::Rect rect)
+			void DrawFilledRect(Gwen::Rect rect)
 			{
 				Translate(rect);
 				AddVert(rect.x, rect.y);
@@ -606,7 +579,7 @@ namespace Gwen
 				//	iOffset = r; iOffset+1 = g; iOffset+2 = b; iOffset+3 = a;
 				return Gwen::Color(TexObj->Texture->Pixels[iOffset], TexObj->Texture->Pixels[iOffset+1], TexObj->Texture->Pixels[iOffset+2], TexObj->Texture->Pixels[iOffset+3]);
 			}
-			virtual void SetDrawColor(Gwen::Color color)
+			void SetDrawColor(Gwen::Color color)
 			{
 				m_Color = color;
 			}

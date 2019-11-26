@@ -1,9 +1,9 @@
 #pragma once
 
-
 struct PipelineObject {
 	VulkanDriver* _Driver;
 
+	VkSampler Sampler = VK_NULL_HANDLE;
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
@@ -15,7 +15,12 @@ struct PipelineObject {
 		vkDestroyPipeline(_Driver->device, graphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(_Driver->device, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(_Driver->device, descriptorSetLayout, nullptr);
+		vkDestroySampler(_Driver->device, Sampler, nullptr);
 	}
+
+	virtual DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) = 0;
+	virtual TextureObject* createTextureImage(const char* File) = 0;
+
 protected:
 
 	std::vector<TextureObject*> Textures;
@@ -24,7 +29,7 @@ protected:
 
 	//
 	//	Create Descriptor Set Layout
-	void createDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo LayoutInfo) {
+	void createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo &LayoutInfo) {
 		if (vkCreateDescriptorSetLayout(_Driver->device, &LayoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
 #ifdef _DEBUG
 			throw std::runtime_error("failed to create descriptor set layout!");
@@ -35,15 +40,15 @@ protected:
 	//
 	//	Create Pipeline Layout & Graphics Pipeline
 	void createPipeline(
-		VkPipelineShaderStageCreateInfo shaderStages[],
-		VkPipelineVertexInputStateCreateInfo vertexInputInfo,
-		VkPipelineInputAssemblyStateCreateInfo inputAssembly,
-		VkPipelineViewportStateCreateInfo viewportState,
-		VkPipelineRasterizationStateCreateInfo rasterizer,
-		VkPipelineMultisampleStateCreateInfo multisampling,
-		VkPipelineDepthStencilStateCreateInfo depthStencil,
-		VkPipelineColorBlendStateCreateInfo colorBlending,
-		VkPipelineDynamicStateCreateInfo dynamicState) {
+		const VkPipelineShaderStageCreateInfo shaderStages[],
+		const VkPipelineVertexInputStateCreateInfo &vertexInputInfo,
+		const VkPipelineInputAssemblyStateCreateInfo &inputAssembly,
+		const VkPipelineViewportStateCreateInfo &viewportState,
+		const VkPipelineRasterizationStateCreateInfo &rasterizer,
+		const VkPipelineMultisampleStateCreateInfo &multisampling,
+		const VkPipelineDepthStencilStateCreateInfo &depthStencil,
+		const VkPipelineColorBlendStateCreateInfo &colorBlending,
+		const VkPipelineDynamicStateCreateInfo &dynamicState) {
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		pipelineLayoutInfo.setLayoutCount = 1;
 		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
@@ -77,10 +82,7 @@ protected:
 	}
 
 	//
-	//
 	//	Helper Functions
-	//
-	//
 	std::vector<char> readFile(const std::string& filename) {
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -90,7 +92,7 @@ protected:
 #endif
 		}
 
-		size_t fileSize = (size_t)file.tellg();
+		const size_t fileSize = (size_t)file.tellg();
 		std::vector<char> buffer(fileSize);
 		file.seekg(0);
 		file.read(buffer.data(), fileSize);
@@ -116,6 +118,7 @@ protected:
 };
 
 namespace Pipeline {
-	struct GUI;
 	struct Default;
+	struct GUI;
+	struct Skinned;
 }
