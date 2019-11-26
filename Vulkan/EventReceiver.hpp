@@ -13,18 +13,16 @@ class EventReceiver {
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 	{
 		EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
+
 		bool bDown = false;
-		if (action == GLFW_PRESS || GLFW_REPEAT) {
-			bDown = true;
-		} else if(action == GLFW_RELEASE) {
-			bDown = false;
-		}
+		if (action == GLFW_RELEASE) { bDown = false; }
+		else if (action == GLFW_PRESS || action == GLFW_REPEAT) { bDown = true;	}
+
 		int iKey = -1;
-		if (key == GLFW_KEY_LEFT_SHIFT || GLFW_KEY_RIGHT_SHIFT) { iKey = Gwen::Key::Shift; }
+		if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) { iKey = Gwen::Key::Shift; }
+		else if (key == GLFW_KEY_LEFT_CONTROL || key == GLFW_KEY_RIGHT_CONTROL) { iKey = Gwen::Key::Control; }
 		else if (key == GLFW_KEY_ENTER) { iKey = Gwen::Key::Return; }
-		else if (key == GLFW_KEY_BACKSPACE) {
-			iKey = Gwen::Key::Backspace;
-		}
+		else if (key == GLFW_KEY_BACKSPACE) { iKey = Gwen::Key::Backspace; }
 		else if (key == GLFW_KEY_DELETE) { iKey = Gwen::Key::Delete; }
 		else if (key == GLFW_KEY_LEFT) { iKey = Gwen::Key::Left; }
 		else if (key == GLFW_KEY_RIGHT) { iKey = Gwen::Key::Right; }
@@ -32,16 +30,13 @@ class EventReceiver {
 		else if (key == GLFW_KEY_SPACE) { iKey = Gwen::Key::Space; }
 		else if (key == GLFW_KEY_HOME) { iKey = Gwen::Key::Home; }
 		else if (key == GLFW_KEY_END) { iKey = Gwen::Key::End; }
-		else if (key == GLFW_KEY_LEFT_CONTROL || GLFW_KEY_RIGHT_CONTROL) { iKey = Gwen::Key::Control; }
 		else if (key == GLFW_KEY_SPACE) { iKey = Gwen::Key::Space; }
 		else if (key == GLFW_KEY_UP) { iKey = Gwen::Key::Up; }
 		else if (key == GLFW_KEY_DOWN) { iKey = Gwen::Key::Down; }
 		if (iKey != -1) {
-			printf("key %i %i\n", key, bDown);
-			Rcvr->m_Canvas->InputKey(iKey, false);
-			Rcvr->m_Canvas->InputKey(iKey, true);
-			Rcvr->m_Canvas->InputKey(iKey, false);
+			Rcvr->m_Canvas->InputKey(iKey, bDown);
 		}
+
 		Event NewEvent;
 		NewEvent.Type = EventTypes::Keyboard;
 		if (action == GLFW_PRESS) {
@@ -141,19 +136,9 @@ public:
 #ifdef _DEBUG
 				printf("Press\n");
 #endif
-				const std::vector<Vertex> vertices = {
-				{{-0.7f, -0.7f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-				{{0.7f, -0.7f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-				{{0.7f, 0.7f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-				{{-0.7f, 0.7f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-				};
-
-				const std::vector<uint16_t> indices = {
-				0, 1, 2, 2, 3, 0
-				};
 				//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/test/test.fbx");
-				//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/lua.fbx");
-				_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/arnaud/arnaud.fbx");
+				_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/lua.fbx");
+				//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/arnaud/arnaud.fbx");
 			}
 			else if (NewEvent.Action == EventActions::Release) {
 #ifdef _DEBUG
@@ -174,17 +159,6 @@ public:
 #ifdef _DEBUG
 				printf("Press\n");
 #endif
-				const std::vector<Vertex> vertices = {
-					{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-					{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-					{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-					{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
-				};
-
-				const std::vector<uint16_t> indices = {
-					0, 1, 2, 2, 3, 0,
-					4, 5, 6, 6, 7, 4
-				};
 				//_Driver->_SceneGraph->createSkinnedMeshSceneNode(vertices, indices);
 			}
 			else if (NewEvent.Action == EventActions::Release) {

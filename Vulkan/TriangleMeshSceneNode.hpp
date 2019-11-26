@@ -39,21 +39,30 @@ public:
 //
 //	SceneGraph Create Function
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX) {
+	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	FBXObject* FBX = _ImportFBX->Import(FileFBX);
-
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, _Driver->_MaterialCache->GetPipe_Default(), FBX->Vertices, FBX->Indices);
-	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
-	SceneNodes.push_back(MeshNode);
-	delete FBX;
-	this->invalidate();
-	return MeshNode;
+	std::string DiffuseFile("media/");
+	DiffuseFile += FBX->Texture_Diffuse;
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile.c_str());
+	if (DiffuseTex == nullptr) {
+		delete FBX;
+		return nullptr;
+	}
+	else {
+		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX->Vertices, FBX->Indices, DiffuseTex);
+		TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
+		SceneNodes.push_back(MeshNode);
+		delete FBX;
+		this->invalidate();
+		return MeshNode;
+	}
 }
-TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> Vertices, const std::vector<uint32_t> Indices) {
+/*TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> Vertices, const std::vector<uint32_t> Indices) {
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, _Driver->_MaterialCache->GetPipe_Default(), Vertices, Indices);
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 	SceneNodes.push_back(MeshNode);
 	this->invalidate();
 	return MeshNode;
-}
+}*/

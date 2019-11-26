@@ -75,7 +75,7 @@ public:
 	//
 	//	Create SceneNode Functions
 	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX);
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
+	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
 };
 

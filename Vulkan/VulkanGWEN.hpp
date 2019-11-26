@@ -143,18 +143,17 @@ namespace Gwen
 
 					uint8_t* src = Bit->buffer;
 					uint8_t* startOfLine = src;
-					
 					for (unsigned int y = 0; y < Bit->height; ++y) {
 						src = startOfLine;
 						startOfLine += Bit->pitch;
-						const unsigned int dstY = (y - Bit->top + (PenY + 12));
+						const unsigned int dstY = (y - Bit->top + (PenY + Face1Rec->height));
 						//	Check if Y position is within image bounds and clip rect
-						if (dstY < static_cast<uint32_t>(clipOld.y) || dstY > _Driver->HEIGHT || dstY > static_cast<uint32_t>(clipOld.h)) { continue; }
+						if (dstY <= static_cast<uint32_t>(clipOld.y) || dstY >= _Driver->HEIGHT || dstY >= static_cast<uint32_t>(clipOld.h)) { continue; }
 						for (unsigned int x = 0; x < Bit->width; ++x) {
 							const unsigned int dstX = x + PenX + dst_Cursor_X;
 							const uint8_t value = *src++;
 							//	Check if X position is within image bounds and clip rect
-							if (dstX < static_cast<uint32_t>(clipOld.x) || dstX > _Driver->WIDTH || dstX > static_cast<uint32_t>(clipOld.w)) { continue; }
+							if (dstX <= static_cast<uint32_t>(clipOld.x) || dstX >= _Driver->WIDTH || dstX >= static_cast<uint32_t>(clipOld.w)) { continue; }
 							//	y * dst_Pitch	== Image Row Destination Bit
 							//	x * 4			== Image Column Destination Bit
 							const unsigned int dstBit = (dstY * dst_Pitch) + (dstX * 4);
@@ -168,12 +167,21 @@ namespace Gwen
 					dst_Cursor_X += Bit->xadvance;
 				}
 			}
-
+			
 			void RenderText(Gwen::Font* pFont, Gwen::Point pos, const Gwen::UnicodeString& text) {
+				//auto Clp = clipNew;
+				//int ClpX = Clp.x;
+				//int ClpY = Clp.y;
+				//int ClpW = ClpX + Clp.w;
+				//int ClpH = ClpY + Clp.h;
 				int x = pos.x;
 				int y = pos.y;
 				Translate(x, y);
-				DrawText(text, x, y);
+				//printf("%i (%i) %i | %i (%i) %i\n", ClpX, x, ClpW, ClpY, y, ClpH);
+				//printf("%i %i\n", x, y);
+				//if (x >= ClpX && y >= ClpY && x <= ClpW && y <= ClpH) {
+					DrawText(text, x, y);
+				//}
 			}
 
 			//
@@ -426,6 +434,11 @@ namespace Gwen
 				clipOld = clipNew;
 				clipOld.w += clipOld.x;
 				clipOld.h += clipOld.y;
+				clipNew = ClipRegion();
+				clipNew.x *= Scale();
+				clipNew.y *= Scale();
+				clipNew.w *= Scale();
+				clipNew.h *= Scale();
 
 				if (CurIndexCount > 0) {
 					VkDrawIndexedIndirectCommand iCommand = {};
@@ -434,16 +447,21 @@ namespace Gwen
 					iCommand.firstInstance = 0;
 					iCommand.instanceCount = 1;
 					indirectCommands.push_back(iCommand);
+					//	Clear FontTexture Inside ClipRect
+					/*for (unsigned int dstY = clipOld.y; dstY < clipOld.h; ++dstY) {
+						for (unsigned int dstX = clipOld.x; dstX < clipOld.w; ++dstX) {
+							const unsigned int dstBit = (dstY * dst_Pitch) + (dstX * 4);
+							writeBuffer[dstBit] = 0;// +0 == R
+							writeBuffer[dstBit + 1] = 0;// +1 == G
+							writeBuffer[dstBit + 2] = 0;// +2 == B
+							writeBuffer[dstBit + 3] = 0;	// +3 == A
+						}
+					}*/
 
 					vkCmdDrawIndexedIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 					CurIndirectDraw++;
 					CurIndexCount = 0;
 				}
-				clipNew = ClipRegion();
-				clipNew.x *= Scale();
-				clipNew.y *= Scale();
-				clipNew.w *= Scale();
-				clipNew.h *= Scale();
 				ClipScissors[currentBuffer].offset = { static_cast<int32_t>(clipNew.x), static_cast<int32_t>(clipNew.y) };
 				ClipScissors[currentBuffer].extent = { static_cast<uint32_t>(clipNew.w), static_cast<uint32_t>(clipNew.h) };
 				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &ClipScissors[currentBuffer]);

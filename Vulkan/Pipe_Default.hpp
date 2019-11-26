@@ -241,7 +241,12 @@ namespace Pipeline {
 
 			const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
-			if (error) printf("PNG Decoder error: (%i) %s", error, lodepng_error_text(error));
+			if (error) {
+				printf("PNG Decoder error: (%i) %s", error, lodepng_error_text(error));
+				Textures.pop_back();
+				delete Tex;
+				return nullptr;
+			}
 
 			Tex->Empty = false;
 
@@ -263,6 +268,7 @@ namespace Pipeline {
 
 			memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
 			Tex->Pixels.clear();
+			Tex->Pixels.shrink_to_fit();
 
 			VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 			imageInfo.imageType = VK_IMAGE_TYPE_2D;

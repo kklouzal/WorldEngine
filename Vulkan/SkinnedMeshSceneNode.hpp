@@ -202,13 +202,24 @@ public:
 //
 //	SceneGraph Create Function
 SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX) {
+	Pipeline::Skinned* Pipe = _Driver->_MaterialCache->GetPipe_Skinned();
 
 	FBXObject* FBX = _ImportFBX->Import(FileFBX);
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, _Driver->_MaterialCache->GetPipe_Skinned(), FBX->Vertices, FBX->Indices);
-	SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, FBX->bindPoses);
-	SceneNodes.push_back(MeshNode);
-	delete FBX;
-	this->invalidate();
-	return MeshNode;
+	std::string DiffuseFile("media/");
+	DiffuseFile += FBX->Texture_Diffuse;
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile.c_str());
+
+	if (DiffuseTex == nullptr) {
+		delete FBX;
+		return nullptr;
+	}
+	else {
+		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX->Vertices, FBX->Indices, DiffuseTex);
+		SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, FBX->bindPoses);
+		SceneNodes.push_back(MeshNode);
+		delete FBX;
+		this->invalidate();
+		return MeshNode;
+	}
 }

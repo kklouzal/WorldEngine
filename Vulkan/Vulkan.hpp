@@ -53,10 +53,10 @@ public:
 	const std::vector<const char*> deviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
-#ifdef NDEBUG
-	const bool enableValidationLayers = false;
-#else
+#ifdef _DEBUG
 	const bool enableValidationLayers = true;
+#else
+	const bool enableValidationLayers = false;
 #endif
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkDevice device = VK_NULL_HANDLE;
@@ -251,8 +251,14 @@ void VulkanDriver::initGWEN() {
 	pCanvas->SetBackgroundColor(Gwen::Color(150, 170, 170, 255));
 	pCanvas->SetKeyboardInputEnabled(false);
 
-	//Gwen::Controls::Button* Btn = new Gwen::Controls::Button(pCanvas);
-	//Btn->SetSize(100, 100);
+	/*Gwen::Controls::Button* Btn1 = new Gwen::Controls::Button(pCanvas);
+	Btn1->SetSize(100, 100);
+	Btn1->SetText("Button 1");
+	Btn1->SetPos(0, 0);
+	Gwen::Controls::WindowControl* Window = new Gwen::Controls::WindowControl(pCanvas);
+	Window->SetPos(300, 300);
+	Window->SetSize(100, 100);
+	Window->SetTitle("Test Title");*/
 
 	UnitTest* pUnit = new UnitTest(pCanvas);
 	pUnit->SetPos(10, 10);

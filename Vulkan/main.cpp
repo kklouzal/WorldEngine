@@ -21,9 +21,6 @@
 
 #include "lodepng.h"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include "Gwen/Gwen.h"
 #include "Gwen/Skins/Simple.h"
 #include "Gwen/Skins/TexturedBase.h"
@@ -35,19 +32,21 @@
 
 
 int main() {
+	std::system("PAUSE");
 	//
 	//	VulkanDriver Initialization
-	VulkanDriver app;
+	VulkanDriver* app = new VulkanDriver;
 	//
-	CustomEventReceiver events(&app);
-	app.setEventReceiver(&events);
+	CustomEventReceiver events(app);
+	app->setEventReceiver(&events);
 
+	app->_SceneGraph->createTriangleMeshSceneNode("media/lua.fbx");
 
 #ifdef _DEBUG
 	try {
 		//
 		//	Loop Main Logic
-		app.mainLoop();
+		app->mainLoop();
 	}
 	catch (const std::exception & e) {
 		std::cerr << e.what() << std::endl;
@@ -57,9 +56,11 @@ int main() {
 	//
 	//	Loop Main Logic
 	//	ToDo: Need access to main loop from main.cpp
-	app.mainLoop();
+	app->mainLoop();
 #endif
 	//
 	//	VulkanDriver deinitializes upon destruction
+	delete app;
+	std::system("PAUSE");
 	return EXIT_SUCCESS;
 }
