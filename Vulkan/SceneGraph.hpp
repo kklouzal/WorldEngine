@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Import_FBX.hpp"
+#include "btBulletDynamicsCommon.h"
 
 //
 //	Forward Declare Individual Scene Nodes
@@ -40,6 +41,20 @@ class SceneGraph {
 	std::vector<bool> IsValid = {};
 	Camera _Camera;
 
+	///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
+	btDefaultCollisionConfiguration* collisionConfiguration;
+
+	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
+	btCollisionDispatcher* dispatcher;
+
+	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
+	btBroadphaseInterface* overlappingPairCache;
+
+	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
+	btSequentialImpulseConstraintSolver* solver;
+
+	btDiscreteDynamicsWorld* dynamicsWorld;
+
 public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
 	VkCommandPool commandPool = VK_NULL_HANDLE;
@@ -72,11 +87,13 @@ public:
 
 	void invalidate();
 
+	void stepSimulation(const btScalar& timeStep);
+
 	//
 	//	Create SceneNode Functions
 	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX);
 	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
-	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
+	//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
 };
 
 #include "Pipe_Default.hpp"
@@ -93,6 +110,10 @@ public:
 
 //
 //	Define SceneGraph Implementation
+
+void SceneGraph::stepSimulation(const btScalar &timeStep) {
+	dynamicsWorld->stepSimulation(timeStep, 10);
+}
 
 void SceneGraph::validate(const uint32_t& currentImage) {
 	//
@@ -191,9 +212,30 @@ const std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
 SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new ImportFBX) {
 	createCommandPool();
 	createPrimaryCommandBuffers();
+
+	collisionConfiguration = new btDefaultCollisionConfiguration();
+	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
+	dispatcher = new btCollisionDispatcher(collisionConfiguration);
+	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
+	overlappingPairCache = new btDbvtBroadphase();
+	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
+	solver = new btSequentialImpulseConstraintSolver;
+	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+
+	dynamicsWorld->setGravity(btVector3(0, -10, 0));
 }
 
 SceneGraph::~SceneGraph() {
+	//delete dynamics world
+	delete dynamicsWorld;
+	//delete solver
+	delete solver;
+	//delete broadphase
+	delete overlappingPairCache;
+	//delete dispatcher
+	delete dispatcher;
+	delete collisionConfiguration;
+
 	delete _ImportFBX;
 #ifdef _DEBUG
 	std::cout << "Delete SceneGraph" << std::endl;

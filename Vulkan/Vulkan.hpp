@@ -179,7 +179,6 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
 
 #include "EventReceiver.hpp"
 
-
 //
 //	Initialize
 VulkanDriver::VulkanDriver() {
@@ -191,7 +190,14 @@ VulkanDriver::VulkanDriver() {
 //	Loop Main Logic
 void VulkanDriver::mainLoop() {
 	while (!glfwWindowShouldClose(_Window)) {
+		//
+		//	Handle Input
 		glfwPollEvents();
+		//
+		//	Simulat Physics
+		_SceneGraph->stepSimulation(1.0f / 60.0f);
+		//
+		//	Draw Frame
 		drawFrame();
 	}
 	vkDeviceWaitIdle(device);

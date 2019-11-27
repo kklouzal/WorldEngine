@@ -5,10 +5,10 @@
 
 #include "Vulkan.hpp"
 
-
-
 int main() {
+#ifdef _DEBUG
 	std::system("PAUSE");
+#endif
 	//
 	//	VulkanDriver Initialization
 	VulkanDriver* app = new VulkanDriver;
@@ -37,6 +37,8 @@ int main() {
 	//
 	//	VulkanDriver deinitializes upon destruction
 	delete app;
+#ifdef _DEBUG
 	std::system("PAUSE");
+#endif
 	return EXIT_SUCCESS;
 }
