@@ -112,5 +112,8 @@
     <ClInclude Include="Pipe_Skinned.hpp">
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
+    <ClInclude Include="Bullet_DebugDraw.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
