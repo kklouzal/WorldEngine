@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Import_FBX.hpp"
 #include "btBulletDynamicsCommon.h"
 #include "Bullet_DebugDraw.hpp"
+#include "Import_FBX.hpp"
 
 //
 //	Forward Declare Individual Scene Nodes
@@ -268,36 +268,6 @@ SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new I
 		//add the body to the dynamics world
 		dynamicsWorld->addRigidBody(body);
 	}
-
-	{
-		//create a dynamic rigidbody
-
-		//btCollisionShape* colShape = new btBoxShape(btVector3(1,1,1));
-		btCollisionShape* colShape = new btSphereShape(btScalar(1.));
-		collisionShapes.push_back(colShape);
-
-		/// Create Dynamic Objects
-		btTransform startTransform;
-		startTransform.setIdentity();
-
-		btScalar mass(1.f);
-
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
-
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic)
-			colShape->calculateLocalInertia(mass, localInertia);
-
-		startTransform.setOrigin(btVector3(2, 10, 0));
-
-		//using motionstate is recommended, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(startTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, colShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-
-		dynamicsWorld->addRigidBody(body);
-	}
 }
 
 SceneGraph::~SceneGraph() {
@@ -321,6 +291,12 @@ SceneGraph::~SceneGraph() {
 		collisionShapes[j] = 0;
 		delete shape;
 	}
+	//
+	//	Cleanup SceneNodes
+	for (size_t i = 0; i < SceneNodes.size(); i++) {
+		SceneNodes[i]->preDelete(dynamicsWorld);
+		delete SceneNodes[i];
+	}
 
 	//delete dynamics world
 	delete dynamicsWorld;
@@ -336,9 +312,6 @@ SceneGraph::~SceneGraph() {
 #ifdef _DEBUG
 	std::cout << "Delete SceneGraph" << std::endl;
 #endif
-	for (size_t i = 0; i < SceneNodes.size(); i++) {
-		delete SceneNodes[i];
-	}
 	vkDestroyCommandPool(_Driver->device, commandPool, nullptr);
 }
 

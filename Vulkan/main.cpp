@@ -1,6 +1,8 @@
 #ifdef _DEBUG
 #include <stdexcept>
 #include <iostream>
+#else
+#define BT_NO_PROFILE 1
 #endif
 
 #include "Vulkan.hpp"
@@ -16,7 +18,7 @@ int main() {
 	CustomEventReceiver events(app);
 	app->setEventReceiver(&events);
 
-	app->_SceneGraph->createTriangleMeshSceneNode("media/world.fbx");
+	app->_SceneGraph->createTriangleMeshSceneNode("media/box.fbx");
 
 #ifdef _DEBUG
 	try {

@@ -139,6 +139,7 @@ public:
 				//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/test/test.fbx");
 				//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/lua.fbx");
 				//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/arnaud/arnaud.fbx");
+				_Driver->_SceneGraph->createTriangleMeshSceneNode("media/box.fbx");
 			}
 			else if (NewEvent.Action == EventActions::Release) {
 #ifdef _DEBUG

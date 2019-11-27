@@ -10,15 +10,16 @@ struct FBXObject {
 	std::vector<FbxAMatrix> bindPoses = {};
 
 	const char* Texture_Diffuse = "";
+	
+	btTriangleMesh Bullet_TriMesh;
+
+	FBXObject() {}
 
 	~FBXObject() {
 		printf("Delete FBX Object\n");
 		Vertices.clear();
-		Vertices.shrink_to_fit();
 		Indices.clear();
-		Indices.shrink_to_fit();
 		bindPoses.clear();
-		bindPoses.shrink_to_fit();
 	}
 };
 
@@ -216,6 +217,8 @@ public:
 				for (int j = 0; j < Mesh->GetPolygonCount(); j++) {
 					int NumVerts = Mesh->GetPolygonSize(j);
 					if (NumVerts != 3 ) { continue; }
+					std::vector<btVector3> BulletVertices = {};
+					BulletVertices.resize(3);
 					for (int k = 0; k < NumVerts; k++) {
 						Vertex* NewVertex = &NewFBX->Vertices.emplace_back();
 						//
@@ -284,13 +287,19 @@ public:
 						}
 						//
 						//	Vertex & Index data
+						//	ToDo: Remove duplicate vertices using indices
 						int VertID = Mesh->GetPolygonVertex(j, k);
 						NewVertex->pos.x = (float)Vertices[VertID].mData[0];
 						NewVertex->pos.y = (float)Vertices[VertID].mData[1];
 						NewVertex->pos.z = (float)Vertices[VertID].mData[2];
 
 						NewFBX->Indices.emplace_back(IndexCount++);
+
+						BulletVertices[k].setValue(btScalar(NewVertex->pos.x), btScalar(NewVertex->pos.y), btScalar(NewVertex->pos.z));
 					}
+					//
+					//	Add the three BulletVertices into our Bullet trimesh
+					NewFBX->Bullet_TriMesh.addTriangle(BulletVertices[0], BulletVertices[1], BulletVertices[2]);
 				}
 			}
 			printf("\tOut Vertex Count: %zi\n", NewFBX->Vertices.size());

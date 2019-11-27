@@ -3,10 +3,10 @@
 //
 //	Uniform Buffer Object
 struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
-	glm::mat4 bones[128];
+	glm::mat4 model{};
+	glm::mat4 view{};
+	glm::mat4 proj{};
+	glm::mat4 bones[128]{};
 };
 
 //
