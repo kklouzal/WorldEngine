@@ -242,10 +242,13 @@ namespace Pipeline {
 			const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
 			if (error) {
-				printf("PNG Decoder error: (%i) %s", error, lodepng_error_text(error));
-				Textures.pop_back();
-				delete Tex;
-				return nullptr;
+				printf("PNG Decoder error: (%i) %s\n", error, lodepng_error_text(error));
+				const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
+				if (error2) {
+					Textures.pop_back();
+					delete Tex;
+					return nullptr;
+				}
 			}
 
 			Tex->Empty = false;

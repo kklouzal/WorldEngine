@@ -9,7 +9,7 @@ struct FBXObject {
 
 	std::vector<FbxAMatrix> bindPoses = {};
 
-	const char* Texture_Diffuse;
+	const char* Texture_Diffuse = "";
 
 	~FBXObject() {
 		printf("Delete FBX Object\n");

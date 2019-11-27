@@ -180,13 +180,6 @@ QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surfa
 #include "EventReceiver.hpp"
 
 //
-//	Initialize
-VulkanDriver::VulkanDriver() {
-	initWindow();
-	initVulkan();
-}
-
-//
 //	Loop Main Logic
 void VulkanDriver::mainLoop() {
 	while (!glfwWindowShouldClose(_Window)) {
@@ -194,13 +187,85 @@ void VulkanDriver::mainLoop() {
 		//	Handle Input
 		glfwPollEvents();
 		//
-		//	Simulat Physics
+		//	Simulate Physics
 		_SceneGraph->stepSimulation(1.0f / 60.0f);
 		//
 		//	Draw Frame
 		drawFrame();
 	}
 	vkDeviceWaitIdle(device);
+}
+
+void VulkanDriver::drawFrame() {
+	const VkResult Status = vkGetFenceStatus(device, inFlightFences[currentFrame]);
+	if (Status == VK_SUCCESS) {
+		//printf("Success\n");
+	}
+	else {
+		//printf("Wait\n");
+	}
+	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+	vkResetFences(device, 1, &inFlightFences[currentFrame]);
+
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+
+	VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
+	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &_SceneGraph->primaryCommandBuffers[imageIndex];
+	VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	//
+	//	Update the entire scene
+	_SceneGraph->validate(imageIndex);
+	_SceneGraph->updateUniformBuffer(imageIndex);
+
+	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+#ifdef _DEBUG
+		throw std::runtime_error("failed to submit draw command buffer!");
+#endif
+	}
+
+	VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+	presentInfo.waitSemaphoreCount = 1;
+	presentInfo.pWaitSemaphores = signalSemaphores;
+
+	VkSwapchainKHR swapChains[] = { swapChain };
+	presentInfo.swapchainCount = 1;
+	presentInfo.pSwapchains = swapChains;
+	presentInfo.pImageIndices = &imageIndex;
+
+	vkQueuePresentKHR(presentQueue, &presentInfo);
+
+	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+void VulkanDriver::DrawExternal(const uint32_t& currentImage) {
+	//printf("Draw %i\n", currentImage);
+	//
+	//	Update GWEN
+	pRenderer->SetBuffer(currentImage);
+	pCanvas->RenderCanvas();
+	std::vector<VkCommandBuffer> cb = { pRenderer->GetBuffer(currentImage) };
+	//
+	//	Draw GWEN
+	vkCmdExecuteCommands(_SceneGraph->primaryCommandBuffers[currentImage], 1, cb.data());
+	//
+}
+
+//
+//	Initialize
+VulkanDriver::VulkanDriver() {
+	initWindow();
+	initVulkan();
 }
 
 //
@@ -291,19 +356,6 @@ void VulkanDriver::initGWEN() {
 	pUnit->SetPos(10, 10);
 }
 
-void VulkanDriver::DrawExternal(const uint32_t &currentImage) {
-	//printf("Draw %i\n", currentImage);
-	//
-	//	Update GWEN
-	pRenderer->SetBuffer(currentImage);
-	pCanvas->RenderCanvas();
-	std::vector<VkCommandBuffer> cb = { pRenderer->GetBuffer(currentImage) };
-	//
-	//	Draw GWEN
-	vkCmdExecuteCommands(_SceneGraph->primaryCommandBuffers[currentImage], 1, cb.data());
-	//
-}
-
 void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
 	glfwSetWindowUserPointer(_Window, _EventRcvr);
 	glfwSetCharCallback(_Window, &EventReceiver::char_callback);
@@ -311,58 +363,6 @@ void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
 	glfwSetMouseButtonCallback(_Window, &EventReceiver::mouse_button_callback);
 	glfwSetCursorPosCallback(_Window, &EventReceiver::cursor_position_callback);
 	_EventRcvr->SetGWEN(pCanvas);
-}
-
-void VulkanDriver::drawFrame() {
-	const VkResult Status = vkGetFenceStatus(device, inFlightFences[currentFrame]);
-	if (Status == VK_SUCCESS) {
-		//printf("Success\n");
-	}
-	else {
-		//printf("Wait\n");
-	}
-	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-	vkResetFences(device, 1, &inFlightFences[currentFrame]);
-
-	uint32_t imageIndex;
-	vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
-	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-
-	VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
-	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemaphores;
-	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &_SceneGraph->primaryCommandBuffers[imageIndex];
-	VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores;
-
-	//
-	//	Update the entire scene
-	_SceneGraph->validate(imageIndex);
-	_SceneGraph->updateUniformBuffer(imageIndex);
-
-	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
-#ifdef _DEBUG
-		throw std::runtime_error("failed to submit draw command buffer!");
-#endif
-	}
-
-	VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = signalSemaphores;
-
-	VkSwapchainKHR swapChains[] = { swapChain };
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swapChains;
-	presentInfo.pImageIndices = &imageIndex;
-
-	vkQueuePresentKHR(presentQueue, &presentInfo);
-
-	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void VulkanDriver::createInstance() {

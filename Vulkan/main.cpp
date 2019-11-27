@@ -16,7 +16,7 @@ int main() {
 	CustomEventReceiver events(app);
 	app->setEventReceiver(&events);
 
-	app->_SceneGraph->createTriangleMeshSceneNode("media/lua.fbx");
+	app->_SceneGraph->createTriangleMeshSceneNode("media/world.fbx");
 
 #ifdef _DEBUG
 	try {
