@@ -122,7 +122,7 @@ public:
 		if (RootNode) {
 			std::vector<fbxsdk::FbxNode*> Nodes;
 			SearchNodes(RootNode, Nodes);
-			printf("\t%i Nodes - %i Usable\n", RootNode->GetChildCount(true), Nodes.size());
+			printf("\t%i Nodes - %zi Usable\n", RootNode->GetChildCount(true), Nodes.size());
 
 			std::unordered_map<int, VertexBoneInfo> BoneData = {};
 
@@ -221,7 +221,7 @@ public:
 						//
 						//	Bone Data
 						if (BoneData.count(j) == 1) {
-							const unsigned int BoneSize = BoneData[j].Bones.size();
+							const size_t BoneSize = BoneData[j].Bones.size();
 							if (BoneSize > 0) {
 								NewVertex->Bones.x = BoneData[j].Bones[0];
 							}
@@ -235,7 +235,7 @@ public:
 								NewVertex->Bones.w = BoneData[j].Bones[3];
 							}
 
-							const unsigned int WeightSize = BoneData[j].Weights.size();
+							const size_t WeightSize = BoneData[j].Weights.size();
 							if (WeightSize > 0) {
 								NewVertex->Weights.x = BoneData[j].Weights[0];
 							}
@@ -293,7 +293,7 @@ public:
 					}
 				}
 			}
-			printf("\tOut Vertex Count: %i\n", NewFBX->Vertices.size());
+			printf("\tOut Vertex Count: %zi\n", NewFBX->Vertices.size());
 			return NewFBX;
 		}
 	}
