@@ -70,14 +70,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\lib\vs2017\x64\debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\include;C:\Libraries\bullet\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\lib\vs2017\x64\debug;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\lib\vs2017\x64\release;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\include;C:\Libraries\bullet\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\lib\vs2017\x64\release;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>

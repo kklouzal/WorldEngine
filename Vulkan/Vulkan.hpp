@@ -1,4 +1,25 @@
 #pragma once
+#define WIN32_LEAN_AND_MEAN
+
+#include "Gwen/Gwen.h"
+#include "Gwen/Skins/Simple.h"
+#include "Gwen/Skins/TexturedBase.h"
+#include "Gwen/UnitTest/UnitTest.h"
+#include "Gwen/Input/Windows.h"
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/hash.hpp>
+
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
 
 #include <functional>
 #include <algorithm>

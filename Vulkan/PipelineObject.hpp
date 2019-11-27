@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lodepng.h"
+
 struct PipelineObject {
 	VulkanDriver* _Driver;
 
