@@ -267,124 +267,129 @@ namespace Pipeline {
 		//
 		TextureObject* createTextureImage(const char* File) {
 
-			auto Tex = Textures.emplace_back(new TextureObject(_Driver));
-
-			const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
-
-			if (error) {
-				printf("PNG Decoder error: (%i) %s\n", error, lodepng_error_text(error));
-				const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
-				if (error2) {
-					Textures.pop_back();
-					delete Tex;
-					return nullptr;
-				}
+			if (_Textures.count(File) == 1) {
+				return _Textures[File];
 			}
+			else {
+				auto Tex = _Textures.emplace(File, new TextureObject(_Driver)).first->second;
 
-			Tex->Empty = false;
+				const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
-			const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
+				if (error) {
+					printf("PNG Decoder error: (%i) %s\n", error, lodepng_error_text(error));
+					const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
+					if (error2) {
+						_Textures.erase(File);
+						delete Tex;
+						return nullptr;
+					}
+				}
 
-			//
-			//	Image Staging Buffer
-			VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			stagingBufferInfo.size = imageSize;
-			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+				Tex->Empty = false;
 
-			VmaAllocationCreateInfo allocInfo = {};
-			allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-			allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+				const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
 
-			VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
-			VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
-			vmaCreateBuffer(_Driver->allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
+				//
+				//	Image Staging Buffer
+				VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+				stagingBufferInfo.size = imageSize;
+				stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+				stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-			memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
+				VmaAllocationCreateInfo allocInfo = {};
+				allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+				allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-			imageInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageInfo.extent.width = static_cast<uint32_t>(Tex->Width);
-			imageInfo.extent.height = static_cast<uint32_t>(Tex->Height);
-			imageInfo.extent.depth = 1;
-			imageInfo.mipLevels = 1;
-			imageInfo.arrayLayers = 1;
-			imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+				VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
+				VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
+				vmaCreateBuffer(_Driver->allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
 
-			allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+				memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
 
-			vmaCreateImage(_Driver->allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
-			//
-			//	CPU->GPU Copy
-			VkCommandBuffer commandBuffer = _Driver->_SceneGraph->beginSingleTimeCommands();
-			VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-			imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imgMemBarrier.subresourceRange.baseMipLevel = 0;
-			imgMemBarrier.subresourceRange.levelCount = 1;
-			imgMemBarrier.subresourceRange.baseArrayLayer = 0;
-			imgMemBarrier.subresourceRange.layerCount = 1;
-			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			imgMemBarrier.image = Tex->Image;
-			imgMemBarrier.srcAccessMask = 0;
-			imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+				imageInfo.imageType = VK_IMAGE_TYPE_2D;
+				imageInfo.extent.width = static_cast<uint32_t>(Tex->Width);
+				imageInfo.extent.height = static_cast<uint32_t>(Tex->Height);
+				imageInfo.extent.depth = 1;
+				imageInfo.mipLevels = 1;
+				imageInfo.arrayLayers = 1;
+				imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+				imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+				imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+				imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+				imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &imgMemBarrier);
+				allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-			VkBufferImageCopy region = {};
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.layerCount = 1;
-			region.imageExtent.width = static_cast<uint32_t>(Tex->Width);
-			region.imageExtent.height = static_cast<uint32_t>(Tex->Height);
-			region.imageExtent.depth = 1;
+				vmaCreateImage(_Driver->allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
+				//
+				//	CPU->GPU Copy
+				VkCommandBuffer commandBuffer = _Driver->_SceneGraph->beginSingleTimeCommands();
+				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				imgMemBarrier.subresourceRange.baseMipLevel = 0;
+				imgMemBarrier.subresourceRange.levelCount = 1;
+				imgMemBarrier.subresourceRange.baseArrayLayer = 0;
+				imgMemBarrier.subresourceRange.layerCount = 1;
+				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				imgMemBarrier.image = Tex->Image;
+				imgMemBarrier.srcAccessMask = 0;
+				imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-			vkCmdCopyBufferToImage(commandBuffer, stagingImageBuffer, Tex->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+				vkCmdPipelineBarrier(
+					commandBuffer,
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					0,
+					0, nullptr,
+					0, nullptr,
+					1, &imgMemBarrier);
 
-			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imgMemBarrier.image = Tex->Image;
-			imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				VkBufferImageCopy region = {};
+				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				region.imageSubresource.layerCount = 1;
+				region.imageExtent.width = static_cast<uint32_t>(Tex->Width);
+				region.imageExtent.height = static_cast<uint32_t>(Tex->Height);
+				region.imageExtent.depth = 1;
 
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &imgMemBarrier);
+				vkCmdCopyBufferToImage(commandBuffer, stagingImageBuffer, Tex->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-			_Driver->_SceneGraph->endSingleTimeCommands(commandBuffer);
+				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imgMemBarrier.image = Tex->Image;
+				imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-			vmaDestroyBuffer(_Driver->allocator, stagingImageBuffer, stagingImageBufferAlloc);
+				vkCmdPipelineBarrier(
+					commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+					0,
+					0, nullptr,
+					0, nullptr,
+					1, &imgMemBarrier);
 
-			VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-			textureImageViewInfo.image = Tex->Image;
-			textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			textureImageViewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-			textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			textureImageViewInfo.subresourceRange.baseMipLevel = 0;
-			textureImageViewInfo.subresourceRange.levelCount = 1;
-			textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
-			textureImageViewInfo.subresourceRange.layerCount = 1;
-			vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &Tex->ImageView);
+				_Driver->_SceneGraph->endSingleTimeCommands(commandBuffer);
 
-			return Tex;
+				vmaDestroyBuffer(_Driver->allocator, stagingImageBuffer, stagingImageBufferAlloc);
+
+				VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+				textureImageViewInfo.image = Tex->Image;
+				textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+				textureImageViewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+				textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				textureImageViewInfo.subresourceRange.baseMipLevel = 0;
+				textureImageViewInfo.subresourceRange.levelCount = 1;
+				textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
+				textureImageViewInfo.subresourceRange.layerCount = 1;
+				vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &Tex->ImageView);
+
+				return Tex;
+			}
 		}
 	};
 }

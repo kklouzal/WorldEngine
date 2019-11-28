@@ -11,8 +11,8 @@ struct PipelineObject {
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
 	~PipelineObject() {
-		for (auto Tex : Textures) {
-			delete Tex;
+		for (auto Tex : _Textures) {
+			delete Tex.second;
 		}
 		vkDestroyPipeline(_Driver->device, graphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(_Driver->device, pipelineLayout, nullptr);
@@ -25,7 +25,7 @@ struct PipelineObject {
 
 protected:
 
-	std::vector<TextureObject*> Textures;
+	std::unordered_map<const char*, TextureObject*> _Textures;
 
 	PipelineObject(VulkanDriver* Driver) : _Driver(Driver) {}
 

@@ -256,14 +256,12 @@ namespace Pipeline {
 		//	Create Texture
 		//
 		//
-		std::unordered_map<const char*, TextureObject*> _Textures;
 		TextureObject* createTextureImage(const char* File) {
 
 			if (_Textures.count(File) == 1) {
 				return _Textures[File];
 			}
 			else {
-
 				auto Tex = _Textures.emplace(File, new TextureObject(_Driver)).first->second;
 
 				const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
@@ -272,7 +270,7 @@ namespace Pipeline {
 					printf("PNG Decoder error: (%i) %s\n", error, lodepng_error_text(error));
 					const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
 					if (error2) {
-						Textures.pop_back();
+						_Textures.erase(File);
 						delete Tex;
 						return nullptr;
 					}
@@ -287,6 +285,7 @@ namespace Pipeline {
 				VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 				stagingBufferInfo.size = imageSize;
 				stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+				stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 				VmaAllocationCreateInfo allocInfo = {};
 				allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
