@@ -8,6 +8,18 @@ struct UniformBufferObject {
 	glm::mat4 proj{};
 	glm::mat4 bones[128]{};
 };
+//
+//	Uniform Buffer Object
+struct UniformBufferObject_PointLights {
+	glm::vec3 position[64]{};
+
+	glm::vec3 ambient[64]{};
+	glm::vec3 diffuse[64]{};
+
+	glm::vec3 CLQ[64]{};
+
+	glm::uint32 count{};
+};
 
 //
 //	Vertex

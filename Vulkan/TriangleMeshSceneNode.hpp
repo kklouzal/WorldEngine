@@ -4,6 +4,7 @@ class TriangleMeshSceneNode : public SceneNode {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
+	UniformBufferObject ubo = {};
 public:
 	TriangleMesh* _Mesh = nullptr;
 	btCollisionShape* _CollisionShape = nullptr;
@@ -16,9 +17,9 @@ public:
 		std::cout << "Destroy TriangleMeshSceneNode" << std::endl;
 #endif
 
-		//delete _RigidBody->getMotionState();
-		//delete _RigidBody;
-		//delete _CollisionShape;
+		delete _RigidBody->getMotionState();
+		delete _RigidBody;
+		delete _CollisionShape;
 		delete _Mesh;
 	}
 
@@ -27,17 +28,7 @@ public:
 	}
 
 	void updateUniformBuffer(const uint32_t &currentImage) {
-
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-		UniformBufferObject ubo = {};
-		ubo.model = glm::translate(glm::mat4(1.0f), Pos);
-		ubo.model = glm::rotate(ubo.model, glm::radians(Rot.x), glm::vec3(1.0f, 0.0f, 0.0f));
-		ubo.model = glm::rotate(ubo.model, glm::radians(Rot.y), glm::vec3(0.0f, 1.0f, 0.0f));
-		ubo.model = glm::rotate(ubo.model, glm::radians(Rot.z), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.model = Model;
 
 		_Mesh->updateUniformBuffer(currentImage, ubo);
 	}
@@ -68,10 +59,10 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 		//
 		//	Bullet Physics
-		MeshNode->_CollisionShape = new btBoxShape(btVector3(btScalar(0.5), btScalar(0.5), btScalar(0.5)));
+		MeshNode->_CollisionShape = new btBoxShape(btVector3(btScalar(1), btScalar(1), btScalar(1)));
 		btTransform Transform;
 		Transform.setIdentity();
-		Transform.setOrigin(btVector3(0, -56, 0));
+		Transform.setOrigin(btVector3(0, 15, 0));
 
 		btScalar Mass(1.0f);
 		bool isDynamic = (Mass != 0.f);
@@ -81,8 +72,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 			MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
 		}
 
-		//using motionstate is optional, it provides interpolation capabilities, and only synchronizes 'active' objects
-		SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode /*Transform*/);
+		SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode,Transform);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
 		MeshNode->_RigidBody = new btRigidBody(rbInfo);
 		dynamicsWorld->addRigidBody(MeshNode->_RigidBody);

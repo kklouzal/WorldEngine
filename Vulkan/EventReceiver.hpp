@@ -1,7 +1,6 @@
 class EventReceiver {
+	VulkanDriver* _Driver;
 	Gwen::Controls::Canvas* m_Canvas;
-	int m_MouseX = 0;
-	int m_MouseY = 0;
 
 	static void char_callback(GLFWwindow* window, unsigned int codepoint)
 	{
@@ -48,6 +47,7 @@ class EventReceiver {
 		else if (action == GLFW_REPEAT) {
 			NewEvent.Action = EventActions::Repeat;
 		}
+		NewEvent.Key = key;
 		Rcvr->OnEvent(NewEvent);
 	}
 
@@ -83,13 +83,45 @@ class EventReceiver {
 	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 	{
 		EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
+
+		if (Rcvr->m_Pos_First)
+		{
+			Rcvr->m_PosX_Old = xpos;
+			Rcvr->m_PosY_Old = ypos;
+			Rcvr->m_Pos_First = false;
+		}
+		Rcvr->m_PosX_New = xpos;
+		Rcvr->m_PosY_New = ypos;
+		Rcvr->m_PosX_Delta = xpos - Rcvr->m_PosX_Old;
+		Rcvr->m_PosY_Delta = Rcvr->m_PosY_Old - ypos;
+		Rcvr->m_PosX_Old = xpos;
+		Rcvr->m_PosY_Old = ypos;
+
+
 		int x = xpos;
 		int y = ypos;
-		int dx = x - Rcvr->m_MouseX;
-		int dy = y - Rcvr->m_MouseY;
-		Rcvr->m_MouseX = x;
-		Rcvr->m_MouseY = y;
+		int dx = Rcvr->m_PosX_Delta;
+		int dy = Rcvr->m_PosY_Delta;
 		Rcvr->m_Canvas->InputMouseMoved(x, y, dx, dy);
+
+		Event NewEvent;
+		NewEvent.Type = EventTypes::Mouse;
+		NewEvent.Action = EventActions::Move;
+		NewEvent.mX = xpos;
+		NewEvent.mY = ypos;
+		Rcvr->OnEvent(NewEvent);
+	}
+
+	static void cursor_enter_callback(GLFWwindow* window, int entered)
+	{
+		if (entered)
+		{
+			// The cursor entered the content area of the window
+		}
+		else
+		{
+			// The cursor left the content area of the window
+		}
 	}
 
 protected:
@@ -101,14 +133,26 @@ protected:
 	enum EventActions {
 		Press = 1,
 		Release = 2,
-		Repeat = 3
+		Repeat = 3,
+		Move = 4
 	};
 
 	struct Event {
 		EventTypes Type;
 		EventActions Action;
+		int Key;
+		double mX;
+		double mY;
 		//	Other Event Related Values
 	};
+
+	double m_PosX_New = 0;
+	double m_PosY_New = 0;
+	double m_PosX_Old = 0;
+	double m_PosY_Old = 0;
+	double m_PosX_Delta = 0;
+	double m_PosY_Delta = 0;
+	bool m_Pos_First = true;
 
 public:
 	virtual void OnEvent(const Event &NewEvent) = 0;
@@ -117,60 +161,76 @@ public:
 		m_Canvas = Canvas;
 	}
 
+	void SetDriver(VulkanDriver* Driver) {
+		_Driver = Driver;
+	}
+
 	friend class VulkanDriver;
 };
 
 class CustomEventReceiver : public EventReceiver {
 	VulkanDriver* _Driver;
-public:
-	CustomEventReceiver(VulkanDriver* Driver) : _Driver(Driver) {
+	bool isMenuOpen = true;
 
-	}
+public:
+	CustomEventReceiver(VulkanDriver* Driver) : _Driver(Driver) { }
 
 	void OnEvent(const Event &NewEvent) {
 		if (NewEvent.Type == EventTypes::Keyboard) {
-#ifdef _DEBUG
-			printf("Keyboard ");
-#endif
 			if (NewEvent.Action == EventActions::Press) {
-#ifdef _DEBUG
-				printf("Press\n");
-#endif
+				if (NewEvent.Key == GLFW_KEY_TAB) {
+					if (isMenuOpen) {
+						isMenuOpen = false;
+						glfwSetInputMode(_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+						if (glfwRawMouseMotionSupported()) {
+							glfwSetInputMode(_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+						}
+					}
+					else {
+						if (glfwRawMouseMotionSupported()) {
+							glfwSetInputMode(_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+						}
+						glfwSetInputMode(_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+						isMenuOpen = true;
+					}
+				}
 				//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/test/test.fbx");
 				//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/lua.fbx");
 				//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/arnaud/arnaud.fbx");
-				_Driver->_SceneGraph->createTriangleMeshSceneNode("media/box.fbx");
+				_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cube.fbx");
 			}
 			else if (NewEvent.Action == EventActions::Release) {
-#ifdef _DEBUG
-				printf("Release\n");
-#endif
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
-#ifdef _DEBUG
-				printf("Repeat\n");
-#endif
+			}
+			if (NewEvent.Key == GLFW_KEY_W) {
+				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+				Cam->GoForward();
+			}
+			else if (NewEvent.Key == GLFW_KEY_S) {
+				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+				Cam->GoBackward();
+			}
+			else if (NewEvent.Key == GLFW_KEY_A) {
+				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+				Cam->GoLeft();
+			}
+			else if (NewEvent.Key == GLFW_KEY_D) {
+				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+				Cam->GoRight();
 			}
 		}
 		else if (NewEvent.Type == EventTypes::Mouse) {
-#ifdef _DEBUG
-			printf("Mouse ");
-#endif
 			if (NewEvent.Action == EventActions::Press) {
-#ifdef _DEBUG
-				printf("Press\n");
-#endif
 				//_Driver->_SceneGraph->createSkinnedMeshSceneNode(vertices, indices);
 			}
 			else if (NewEvent.Action == EventActions::Release) {
-#ifdef _DEBUG
-				printf("Release\n");
-#endif
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
-#ifdef _DEBUG
-				printf("Repeat\n");
-#endif
+			}
+			else if (NewEvent.Action == EventActions::Move) {
+				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+				Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
 			}
 		}
 	}

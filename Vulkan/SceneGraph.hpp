@@ -12,22 +12,74 @@ class TriangleMeshSceneNode;
 class SkinnedMeshSceneNode;
 
 class Camera {
+	glm::vec3 Up;
 public:
+	float Speed = 0.05f;
+
 	glm::vec3 Pos;
 	glm::vec3 Ang;
-	glm::vec3 Center;
+
+	glm::mat4 View{};
 
 public:
-	Camera() : Pos(glm::vec3(0,0,0)), Ang(glm::vec3(0,0,0)), Center(glm::vec3(0,0,0)) {}
+	Camera() : Pos(glm::vec3(0,0,0)), Ang(glm::vec3(0,0,-1)), Up(glm::vec3(0.0f, 1.0f, 0.0f)) {
+		View = glm::lookAt(Pos, Pos + Ang, Up);
+	}
+
+	void GoForward() {
+		Pos += Speed * Ang;
+		View = glm::lookAt(Pos, Pos + Ang, Up);
+	}
+
+	void GoBackward() {
+		Pos -= Speed * Ang;
+		View = glm::lookAt(Pos, Pos + Ang, Up);
+	}
+
+	void GoLeft() {
+		Pos -= glm::normalize(glm::cross(Ang, Up)) * Speed;
+		View = glm::lookAt(Pos, Pos + Ang, Up);
+	}
+
+	void GoRight() {
+		Pos += glm::normalize(glm::cross(Ang, Up)) * Speed;
+		View = glm::lookAt(Pos, Pos + Ang, Up);
+	}
 
 	void SetPosition(const glm::vec3& NewPosition) {
 		Pos = NewPosition;
-		Center = Pos + Ang;
+		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
 
 	void SetAngle(const glm::vec3& NewAngle) {
 		Ang = NewAngle;
-		Center = Pos + Ang;
+		View = glm::lookAt(Pos, Pos + Ang, Up);
+	}
+	bool firstMouse = true;
+	double lastX = 0;
+	double lastY = 0;
+	float yaw = 0;
+	float pitch = 0;
+	void DoLook(double deltaX, double deltaY) {
+
+		float sensitivity = 0.15;
+		deltaX *= sensitivity;
+		deltaY *= sensitivity;
+
+		yaw += deltaX;
+		pitch += deltaY;
+
+		if (pitch > 89.0f)
+			pitch = 89.0f;
+		if (pitch < -89.0f)
+			pitch = -89.0f;
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+		front.y = sin(glm::radians(pitch));
+		front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+		Ang = glm::normalize(front);
+		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
 };
 
@@ -41,21 +93,17 @@ class SceneGraph {
 	//	When false, each SceneNode Sub-Command-Buffer will be resubmitted.
 	std::vector<bool> IsValid = {};
 	Camera _Camera;
+	UniformBufferObject_PointLights PointLights;
 
 	///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
 	btDefaultCollisionConfiguration* collisionConfiguration;
-
 	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
 	btCollisionDispatcher* dispatcher;
-
 	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
 	btBroadphaseInterface* overlappingPairCache;
-
 	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
 	btSequentialImpulseConstraintSolver* solver;
-
 	btDiscreteDynamicsWorld* dynamicsWorld;
-
 	//make sure to re-use collision shapes among rigid bodies whenever possible!
 	btAlignedObjectArray<btCollisionShape*> collisionShapes;
 #ifdef _DEBUG
@@ -101,6 +149,31 @@ public:
 	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX);
 	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 	//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
+
+	std::vector<VkBuffer> UniformBuffers_Lighting = {};
+	std::vector<VmaAllocation> uniformAllocations = {};
+	void createUniformBuffers() {
+		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
+		UniformBuffers_Lighting.resize(_Driver->swapChainImages.size());
+		uniformAllocations.resize(_Driver->swapChainImages.size());
+
+		for (size_t i = 0; i < _Driver->swapChainImages.size(); i++) {
+
+			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			uniformBufferInfo.size = bufferSize;
+			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			VmaAllocationCreateInfo uniformAllocInfo = {};
+			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+			VmaAllocationInfo uniformBufferAllocInfo = {};
+
+			vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], &uniformBufferAllocInfo);
+		}
+	}
 };
 
 #include "Pipe_Default.hpp"
@@ -175,6 +248,44 @@ void SceneGraph::validate(const uint32_t& currentImage) {
 }
 
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
+	//	Point Light 1
+	PointLights.position[0] = glm::vec3(-2.0f, 4.0f, 2.0f);
+	PointLights.ambient[0] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.diffuse[0] = glm::vec3(0.4, 0.4, 0.4);
+	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.CLQ[0].x = glm::f32(1.0f);
+	PointLights.CLQ[0].y = glm::f32(0.09f);
+	PointLights.CLQ[0].z = glm::f32(0.032f);
+	//	Point Light 2
+	PointLights.position[1] = glm::vec3(2.0f, 4.0f, 2.0f);
+	PointLights.ambient[1] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.diffuse[1] = glm::vec3(0.4, 0.4, 0.4);
+	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.CLQ[1].x = glm::f32(1.0f);
+	PointLights.CLQ[1].y = glm::f32(0.09f);
+	PointLights.CLQ[1].z = glm::f32(0.032f);
+	//	Point Light 3
+	PointLights.position[2] = glm::vec3(2.0f, 4.0f, -2.0f);
+	PointLights.ambient[2] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.diffuse[2] = glm::vec3(0.4, 0.4, 0.4);
+	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.CLQ[2].x = glm::f32(1.0f);
+	PointLights.CLQ[2].y = glm::f32(0.09f);
+	PointLights.CLQ[2].z = glm::f32(0.032f);
+	//	Point Light 4
+	PointLights.position[3] = glm::vec3(-2.0f, 4.0f, -2.0f);
+	PointLights.ambient[3] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.diffuse[3] = glm::vec3(0.4, 0.4, 0.4);
+	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.CLQ[3].x = glm::f32(1.0f);
+	PointLights.CLQ[3].y = glm::f32(0.09f);
+	PointLights.CLQ[3].z = glm::f32(0.032f);
+
+	PointLights.count = glm::uint32(4);
+
+	memcpy(uniformAllocations[currentImage]->GetMappedData(), &PointLights, sizeof(PointLights));
+	//
+	//	Update SceneNode Uniform Buffers
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
 		SceneNodes[i]->updateUniformBuffer(currentImage);
 	}
@@ -223,6 +334,7 @@ const std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
 SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new ImportFBX) {
 	createCommandPool();
 	createPrimaryCommandBuffers();
+	createUniformBuffers();
 
 	collisionConfiguration = new btDefaultCollisionConfiguration();
 	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
@@ -271,6 +383,16 @@ SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new I
 }
 
 SceneGraph::~SceneGraph() {
+	for (size_t i = 0; i < UniformBuffers_Lighting.size(); i++) {
+		vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
+	}
+	//
+	//	Cleanup SceneNodes
+	for (size_t i = 0; i < SceneNodes.size(); i++) {
+		SceneNodes[i]->preDelete(dynamicsWorld);
+		delete SceneNodes[i];
+	}
+
 	//remove the rigidbodies from the dynamics world and delete them
 	for (int i = dynamicsWorld->getNumCollisionObjects() - 1; i >= 0; i--)
 	{
@@ -290,12 +412,6 @@ SceneGraph::~SceneGraph() {
 		btCollisionShape* shape = collisionShapes[j];
 		collisionShapes[j] = 0;
 		delete shape;
-	}
-	//
-	//	Cleanup SceneNodes
-	for (size_t i = 0; i < SceneNodes.size(); i++) {
-		SceneNodes[i]->preDelete(dynamicsWorld);
-		delete SceneNodes[i];
 	}
 
 	//delete dynamics world

@@ -169,14 +169,19 @@ public:
 	}
 
 	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo) {
+		static auto startTime = std::chrono::high_resolution_clock::now();
+		auto currentTime = std::chrono::high_resolution_clock::now();
+		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+		
+		float radius = 512.0f;
+		float camX = sin(time * radius);
+		float camZ = cos(time * radius);
+
 		Camera Cam = _Driver->_SceneGraph->GetCamera();
-		//Cam.SetPosition(glm::vec3(-48.0f, 0.0f, 48.0f));
-		Cam.SetPosition(glm::vec3(-10.0f, -3.0f, 5.0f));
-		Cam.SetAngle(glm::vec3(1.0f, 0.0f, -0.5f));
 			//ubo.view = glm::lookAt(glm::vec3(512.0f, 512.0f, 128.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-			ubo.view = glm::lookAt(Cam.Pos, Cam.Center, glm::vec3(0.0f, 1.0f, 0.0f));
-			ubo.proj = glm::perspective(glm::radians(45.0f), _Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 1024.0f);
-			ubo.proj[1][1] *= -1;
+		ubo.view = Cam.View;
+		ubo.proj = glm::perspective(glm::radians(90.0f), (float)_Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 1024.0f);
+		ubo.proj[1][1] *= -1;
 
 		memcpy(uniformAllocations[currentImage]->GetMappedData(), &ubo, sizeof(ubo));
 	}

@@ -12,10 +12,11 @@
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_ENABLE_EXPERIMENTAL
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/hash.hpp>
 
 #define VMA_IMPLEMENTATION
@@ -362,6 +363,8 @@ void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
 	glfwSetKeyCallback(_Window, &EventReceiver::key_callback);
 	glfwSetMouseButtonCallback(_Window, &EventReceiver::mouse_button_callback);
 	glfwSetCursorPosCallback(_Window, &EventReceiver::cursor_position_callback);
+	glfwSetCursorEnterCallback(_Window, &EventReceiver::cursor_enter_callback);
+	_EventRcvr->SetDriver(this);
 	_EventRcvr->SetGWEN(pCanvas);
 }
 

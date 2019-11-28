@@ -22,7 +22,13 @@ namespace Pipeline {
 			samplerLayoutBinding.pImmutableSamplers = nullptr;
 			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-			std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
+			VkDescriptorSetLayoutBinding uboLayoutBinding_Lighting = {};
+			uboLayoutBinding_Lighting.binding = 2;
+			uboLayoutBinding_Lighting.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			uboLayoutBinding_Lighting.descriptorCount = 1;
+			uboLayoutBinding_Lighting.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+			std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, samplerLayoutBinding, uboLayoutBinding_Lighting };
 			VkDescriptorSetLayoutCreateInfo layoutInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 			layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
 			layoutInfo.pBindings = bindings.data();
@@ -166,11 +172,13 @@ namespace Pipeline {
 		DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
 
-			std::array<VkDescriptorPoolSize, 2> poolSizes = {};
+			std::array<VkDescriptorPoolSize, 3> poolSizes = {};
 			poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
 			poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			poolSizes[1].descriptorCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
+			poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			poolSizes[2].descriptorCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
 
 			VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 			poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -207,7 +215,12 @@ namespace Pipeline {
 				imageInfo.imageView = Texture->ImageView;
 				imageInfo.sampler = Sampler;
 
-				std::array<VkWriteDescriptorSet, 2> descriptorWrites = {};
+				VkDescriptorBufferInfo bufferInfo_Lighting = {};
+				bufferInfo_Lighting.buffer = _Driver->_SceneGraph->UniformBuffers_Lighting[i];
+				bufferInfo_Lighting.offset = 0;
+				bufferInfo_Lighting.range = sizeof(UniformBufferObject_PointLights);
+
+				std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
 
 				descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 				descriptorWrites[0].dstSet = NewDescriptor->DescriptorSets[i];
@@ -225,6 +238,14 @@ namespace Pipeline {
 				descriptorWrites[1].descriptorCount = 1;
 				descriptorWrites[1].pImageInfo = &imageInfo;
 
+				descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				descriptorWrites[2].dstSet = NewDescriptor->DescriptorSets[i];
+				descriptorWrites[2].dstBinding = 2;
+				descriptorWrites[2].dstArrayElement = 0;
+				descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				descriptorWrites[2].descriptorCount = 1;
+				descriptorWrites[2].pBufferInfo = &bufferInfo_Lighting;
+
 				vkUpdateDescriptorSets(_Driver->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 			}
 
@@ -235,127 +256,134 @@ namespace Pipeline {
 		//	Create Texture
 		//
 		//
+		std::unordered_map<const char*, TextureObject*> _Textures;
 		TextureObject* createTextureImage(const char* File) {
 
-			auto Tex = Textures.emplace_back(new TextureObject(_Driver));
-
-			const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
-
-			if (error) {
-				printf("PNG Decoder error: (%i) %s\n", error, lodepng_error_text(error));
-				const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
-				if (error2) {
-					Textures.pop_back();
-					delete Tex;
-					return nullptr;
-				}
+			if (_Textures.count(File) == 1) {
+				return _Textures[File];
 			}
+			else {
 
-			Tex->Empty = false;
+				auto Tex = _Textures.emplace(File, new TextureObject(_Driver)).first->second;
 
-			const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
+				const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
-			//
-			//	Image Staging Buffer
-			VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			stagingBufferInfo.size = imageSize;
-			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+				if (error) {
+					printf("PNG Decoder error: (%i) %s\n", error, lodepng_error_text(error));
+					const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
+					if (error2) {
+						Textures.pop_back();
+						delete Tex;
+						return nullptr;
+					}
+				}
 
-			VmaAllocationCreateInfo allocInfo = {};
-			allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-			allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+				Tex->Empty = false;
 
-			VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
-			VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
-			vmaCreateBuffer(_Driver->allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
+				const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
 
-			memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
-			Tex->Pixels.clear();
-			Tex->Pixels.shrink_to_fit();
+				//
+				//	Image Staging Buffer
+				VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+				stagingBufferInfo.size = imageSize;
+				stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-			VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-			imageInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageInfo.extent.width = static_cast<uint32_t>(Tex->Width);
-			imageInfo.extent.height = static_cast<uint32_t>(Tex->Height);
-			imageInfo.extent.depth = 1;
-			imageInfo.mipLevels = 1;
-			imageInfo.arrayLayers = 1;
-			imageInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
-			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+				VmaAllocationCreateInfo allocInfo = {};
+				allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+				allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+				VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
+				VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
+				vmaCreateBuffer(_Driver->allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
 
-			vmaCreateImage(_Driver->allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
-			//
-			//	CPU->GPU Copy
-			VkCommandBuffer commandBuffer = _Driver->_SceneGraph->beginSingleTimeCommands();
-			VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-			imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imgMemBarrier.subresourceRange.baseMipLevel = 0;
-			imgMemBarrier.subresourceRange.levelCount = 1;
-			imgMemBarrier.subresourceRange.baseArrayLayer = 0;
-			imgMemBarrier.subresourceRange.layerCount = 1;
-			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			imgMemBarrier.image = Tex->Image;
-			imgMemBarrier.srcAccessMask = 0;
-			imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
+				Tex->Pixels.clear();
+				Tex->Pixels.shrink_to_fit();
 
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &imgMemBarrier);
+				VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+				imageInfo.imageType = VK_IMAGE_TYPE_2D;
+				imageInfo.extent.width = static_cast<uint32_t>(Tex->Width);
+				imageInfo.extent.height = static_cast<uint32_t>(Tex->Height);
+				imageInfo.extent.depth = 1;
+				imageInfo.mipLevels = 1;
+				imageInfo.arrayLayers = 1;
+				imageInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
+				imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+				imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+				imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+				imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-			VkBufferImageCopy region = {};
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.layerCount = 1;
-			region.imageExtent.width = static_cast<uint32_t>(Tex->Width);
-			region.imageExtent.height = static_cast<uint32_t>(Tex->Height);
-			region.imageExtent.depth = 1;
+				allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-			vkCmdCopyBufferToImage(commandBuffer, stagingImageBuffer, Tex->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+				vmaCreateImage(_Driver->allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
+				//
+				//	CPU->GPU Copy
+				VkCommandBuffer commandBuffer = _Driver->_SceneGraph->beginSingleTimeCommands();
+				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				imgMemBarrier.subresourceRange.baseMipLevel = 0;
+				imgMemBarrier.subresourceRange.levelCount = 1;
+				imgMemBarrier.subresourceRange.baseArrayLayer = 0;
+				imgMemBarrier.subresourceRange.layerCount = 1;
+				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				imgMemBarrier.image = Tex->Image;
+				imgMemBarrier.srcAccessMask = 0;
+				imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imgMemBarrier.image = Tex->Image;
-			imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				vkCmdPipelineBarrier(
+					commandBuffer,
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					0,
+					0, nullptr,
+					0, nullptr,
+					1, &imgMemBarrier);
 
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &imgMemBarrier);
+				VkBufferImageCopy region = {};
+				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				region.imageSubresource.layerCount = 1;
+				region.imageExtent.width = static_cast<uint32_t>(Tex->Width);
+				region.imageExtent.height = static_cast<uint32_t>(Tex->Height);
+				region.imageExtent.depth = 1;
 
-			_Driver->_SceneGraph->endSingleTimeCommands(commandBuffer);
+				vkCmdCopyBufferToImage(commandBuffer, stagingImageBuffer, Tex->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-			vmaDestroyBuffer(_Driver->allocator, stagingImageBuffer, stagingImageBufferAlloc);
+				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imgMemBarrier.image = Tex->Image;
+				imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-			VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-			textureImageViewInfo.image = Tex->Image;
-			textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			textureImageViewInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
-			textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			textureImageViewInfo.subresourceRange.baseMipLevel = 0;
-			textureImageViewInfo.subresourceRange.levelCount = 1;
-			textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
-			textureImageViewInfo.subresourceRange.layerCount = 1;
-			vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &Tex->ImageView);
+				vkCmdPipelineBarrier(
+					commandBuffer,
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+					0,
+					0, nullptr,
+					0, nullptr,
+					1, &imgMemBarrier);
 
-			return Tex;
+				_Driver->_SceneGraph->endSingleTimeCommands(commandBuffer);
+
+				vmaDestroyBuffer(_Driver->allocator, stagingImageBuffer, stagingImageBufferAlloc);
+
+				VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+				textureImageViewInfo.image = Tex->Image;
+				textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+				textureImageViewInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
+				textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				textureImageViewInfo.subresourceRange.baseMipLevel = 0;
+				textureImageViewInfo.subresourceRange.levelCount = 1;
+				textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
+				textureImageViewInfo.subresourceRange.layerCount = 1;
+				vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &Tex->ImageView);
+
+				return Tex;
+			}
 		}
 	};
 }
