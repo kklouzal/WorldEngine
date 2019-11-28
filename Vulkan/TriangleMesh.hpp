@@ -11,8 +11,7 @@ public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
 	PipelineObject* Pipe;
 
-	const std::vector<Vertex> vertices;
-	const std::vector<uint32_t> indices;
+	FBXObject* _FbxObject;
 	size_t vertexBufferSize;
 	size_t indexBufferSize;
 
@@ -33,9 +32,8 @@ public:
 
 public:
 	
-	TriangleMesh(VulkanDriver* Driver, PipelineObject* Pipeline, const std::vector<Vertex> &Vertices, const std::vector<uint32_t> &Indices, TextureObject* Diffuse)
-		: _Driver(Driver), Pipe(Pipeline), vertices(Vertices), indices(Indices),
-		vertexBufferSize(sizeof(vertices[0])* vertices.size()), indexBufferSize(sizeof(uint32_t)* indices.size()) {
+	TriangleMesh(VulkanDriver* Driver, PipelineObject* Pipeline, FBXObject* Fbx, TextureObject* Diffuse)
+		: _Driver(Driver), Pipe(Pipeline), _FbxObject(Fbx), vertexBufferSize(sizeof(Vertex)* Fbx->Vertices.size()), indexBufferSize(sizeof(uint32_t)* Fbx->Indices.size()) {
 		createVertexBuffer();
 		createUniformBuffers();
 		Texture = Diffuse;
@@ -95,7 +93,7 @@ public:
 		VmaAllocation stagingVertexBufferAlloc = VK_NULL_HANDLE;
 		vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &stagingVertexBuffer, &stagingVertexBufferAlloc, nullptr);
 
-		memcpy(stagingVertexBufferAlloc->GetMappedData(), vertices.data(), vertexBufferSize);
+		memcpy(stagingVertexBufferAlloc->GetMappedData(), _FbxObject->Vertices.data(), vertexBufferSize);
 
 		vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		vertexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -117,7 +115,7 @@ public:
 		VmaAllocation stagingIndexBufferAlloc = VK_NULL_HANDLE;
 		vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &stagingIndexBuffer, &stagingIndexBufferAlloc, nullptr);
 
-		memcpy(stagingIndexBufferAlloc->GetMappedData(), indices.data(), indexBufferSize);
+		memcpy(stagingIndexBufferAlloc->GetMappedData(), _FbxObject->Indices.data(), indexBufferSize);
 
 		indexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		indexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -161,7 +159,7 @@ public:
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer, offsets);
 			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(_FbxObject->Indices.size()), 1, 0, 0, 0);
 			//
 			//	End recording
 			vkEndCommandBuffer(commandBuffers[i]);

@@ -14,7 +14,6 @@ class SkinnedMeshSceneNode;
 class Camera {
 	glm::vec3 Up;
 public:
-	float Speed = 0.05f;
 
 	glm::vec3 Pos;
 	glm::vec3 Ang;
@@ -26,22 +25,22 @@ public:
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
 
-	void GoForward() {
+	void GoForward(float Speed) {
 		Pos += Speed * Ang;
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
 
-	void GoBackward() {
+	void GoBackward(float Speed) {
 		Pos -= Speed * Ang;
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
 
-	void GoLeft() {
+	void GoLeft(float Speed) {
 		Pos -= glm::normalize(glm::cross(Ang, Up)) * Speed;
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
 
-	void GoRight() {
+	void GoRight(float Speed) {
 		Pos += glm::normalize(glm::cross(Ang, Up)) * Speed;
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}

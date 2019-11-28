@@ -205,19 +205,19 @@ public:
 			}
 			if (NewEvent.Key == GLFW_KEY_W) {
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				Cam->GoForward();
+				Cam->GoForward(10.0f * (_Driver->deltaFrame/1000));
 			}
 			else if (NewEvent.Key == GLFW_KEY_S) {
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				Cam->GoBackward();
+				Cam->GoBackward(10.0f * (_Driver->deltaFrame / 1000));
 			}
 			else if (NewEvent.Key == GLFW_KEY_A) {
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				Cam->GoLeft();
+				Cam->GoLeft(10.0f * (_Driver->deltaFrame / 1000));
 			}
 			else if (NewEvent.Key == GLFW_KEY_D) {
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				Cam->GoRight();
+				Cam->GoRight(10.0f * (_Driver->deltaFrame / 1000));
 			}
 		}
 		else if (NewEvent.Type == EventTypes::Mouse) {

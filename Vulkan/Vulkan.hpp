@@ -29,6 +29,7 @@
 #include <set>
 #include <array>
 #include <fstream>
+#include <deque>
 
 class EventReceiver;
 class MaterialCache;
@@ -147,6 +148,28 @@ public:
 	void setEventReceiver(EventReceiver* _EventRcvr);
 
 	void DrawExternal(const uint32_t& currentImage);
+	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
+	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
+	float deltaFrame = 0;
+	std::deque<float> Frames;
+
+	void PushFrame(float F) {
+		Frames.push_back(F);
+		if (Frames.size() > 60) {
+			Frames.pop_front();
+		}
+	}
+
+	float GetDeltaFrames() {
+		float DF = 0;
+		for (auto F : Frames) {
+			DF += F;
+		}
+		return DF / Frames.size();
+	}
+
+	Gwen::Controls::StatusBar* m_StatusBar;
+
 };
 
 QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface) {
@@ -189,23 +212,32 @@ void VulkanDriver::mainLoop() {
 		glfwPollEvents();
 		//
 		//	Simulate Physics
-		_SceneGraph->stepSimulation(1.0f / 60.0f);
+		_SceneGraph->stepSimulation(deltaFrame/1000);
 		//
 		//	Draw Frame
 		drawFrame();
 	}
-	vkDeviceWaitIdle(device);
+	//vkDeviceWaitIdle(device);
 }
 
-void VulkanDriver::drawFrame() {
-	const VkResult Status = vkGetFenceStatus(device, inFlightFences[currentFrame]);
-	if (Status == VK_SUCCESS) {
+void VulkanDriver::drawFrame() {	
+	endFrame = std::chrono::high_resolution_clock::now();
+	deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count();
+	startFrame = endFrame;
+	PushFrame(deltaFrame);
+	float DF = GetDeltaFrames();
+	//printf("Frame Time:\t%f\t[%f]\t(%f)\n", deltaFrame, deltaFrame/1000, (1.0f/ deltaFrame)*1000.0f);
+	float FPS = (1.0f / DF) * 1000.0f;
+	
+	m_StatusBar->SetText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
+	//const VkResult Status = vkGetFenceStatus(device, inFlightFences[currentFrame]);
+	//if (Status == VK_SUCCESS) {
 		//printf("Success\n");
-	}
-	else {
+	//}
+	//else {
 		//printf("Wait\n");
-	}
-	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+	//}
+	//vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 	vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
 	uint32_t imageIndex;
@@ -353,8 +385,11 @@ void VulkanDriver::initGWEN() {
 	Window->SetSize(100, 100);
 	Window->SetTitle("Test Title");*/
 
-	UnitTest* pUnit = new UnitTest(pCanvas);
-	pUnit->SetPos(10, 10);
+	m_StatusBar = new Gwen::Controls::StatusBar(pCanvas);
+	m_StatusBar->Dock(Gwen::Pos::Bottom);
+
+	//UnitTest* pUnit = new UnitTest(pCanvas);
+	//pUnit->SetPos(10, 10);
 }
 
 void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {

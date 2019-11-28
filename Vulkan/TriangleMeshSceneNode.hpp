@@ -50,11 +50,10 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	DiffuseFile += FBX->Texture_Diffuse;
 	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile.c_str());
 	if (DiffuseTex == nullptr) {
-		delete FBX;
 		return nullptr;
 	}
 	else {
-		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX->Vertices, FBX->Indices, DiffuseTex);
+		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX, DiffuseTex);
 		TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 
 		//
@@ -80,7 +79,6 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 		//
 		//	Push new SceneNode into the SceneGraph
 		SceneNodes.push_back(MeshNode);
-		delete FBX;
 		this->invalidate();
 		return MeshNode;
 	}
