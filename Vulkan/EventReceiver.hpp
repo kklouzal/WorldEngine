@@ -194,6 +194,9 @@ public:
 						isMenuOpen = true;
 					}
 				}
+				else if (NewEvent.Key == GLFW_KEY_SPACE) {
+					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cup.fbx");
+				}
 				//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/test/test.fbx");
 				//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/lua.fbx");
 				//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/arnaud/arnaud.fbx");

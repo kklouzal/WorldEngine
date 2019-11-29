@@ -19,7 +19,7 @@ public:
 
 		delete _RigidBody->getMotionState();
 		delete _RigidBody;
-		delete _CollisionShape;
+		//delete _CollisionShape;
 		delete _Mesh;
 	}
 
@@ -54,12 +54,20 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	}
 	else {
 		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX, DiffuseTex);
-		Decomp(FBX);
+		btCollisionShape* ColShape;
+		if (_CollisionShapes.count(FileFBX) == 0) {
+			ColShape = Decomp(FBX);
+			_CollisionShapes[FileFBX] = ColShape;
+		}
+		else {
+			ColShape = _CollisionShapes[FileFBX];
+		}
+
 		TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 
 		//
 		//	Bullet Physics
-		MeshNode->_CollisionShape = new btBoxShape(btVector3(btScalar(1), btScalar(1), btScalar(1)));
+		MeshNode->_CollisionShape = ColShape;// new btBoxShape(btVector3(btScalar(1), btScalar(1), btScalar(1)));
 		btTransform Transform;
 		Transform.setIdentity();
 		Transform.setOrigin(btVector3(0, 15, 0));

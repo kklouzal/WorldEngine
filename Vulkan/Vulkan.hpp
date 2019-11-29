@@ -218,7 +218,9 @@ void VulkanDriver::mainLoop() {
 		//	Draw Frame
 		drawFrame();
 	}
-	//vkDeviceWaitIdle(device);
+	//
+	//	Wait for idle before shutting down
+	vkDeviceWaitIdle(device);
 }
 
 void VulkanDriver::drawFrame() {	

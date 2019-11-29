@@ -106,6 +106,8 @@ class SceneGraph {
 	btDiscreteDynamicsWorld* dynamicsWorld;
 	//make sure to re-use collision shapes among rigid bodies whenever possible!
 	btAlignedObjectArray<btCollisionShape*> collisionShapes;
+
+	std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
 #ifdef _DEBUG
 	VulkanBTDebugDraw BTDebugDraw;
 #endif
