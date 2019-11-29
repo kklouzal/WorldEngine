@@ -115,5 +115,8 @@
     <ClInclude Include="Bullet_DebugDraw.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ConvexDecomposition.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

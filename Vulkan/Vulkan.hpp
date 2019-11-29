@@ -2,10 +2,9 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include "Gwen/Gwen.h"
-#include "Gwen/Skins/Simple.h"
 #include "Gwen/Skins/TexturedBase.h"
-#include "Gwen/UnitTest/UnitTest.h"
 #include "Gwen/Input/Windows.h"
+#include <Gwen/Controls.h>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -21,6 +20,8 @@
 
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
+
+#include <lua.hpp>
 
 #include <functional>
 #include <algorithm>
@@ -167,7 +168,7 @@ public:
 		}
 		return DF / Frames.size();
 	}
-
+	
 	Gwen::Controls::StatusBar* m_StatusBar;
 
 };

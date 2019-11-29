@@ -3,6 +3,7 @@
 #include "btBulletDynamicsCommon.h"
 #include "Bullet_DebugDraw.hpp"
 #include "Import_FBX.hpp"
+#include "ConvexDecomposition.hpp"
 
 //
 //	Forward Declare Individual Scene Nodes

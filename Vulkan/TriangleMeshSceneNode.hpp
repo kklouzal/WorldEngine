@@ -54,6 +54,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	}
 	else {
 		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX, DiffuseTex);
+		Decomp(FBX);
 		TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 
 		//
