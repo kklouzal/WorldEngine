@@ -26,11 +26,13 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 	VHACD::IVHACD* interfaceVHACD = VHACD::CreateVHACD();
 	//
 	//	Compute approximate convex decomposition
+	//printf("Compute V-HACD: Points %i Triangles %i\n", Points.size(), Triangles.size());
 	bool res = interfaceVHACD->Compute(Points.data(), (uint32_t)(Points.size() / 3),
 		Triangles.data(), (uint32_t)(Triangles.size() / 3), params);
 	//
 	//	Get the number of convex hulls
 	unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
+	//printf("V-HACD Done: Hull Count %i\n", nConvexHulls);
 	//
 	//	Iterate through each convex hull
 	btAlignedObjectArray<btConvexShape*> m_convexShapes;
@@ -39,6 +41,7 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 	VHACD::IVHACD::ConvexHull Hull;
 	for (unsigned int h = 0; h < nConvexHulls; ++h)
 	{
+		//printf("\tHull: %i\n", h);
 		//	Fill Hull for each individual convex hull
 		interfaceVHACD->GetConvexHull(h, Hull);
 
@@ -66,6 +69,9 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 			vertices.push_back(vertex1);
 			vertices.push_back(vertex2);
 		}
+		//printf("\t\tPoints: %i\n", Hull.m_points);
+		//printf("\t\tTriangles: %i\n", Hull.m_triangles);
+		//printf("\t\tVertices: %i\n", vertices.size());
 		//
 		//	Offset vertices by centroid and add them to the trimesh
 		for (unsigned int i = 0; i < vertices.size()/3; i++) {
@@ -88,7 +94,9 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 	//	Add each individual Convex Shape into our Compound Shape offset by its centroid
 	for (unsigned int i = 0; i < nConvexHulls; i++)
 	{
+		//printf("\tConvex Shape: %i\n", i);
 		btVector3 centroid = m_convexCentroids[i];
+		//printf("\t\tCentroid: %f %f %f\n", centroid.x(), centroid.y(), centroid.z());
 		trans.setOrigin(centroid);
 		btConvexShape* convexShape = m_convexShapes[i];
 		compound->addChildShape(trans, convexShape);

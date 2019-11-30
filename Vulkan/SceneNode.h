@@ -46,6 +46,7 @@ public:
 
 	virtual void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
+		worldTrans.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
 	}
 
 	//Bullet only calls the update of worldtransform for active objects
@@ -55,5 +56,6 @@ public:
 	}
 };
 
+#include "WorldSceneNode.hpp"
 #include "TriangleMeshSceneNode.hpp"
 //#include "SkinnedMeshSceneNode.hpp"

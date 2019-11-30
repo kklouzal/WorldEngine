@@ -10,6 +10,7 @@ class EventReceiver : public Gwen::Event::Handler {
 	//
 	//	State Flags
 	bool isMenuOpen = true;
+	bool isWorldInitialized = false;
 	//
 
 	void drawGWEN(const uint32_t& currentImage) {
@@ -54,21 +55,23 @@ class EventReceiver : public Gwen::Event::Handler {
 		else if (key == GLFW_KEY_UP) { iKey = Gwen::Key::Up; }
 		else if (key == GLFW_KEY_DOWN) { iKey = Gwen::Key::Down; }
 
-		if (action == GLFW_PRESS && key == GLFW_KEY_TAB) {
-			if (Rcvr->isMenuOpen) {
-				Rcvr->isMenuOpen = false;
-				Rcvr->m_Pos_First = true;
-				glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-				if (glfwRawMouseMotionSupported()) {
-					glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+		if (Rcvr->isWorldInitialized) {
+			if (action == GLFW_PRESS && key == GLFW_KEY_TAB) {
+				if (Rcvr->isMenuOpen) {
+					Rcvr->isMenuOpen = false;
+					Rcvr->m_Pos_First = true;
+					glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+					if (glfwRawMouseMotionSupported()) {
+						glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+					}
 				}
-			}
-			else {
-				Rcvr->isMenuOpen = true;
-				if (glfwRawMouseMotionSupported()) {
-					glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+				else {
+					Rcvr->isMenuOpen = true;
+					if (glfwRawMouseMotionSupported()) {
+						glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+					}
+					glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 				}
-				glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 			}
 		}
 
@@ -172,6 +175,18 @@ class EventReceiver : public Gwen::Event::Handler {
 		if (ControlName == "Quit") {
 			glfwSetWindowShouldClose(_Driver->_Window, GLFW_TRUE);
 		}
+		else if (ControlName == "Play") {
+			if (!isWorldInitialized) {
+				_Driver->_SceneGraph->initWorld();
+				isWorldInitialized = true;
+				((Gwen::Controls::Button*)pControl)->SetText("Disconnect");
+			}
+			else {
+				_Driver->_SceneGraph->cleanupWorld();
+				isWorldInitialized = false;
+				((Gwen::Controls::Button*)pControl)->SetText("Play");
+			}
+		}
 	}
 
 protected:
@@ -208,6 +223,10 @@ protected:
 
 	const bool& IsMenuOpen() const {
 		return isMenuOpen;
+	}
+
+	const bool& IsWorldInitialized() const {
+		return isWorldInitialized;
 	}
 
 public:

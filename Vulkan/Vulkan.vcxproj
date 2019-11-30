@@ -185,6 +185,7 @@
     <ClInclude Include="vk_mem_alloc.h" />
     <ClInclude Include="Vulkan.hpp" />
     <ClInclude Include="VulkanGWEN.hpp" />
+    <ClInclude Include="WorldSceneNode.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

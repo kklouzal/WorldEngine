@@ -14,8 +14,8 @@ public:
 	//	Called every frame right before updating the GUI
 	void OnUpdate() {
 		//
-		//	Only keyboard-move-camera when menus closed
-		if (!IsMenuOpen()) {
+		//	Only keyboard-move-camera when menus closed and world initialized
+		if (!IsMenuOpen() && IsWorldInitialized()) {
 			if (isW) {
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 				Cam->GoForward(10.0f * (_Driver->deltaFrame / 1000));
@@ -41,8 +41,8 @@ public:
 		if (NewEvent.Type == EventTypes::Keyboard) {
 			if (NewEvent.Action == EventActions::Press) {
 				//
-				//	Only keyboard-spawn-objects when menus closed
-				if (!IsMenuOpen()) {
+				//	Only keyboard-spawn-objects when menus closed and world initialized
+				if (!IsMenuOpen() && IsWorldInitialized()) {
 					if (NewEvent.Key == GLFW_KEY_SPACE) {
 						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cup.fbx");
 					}

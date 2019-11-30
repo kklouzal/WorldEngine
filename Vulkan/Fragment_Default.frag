@@ -37,7 +37,7 @@ vec3 CalcPointLight(uint lnum, vec3 normal) {
 void main() {
     vec3 norm = normalize(fragNormal);
 
-	vec3 point_Result = vec3(0,0,0);
+	vec3 point_Result = vec3(0.2,0.2,0.2);
 
 	for(int i = 0; i < lights.count; i++) {
 		point_Result += CalcPointLight(i, norm);

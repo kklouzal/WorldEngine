@@ -149,7 +149,8 @@ public:
 							if (texture) {
 								// Then, you can get all the properties of the texture, include its name
 								NewFBX->Texture_Diffuse = texture->GetRelativeFileName();
-								printf("\tFile %s\n", NewFBX->Texture_Diffuse);
+								printf("\tRelative File %s\n", NewFBX->Texture_Diffuse);
+								printf("\tFile %s\n", texture->GetFileName());
 							}
 							else { printf("\tTexture Invalid\n"); }
 						}

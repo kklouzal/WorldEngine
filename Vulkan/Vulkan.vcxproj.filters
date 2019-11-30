@@ -136,5 +136,8 @@
     <ClInclude Include="Camera.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="WorldSceneNode.hpp">
+      <Filter>Header Files\SceneNodes</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

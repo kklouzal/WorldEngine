@@ -10,6 +10,7 @@
 //	Forward Declare Individual Scene Nodes
 class SceneNode;
 class TriangleMesh;
+class WorldSceneNode;
 class TriangleMeshSceneNode;
 class SkinnedMeshSceneNode;
 
@@ -34,8 +35,6 @@ class SceneGraph {
 	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
 	btSequentialImpulseConstraintSolver* solver;
 	btDiscreteDynamicsWorld* dynamicsWorld;
-	//make sure to re-use collision shapes among rigid bodies whenever possible!
-	btAlignedObjectArray<btCollisionShape*> collisionShapes;
 
 	std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
 #ifdef _DEBUG
@@ -49,7 +48,7 @@ public:
 	//
 	//std::vector<VkCommandBuffer> secondaryCommandBuffers = {};
 
-	std::vector<SceneNode*> SceneNodes = {};
+	std::deque<SceneNode*> SceneNodes = {};
 
 	ImportFBX* _ImportFBX;
 
@@ -78,7 +77,8 @@ public:
 
 	//
 	//	Create SceneNode Functions
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX);
+	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 15, 0));
 	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 	//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
 
@@ -106,6 +106,10 @@ public:
 			vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], &uniformBufferAllocInfo);
 		}
 	}
+
+	bool isWorld = false;
+	void initWorld();
+	void cleanupWorld();
 };
 
 #include "Pipe_Default.hpp"
@@ -123,8 +127,54 @@ public:
 //
 //	Define SceneGraph Implementation
 
+void SceneGraph::initWorld() {
+	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
+
+	collisionConfiguration = new btDefaultCollisionConfiguration();
+	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
+	dispatcher = new btCollisionDispatcher(collisionConfiguration);
+	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
+	overlappingPairCache = new btDbvtBroadphase();
+	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
+	solver = new btSequentialImpulseConstraintSolver;
+	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+
+	dynamicsWorld->setGravity(btVector3(0, -10, 0));
+#ifdef _DEBUG
+	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
+#endif
+
+	createWorldSceneNode("media/world.fbx");
+
+	isWorld = true;
+}
+
+void SceneGraph::cleanupWorld() {
+	if (!isWorld) { printf("cleanupWorld: No world initialized to cleanup!\n"); return; }
+	isWorld = false;
+	//
+	//	Cleanup SceneNodes
+	for (size_t i = 0; i < SceneNodes.size(); i++) {
+		SceneNodes[i]->preDelete(dynamicsWorld);
+		delete SceneNodes[i];
+	}
+	SceneNodes.clear();
+
+	//delete dynamics world
+	delete dynamicsWorld;
+	//delete solver
+	delete solver;
+	//delete broadphase
+	delete overlappingPairCache;
+	//delete dispatcher
+	delete dispatcher;
+	delete collisionConfiguration;
+}
+
 void SceneGraph::stepSimulation(const btScalar &timeStep) {
-	dynamicsWorld->stepSimulation(timeStep, 10);
+	if (isWorld) {
+		dynamicsWorld->stepSimulation(timeStep, 10);
+	}
 }
 
 void SceneGraph::validate(const uint32_t& currentImage) {
@@ -212,8 +262,16 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	PointLights.CLQ[3].x = glm::f32(1.0f);
 	PointLights.CLQ[3].y = glm::f32(0.09f);
 	PointLights.CLQ[3].z = glm::f32(0.032f);
+	//	Point Light 5 (Camera Light)
+	PointLights.position[4] = _Camera.Pos+_Camera.Ang;
+	PointLights.ambient[4] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.diffuse[4] = glm::vec3(0.4, 0.4, 0.4);
+	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.CLQ[4].x = glm::f32(1.0f);
+	PointLights.CLQ[4].y = glm::f32(0.09f);
+	PointLights.CLQ[4].z = glm::f32(0.032f);
 
-	PointLights.count = glm::uint32(4);
+	PointLights.count = glm::uint32(5);
 
 	memcpy(uniformAllocations[currentImage]->GetMappedData(), &PointLights, sizeof(PointLights));
 	//
@@ -264,97 +322,16 @@ const std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
 //
 
 SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new ImportFBX) {
+	cleanupWorld();
 	createCommandPool();
 	createPrimaryCommandBuffers();
 	createUniformBuffers();
-
-	collisionConfiguration = new btDefaultCollisionConfiguration();
-	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
-	dispatcher = new btCollisionDispatcher(collisionConfiguration);
-	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
-	overlappingPairCache = new btDbvtBroadphase();
-	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
-	solver = new btSequentialImpulseConstraintSolver;
-	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-
-	dynamicsWorld->setGravity(btVector3(0, -10, 0));
-#ifdef _DEBUG
-	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
-#endif
-
-	///create a few basic rigid bodies
-
-//the ground is a cube of side 100 at position y = -56.
-//the sphere will hit it at y = -6, with center at -5
-	{
-		btCollisionShape* groundShape = new btBoxShape(btVector3(btScalar(50.), btScalar(50.), btScalar(50.)));
-
-		collisionShapes.push_back(groundShape);
-
-		btTransform groundTransform;
-		groundTransform.setIdentity();
-		groundTransform.setOrigin(btVector3(0, -56, 0));
-
-		btScalar mass(0.);
-
-		//rigidbody is dynamic if and only if mass is non zero, otherwise static
-		bool isDynamic = (mass != 0.f);
-
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic)
-			groundShape->calculateLocalInertia(mass, localInertia);
-
-		//using motionstate is optional, it provides interpolation capabilities, and only synchronizes 'active' objects
-		btDefaultMotionState* myMotionState = new btDefaultMotionState(groundTransform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(mass, myMotionState, groundShape, localInertia);
-		btRigidBody* body = new btRigidBody(rbInfo);
-
-		//add the body to the dynamics world
-		dynamicsWorld->addRigidBody(body);
-	}
 }
 
 SceneGraph::~SceneGraph() {
 	for (size_t i = 0; i < UniformBuffers_Lighting.size(); i++) {
 		vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
 	}
-	//
-	//	Cleanup SceneNodes
-	for (size_t i = 0; i < SceneNodes.size(); i++) {
-		SceneNodes[i]->preDelete(dynamicsWorld);
-		delete SceneNodes[i];
-	}
-
-	//remove the rigidbodies from the dynamics world and delete them
-	for (int i = dynamicsWorld->getNumCollisionObjects() - 1; i >= 0; i--)
-	{
-		btCollisionObject* obj = dynamicsWorld->getCollisionObjectArray()[i];
-		btRigidBody* body = btRigidBody::upcast(obj);
-		if (body && body->getMotionState())
-		{
-			delete body->getMotionState();
-		}
-		dynamicsWorld->removeCollisionObject(obj);
-		delete obj;
-	}
-
-	//delete collision shapes
-	for (int j = 0; j < collisionShapes.size(); j++)
-	{
-		btCollisionShape* shape = collisionShapes[j];
-		collisionShapes[j] = 0;
-		delete shape;
-	}
-
-	//delete dynamics world
-	delete dynamicsWorld;
-	//delete solver
-	delete solver;
-	//delete broadphase
-	delete overlappingPairCache;
-	//delete dispatcher
-	delete dispatcher;
-	delete collisionConfiguration;
 
 	delete _ImportFBX;
 #ifdef _DEBUG
