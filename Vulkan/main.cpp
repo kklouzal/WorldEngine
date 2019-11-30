@@ -1,7 +1,4 @@
-#ifdef _DEBUG
-#include <stdexcept>
-#include <iostream>
-#else
+#ifndef _DEBUG
 #define BT_NO_PROFILE 1
 #endif
 
@@ -19,10 +16,10 @@ int main() {
 	//	VulkanDriver Initialization
 	VulkanDriver* app = new VulkanDriver;
 	//
+	//	Create our custom event receiver
+	//	Will be cleaned up by VulkanDriver
 	CustomEventReceiver* events = new CustomEventReceiver(app);
 	app->setEventReceiver(events);
-
-	app->_SceneGraph->createTriangleMeshSceneNode("media/cube.fbx");
 
 #ifdef _DEBUG
 	try {
@@ -31,7 +28,7 @@ int main() {
 		app->mainLoop();
 	}
 	catch (const std::exception & e) {
-		std::cerr << e.what() << std::endl;
+		printf("\nFATAL ERROR:\n\t%s\n", e.what());
 		return EXIT_FAILURE;
 	}
 #else
@@ -43,7 +40,6 @@ int main() {
 	//
 	//	VulkanDriver deinitializes upon destruction
 	delete app;
-	//delete events;
 #ifdef _DEBUG
 	std::system("PAUSE");
 #endif

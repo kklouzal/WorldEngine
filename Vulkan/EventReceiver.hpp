@@ -167,7 +167,11 @@ class EventReceiver : public Gwen::Event::Handler {
 	}
 
 	void OnPress(Gwen::Controls::Base* pControl) {
-		printf("Press\n");
+		Gwen::String ControlName = pControl->GetName();
+		printf("Press %s\n", ControlName);
+		if (ControlName == "Quit") {
+			glfwSetWindowShouldClose(_Driver->_Window, GLFW_TRUE);
+		}
 	}
 
 protected:
@@ -225,18 +229,30 @@ public:
 		m_StatusBar->Dock(Gwen::Pos::Bottom);
 
 		Gwen::Controls::WindowControl* Window = new Gwen::Controls::WindowControl(pCanvas);
-		Window->SetWidth(300);
-		Window->SetHeight(300);
+		Window->SetWidth(80);
+		Window->SetHeight(135);
 		Window->SetPos(10, 10);
 		Window->SetTitle("Main Menu");
 		Window->SetClosable(false);
 		Window->SetClampMovement(true);
 		
-		Gwen::Controls::Button* PlayButton = new Gwen::Controls::Button(Window);
+		Gwen::Controls::Button* PlayButton = new Gwen::Controls::Button(Window, "Play");
 		PlayButton->SetSize(80, 20);
-		PlayButton->SetPos(10, 10);
+		PlayButton->SetPos(5, 5);
 		PlayButton->SetText("Play");
 		PlayButton->onPress.Add(this, &EventReceiver::OnPress);
+
+		Gwen::Controls::Button* SettingsButton = new Gwen::Controls::Button(Window, "Settings");
+		SettingsButton->SetSize(80, 20);
+		SettingsButton->SetPos(5, 40);
+		SettingsButton->SetText("Settings");
+		SettingsButton->onPress.Add(this, &EventReceiver::OnPress);
+
+		Gwen::Controls::Button* QuitButton = new Gwen::Controls::Button(Window, "Quit");
+		QuitButton->SetSize(80, 20);
+		QuitButton->SetPos(5, 75);
+		QuitButton->SetText("Quit");
+		QuitButton->onPress.Add(this, &EventReceiver::OnPress);
 
 	}
 
