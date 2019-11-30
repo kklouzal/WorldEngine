@@ -139,5 +139,8 @@
     <ClInclude Include="WorldSceneNode.hpp">
       <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
+    <ClInclude Include="CharacterSceneNode.hpp">
+      <Filter>Header Files\SceneNodes</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -46,6 +46,9 @@ public:
 					if (NewEvent.Key == GLFW_KEY_SPACE) {
 						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cup.fbx");
 					}
+					else if (NewEvent.Key == GLFW_KEY_C) {
+							_Driver->_SceneGraph->createCharacterSceneNode("media/cube.fbx", btVector3(5,5,5));
+						}
 					else {
 						//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/test/test.fbx");
 						//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/lua.fbx");

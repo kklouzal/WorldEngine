@@ -11,6 +11,7 @@
 class SceneNode;
 class TriangleMesh;
 class WorldSceneNode;
+class CharacterSceneNode;
 class TriangleMeshSceneNode;
 class SkinnedMeshSceneNode;
 
@@ -82,6 +83,7 @@ public:
 	//
 	//	Create SceneNode Functions
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
+	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, btVector3 Position);
 	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 15, 0));
 	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 	//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);

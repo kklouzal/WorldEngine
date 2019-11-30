@@ -164,6 +164,7 @@
   <ItemGroup>
     <ClInclude Include="Bullet_DebugDraw.hpp" />
     <ClInclude Include="Camera.hpp" />
+    <ClInclude Include="CharacterSceneNode.hpp" />
     <ClInclude Include="ConvexDecomposition.hpp" />
     <ClInclude Include="Import_FBX.hpp" />
     <ClInclude Include="lodepng.h" />
