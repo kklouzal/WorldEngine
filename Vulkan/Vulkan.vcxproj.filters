@@ -28,13 +28,22 @@
     <Filter Include="Source Files\Shaders\Vert">
       <UniqueIdentifier>{d7c1df62-77e5-4fa9-b94d-cbddbb55515e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Client Implementations">
+      <UniqueIdentifier>{c8845d94-5d35-4b51-b291-98e10784b798}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Libraries">
+      <UniqueIdentifier>{444acd66-cbc7-431f-a7ab-a18a655d2e22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Libraries">
+      <UniqueIdentifier>{72bb51b6-9e2a-4d89-b48c-ae3c88d507eb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="lodepng.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Libraries</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -85,9 +94,6 @@
     <ClInclude Include="PlaybackController.hpp">
       <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
-    <ClInclude Include="vk_mem_alloc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="VulkanGWEN.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -106,9 +112,6 @@
     <ClInclude Include="Import_FBX.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lodepng.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Pipe_Skinned.hpp">
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
@@ -117,6 +120,18 @@
     </ClInclude>
     <ClInclude Include="ConvexDecomposition.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaScripting.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MyEventReceiver.hpp">
+      <Filter>Header Files\Client Implementations</Filter>
+    </ClInclude>
+    <ClInclude Include="lodepng.h">
+      <Filter>Header Files\Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_mem_alloc.h">
+      <Filter>Header Files\Libraries</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

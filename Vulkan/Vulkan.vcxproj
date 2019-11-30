@@ -166,6 +166,8 @@
     <ClInclude Include="ConvexDecomposition.hpp" />
     <ClInclude Include="Import_FBX.hpp" />
     <ClInclude Include="lodepng.h" />
+    <ClInclude Include="LuaScripting.hpp" />
+    <ClInclude Include="MyEventReceiver.hpp" />
     <ClInclude Include="Pipe_Default.hpp" />
     <ClInclude Include="EventReceiver.hpp" />
     <ClInclude Include="Forwards.hpp" />

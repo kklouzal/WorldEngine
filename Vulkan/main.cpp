@@ -6,6 +6,10 @@
 #endif
 
 #include "Vulkan.hpp"
+//
+//	Client Implementations
+#include "MyEventReceiver.hpp"
+//
 
 int main() {
 #ifdef _DEBUG
@@ -15,8 +19,8 @@ int main() {
 	//	VulkanDriver Initialization
 	VulkanDriver* app = new VulkanDriver;
 	//
-	CustomEventReceiver events(app);
-	app->setEventReceiver(&events);
+	CustomEventReceiver* events = new CustomEventReceiver(app);
+	app->setEventReceiver(events);
 
 	app->_SceneGraph->createTriangleMeshSceneNode("media/cube.fbx");
 
@@ -39,6 +43,7 @@ int main() {
 	//
 	//	VulkanDriver deinitializes upon destruction
 	delete app;
+	delete events;
 #ifdef _DEBUG
 	std::system("PAUSE");
 #endif

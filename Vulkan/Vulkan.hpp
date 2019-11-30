@@ -1,10 +1,11 @@
 #pragma once
 #define WIN32_LEAN_AND_MEAN
 
-#include "Gwen/Gwen.h"
-#include "Gwen/Skins/TexturedBase.h"
-#include "Gwen/Input/Windows.h"
+#include <Gwen/Gwen.h>
+#include <Gwen/Skins/TexturedBase.h>
+#include <Gwen/Input/Windows.h>
 #include <Gwen/Controls.h>
+#include <Gwen/Controls/WindowControl.h>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -21,7 +22,7 @@
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
-#include <lua.hpp>
+#include "LuaScripting.hpp"
 
 #include <functional>
 #include <algorithm>
@@ -111,12 +112,11 @@ public:
 	SceneGraph* _SceneGraph;
 
 	//
-	//	GWEN
-	Gwen::Renderer::Vulkan* pRenderer;
-	Gwen::Skin::TexturedBase* pSkin;
-	Gwen::Controls::Canvas* pCanvas;
+	//	Lua
+	lua_State* state;
 	//
 
+	void initLua();
 	void initWindow();
 	void initVulkan();
 	void drawFrame();
@@ -134,7 +134,6 @@ public:
 	void createFrameBuffers();
 	void createSyncObjects();
 	void createVmaAllocator();
-	void initGWEN();
 	//
 	//	Check Physical Device Support
 	//
@@ -168,8 +167,6 @@ public:
 		}
 		return DF / Frames.size();
 	}
-	
-	Gwen::Controls::StatusBar* m_StatusBar;
 
 };
 
@@ -232,7 +229,9 @@ void VulkanDriver::drawFrame() {
 	//printf("Frame Time:\t%f\t[%f]\t(%f)\n", deltaFrame, deltaFrame/1000, (1.0f/ deltaFrame)*1000.0f);
 	float FPS = (1.0f / DF) * 1000.0f;
 	
-	m_StatusBar->SetText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
+	if (_EventReceiver) {
+		_EventReceiver->m_StatusBar->SetText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
+	}
 	//const VkResult Status = vkGetFenceStatus(device, inFlightFences[currentFrame]);
 	//if (Status == VK_SUCCESS) {
 		//printf("Success\n");
@@ -285,21 +284,18 @@ void VulkanDriver::drawFrame() {
 }
 
 void VulkanDriver::DrawExternal(const uint32_t& currentImage) {
-	//printf("Draw %i\n", currentImage);
 	//
 	//	Update GWEN
-	pRenderer->SetBuffer(currentImage);
-	pCanvas->RenderCanvas();
-	std::vector<VkCommandBuffer> cb = { pRenderer->GetBuffer(currentImage) };
-	//
-	//	Draw GWEN
-	vkCmdExecuteCommands(_SceneGraph->primaryCommandBuffers[currentImage], 1, cb.data());
+	if (_EventReceiver) {
+		_EventReceiver->drawGWEN(currentImage);
+	}
 	//
 }
 
 //
 //	Initialize
 VulkanDriver::VulkanDriver() {
+	initLua();
 	initWindow();
 	initVulkan();
 }
@@ -307,9 +303,7 @@ VulkanDriver::VulkanDriver() {
 //
 //	Deinitialize
 VulkanDriver::~VulkanDriver() {
-	delete pCanvas;
-	delete pSkin;
-	delete pRenderer;
+	lua_close(state);
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		vkDestroySemaphore(device, renderFinishedSemaphores[i], nullptr);
@@ -341,6 +335,22 @@ VulkanDriver::~VulkanDriver() {
 	glfwTerminate();
 }
 
+void VulkanDriver::initLua() {
+
+	state = luaL_newstate();
+	luaL_openlibs(state);
+	try {
+		int res = luaL_loadfile(state, "lua/main/main.lua");
+		if (res != LUA_OK) throw LuaError(state);
+
+		res = lua_pcall(state, 0, LUA_MULTRET, 0);
+		if (res != LUA_OK) throw LuaError(state);
+	}
+	catch (std::exception & e) {
+		printf("Lua Error: %s\n", e.what());
+	}
+}
+
 void VulkanDriver::initWindow() {
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -363,36 +373,6 @@ void VulkanDriver::initVulkan() {
 	createFrameBuffers();
 	_SceneGraph = new SceneGraph(this);
 	createSyncObjects();
-	initGWEN();
-}
-
-void VulkanDriver::initGWEN() {
-	pRenderer = new Gwen::Renderer::Vulkan(this);
-
-	pRenderer->Init();
-	pSkin = new Gwen::Skin::TexturedBase(pRenderer);
-	pSkin->Init("DefaultSkin.png");
-
-	pCanvas = new Gwen::Controls::Canvas(pSkin);
-	pCanvas->SetSize(WIDTH, HEIGHT);
-	pCanvas->SetDrawBackground(false);
-	pCanvas->SetBackgroundColor(Gwen::Color(150, 170, 170, 255));
-	pCanvas->SetKeyboardInputEnabled(false);
-
-	/*Gwen::Controls::Button* Btn1 = new Gwen::Controls::Button(pCanvas);
-	Btn1->SetSize(100, 100);
-	Btn1->SetText("Button 1");
-	Btn1->SetPos(0, 0);
-	Gwen::Controls::WindowControl* Window = new Gwen::Controls::WindowControl(pCanvas);
-	Window->SetPos(300, 300);
-	Window->SetSize(100, 100);
-	Window->SetTitle("Test Title");*/
-
-	m_StatusBar = new Gwen::Controls::StatusBar(pCanvas);
-	m_StatusBar->Dock(Gwen::Pos::Bottom);
-
-	//UnitTest* pUnit = new UnitTest(pCanvas);
-	//pUnit->SetPos(10, 10);
 }
 
 void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
@@ -402,8 +382,7 @@ void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
 	glfwSetMouseButtonCallback(_Window, &EventReceiver::mouse_button_callback);
 	glfwSetCursorPosCallback(_Window, &EventReceiver::cursor_position_callback);
 	glfwSetCursorEnterCallback(_Window, &EventReceiver::cursor_enter_callback);
-	_EventRcvr->SetDriver(this);
-	_EventRcvr->SetGWEN(pCanvas);
+	_EventReceiver = _EventRcvr;
 }
 
 void VulkanDriver::createInstance() {
