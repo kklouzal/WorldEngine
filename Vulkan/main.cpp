@@ -43,7 +43,7 @@ int main() {
 	//
 	//	VulkanDriver deinitializes upon destruction
 	delete app;
-	delete events;
+	//delete events;
 #ifdef _DEBUG
 	std::system("PAUSE");
 #endif

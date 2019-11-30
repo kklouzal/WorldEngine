@@ -1,4 +1,4 @@
-class EventReceiver {
+class EventReceiver : public Gwen::Event::Handler {
 	//
 	//	GWEN
 	Gwen::Renderer::Vulkan* pRenderer;
@@ -8,8 +8,12 @@ class EventReceiver {
 	//	Controls
 	Gwen::Controls::StatusBar* m_StatusBar;
 	//
+	//	State Flags
+	bool isMenuOpen = true;
+	//
 
 	void drawGWEN(const uint32_t& currentImage) {
+		OnUpdate();
 		pRenderer->SetBuffer(currentImage);
 		pCanvas->RenderCanvas();
 		//
@@ -20,8 +24,10 @@ class EventReceiver {
 	static void char_callback(GLFWwindow* window, unsigned int codepoint)
 	{
 		EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
-		Gwen::UnicodeChar chr = (Gwen::UnicodeChar) codepoint;
-		Rcvr->pCanvas->InputCharacter(chr);
+		if (Rcvr->isMenuOpen) {
+			Gwen::UnicodeChar chr = (Gwen::UnicodeChar) codepoint;
+			Rcvr->pCanvas->InputCharacter(chr);
+		}
 	}
 
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -47,7 +53,26 @@ class EventReceiver {
 		else if (key == GLFW_KEY_SPACE) { iKey = Gwen::Key::Space; }
 		else if (key == GLFW_KEY_UP) { iKey = Gwen::Key::Up; }
 		else if (key == GLFW_KEY_DOWN) { iKey = Gwen::Key::Down; }
-		if (iKey != -1) {
+
+		if (action == GLFW_PRESS && key == GLFW_KEY_TAB) {
+			if (Rcvr->isMenuOpen) {
+				Rcvr->isMenuOpen = false;
+				Rcvr->m_Pos_First = true;
+				glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+				if (glfwRawMouseMotionSupported()) {
+					glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+				}
+			}
+			else {
+				Rcvr->isMenuOpen = true;
+				if (glfwRawMouseMotionSupported()) {
+					glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+				}
+				glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			}
+		}
+
+		if (iKey != -1 && Rcvr->isMenuOpen) {
 			Rcvr->pCanvas->InputKey(iKey, bDown);
 		}
 
@@ -69,17 +94,19 @@ class EventReceiver {
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	{
 		EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
-		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-			Rcvr->pCanvas->InputMouseButton(0, true);
-		}
-		else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-			Rcvr->pCanvas->InputMouseButton(0, false);
-		}
-		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-			Rcvr->pCanvas->InputMouseButton(1, true);
-		}
-		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
-			Rcvr->pCanvas->InputMouseButton(1, false);
+		if (Rcvr->isMenuOpen) {
+			if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+				Rcvr->pCanvas->InputMouseButton(0, true);
+			}
+			else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+				Rcvr->pCanvas->InputMouseButton(0, false);
+			}
+			else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+				Rcvr->pCanvas->InputMouseButton(1, true);
+			}
+			else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
+				Rcvr->pCanvas->InputMouseButton(1, false);
+			}
 		}
 		Event NewEvent;
 		NewEvent.Type = EventTypes::Mouse;
@@ -139,6 +166,10 @@ class EventReceiver {
 		}
 	}
 
+	void OnPress(Gwen::Controls::Base* pControl) {
+		printf("Press\n");
+	}
+
 protected:
 	VulkanDriver* _Driver;
 
@@ -171,6 +202,10 @@ protected:
 	double m_PosY_Delta = 0;
 	bool m_Pos_First = true;
 
+	const bool& IsMenuOpen() const {
+		return isMenuOpen;
+	}
+
 public:
 	EventReceiver(VulkanDriver* Driver) :_Driver(Driver) {
 		printf("Create EventReceiver\n");
@@ -186,15 +221,6 @@ public:
 		pCanvas->SetBackgroundColor(Gwen::Color(150, 170, 170, 255));
 		pCanvas->SetKeyboardInputEnabled(false);
 
-		/*Gwen::Controls::Button* Btn1 = new Gwen::Controls::Button(pCanvas);
-		Btn1->SetSize(100, 100);
-		Btn1->SetText("Button 1");
-		Btn1->SetPos(0, 0);
-		Gwen::Controls::WindowControl* Window = new Gwen::Controls::WindowControl(pCanvas);
-		Window->SetPos(300, 300);
-		Window->SetSize(100, 100);
-		Window->SetTitle("Test Title");*/
-
 		m_StatusBar = new Gwen::Controls::StatusBar(pCanvas);
 		m_StatusBar->Dock(Gwen::Pos::Bottom);
 
@@ -205,6 +231,12 @@ public:
 		Window->SetTitle("Main Menu");
 		Window->SetClosable(false);
 		Window->SetClampMovement(true);
+		
+		Gwen::Controls::Button* PlayButton = new Gwen::Controls::Button(Window);
+		PlayButton->SetSize(80, 20);
+		PlayButton->SetPos(10, 10);
+		PlayButton->SetText("Play");
+		PlayButton->onPress.Add(this, &EventReceiver::OnPress);
 
 	}
 
@@ -217,6 +249,7 @@ public:
 		delete pRenderer;
 	}
 
+	virtual void OnUpdate() = 0;
 	virtual void OnEvent(const Event &NewEvent) = 0;
 
 	friend class VulkanDriver;
