@@ -13,13 +13,10 @@ public:
 	TriangleMeshSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
 
 	~TriangleMeshSceneNode() {
-#ifdef _DEBUG
-		std::cout << "Destroy TriangleMeshSceneNode" << std::endl;
-#endif
-
+		printf("Destroy TriangleMeshSceneNode\n");
 		delete _RigidBody->getMotionState();
 		delete _RigidBody;
-		delete _CollisionShape;
+		//delete _CollisionShape;
 		delete _Mesh;
 	}
 
@@ -56,8 +53,16 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX, DiffuseTex);
 		btCollisionShape* ColShape;
 		if (_CollisionShapes.count(FileFBX) == 0) {
-			ColShape = Decomp(FBX);
+			DecompResults* Results = Decomp(FBX);
+			ColShape = Results->CompoundShape;
 			_CollisionShapes[FileFBX] = ColShape;
+			for (unsigned int i = 0; i < Results->m_convexShapes.size(); i++) {
+				_ConvexShapes.push_back(Results->m_convexShapes[i]);
+			}
+			for (unsigned int i = 0; i < Results->m_trimeshes.size(); i++) {
+				_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+			}
+			delete Results;
 		}
 		else {
 			ColShape = _CollisionShapes[FileFBX];
@@ -92,11 +97,3 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 		return MeshNode;
 	}
 }
-/*TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> Vertices, const std::vector<uint32_t> Indices) {
-
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, _Driver->_MaterialCache->GetPipe_Default(), Vertices, Indices);
-	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
-	SceneNodes.push_back(MeshNode);
-	this->invalidate();
-	return MeshNode;
-}*/

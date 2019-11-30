@@ -43,6 +43,7 @@ public:
 	}
 
 	~TriangleMesh() {
+		printf("Destroy TriangleMesh\n");
 		//	Destroy VMA Buffers
 		vmaDestroyBuffer(_Driver->allocator, vertexBuffer, vertexAllocation);
 		vmaDestroyBuffer(_Driver->allocator, indexBuffer, indexAllocation);
@@ -143,9 +144,6 @@ public:
 	}
 
 	void draw() {
-#ifdef _DEBUG
-		std::cout << "TriangleMesh Draw" << std::endl;
-#endif
 		//	Command buffers are returned in the recording state
 		commandBuffers = _Driver->_SceneGraph->newCommandBuffer();
 		for (size_t i = 0; i < commandBuffers.size(); i++) {

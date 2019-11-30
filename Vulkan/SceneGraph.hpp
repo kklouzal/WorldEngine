@@ -37,6 +37,10 @@ class SceneGraph {
 	btDiscreteDynamicsWorld* dynamicsWorld;
 
 	std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
+	//btAlignedObjectArray<btTriangleMesh*> _TriangleMeshes;
+	//btAlignedObjectArray<btConvexShape*> _ConvexShapes;
+	std::deque<btTriangleMesh*> _TriangleMeshes;
+	std::deque<btConvexShape*> _ConvexShapes;
 #ifdef _DEBUG
 	VulkanBTDebugDraw BTDebugDraw;
 #endif
@@ -107,9 +111,16 @@ public:
 		}
 	}
 
-	bool isWorld = false;
+	bool tryCleanupWorld;
+	unsigned int FrameCount;
+	bool isWorld;
 	void initWorld();
 	void cleanupWorld();
+	void forceCleanupWorld() {
+		tryCleanupWorld = true;
+		FrameCount = 3;
+		cleanupWorld();
+	}
 };
 
 #include "Pipe_Default.hpp"
@@ -151,7 +162,10 @@ void SceneGraph::initWorld() {
 
 void SceneGraph::cleanupWorld() {
 	if (!isWorld) { printf("cleanupWorld: No world initialized to cleanup!\n"); return; }
+	else if (isWorld && FrameCount < 3) { tryCleanupWorld = true; FrameCount++; return; }
 	isWorld = false;
+	FrameCount = 0;
+	tryCleanupWorld = false;
 	//
 	//	Cleanup SceneNodes
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
@@ -159,6 +173,24 @@ void SceneGraph::cleanupWorld() {
 		delete SceneNodes[i];
 	}
 	SceneNodes.clear();
+	SceneNodes.shrink_to_fit();
+
+	for (auto Shape : _CollisionShapes) {
+		delete Shape.second;
+	}
+	_CollisionShapes.clear();
+
+	for (size_t i = 0; i < _ConvexShapes.size(); i++) {
+		delete _ConvexShapes[i];
+	}
+	_ConvexShapes.clear();
+	_ConvexShapes.shrink_to_fit();
+
+	for (size_t i = 0; i < _TriangleMeshes.size(); i++) {
+		delete _TriangleMeshes[i];
+	}
+	_TriangleMeshes.clear();
+	_TriangleMeshes.shrink_to_fit();
 
 	//delete dynamics world
 	delete dynamicsWorld;
@@ -169,6 +201,9 @@ void SceneGraph::cleanupWorld() {
 	//delete dispatcher
 	delete dispatcher;
 	delete collisionConfiguration;
+
+	_ImportFBX->EmptyCache();
+	_Driver->_MaterialCache->GetPipe_Default()->EmptyCache();
 }
 
 void SceneGraph::stepSimulation(const btScalar &timeStep) {
@@ -184,8 +219,12 @@ void SceneGraph::validate(const uint32_t& currentImage) {
 
 		vkResetCommandBuffer(primaryCommandBuffers[currentImage], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 
-		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+		if (tryCleanupWorld) {
+			printf("Attempt World Cleanup\n");
+			cleanupWorld();
+		}
 
+		VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 		if (vkBeginCommandBuffer(primaryCommandBuffers[currentImage], &beginInfo) != VK_SUCCESS) {
 #ifdef _DEBUG
 			throw std::runtime_error("failed to begin recording command buffer!");
@@ -206,14 +245,18 @@ void SceneGraph::validate(const uint32_t& currentImage) {
 		
 		vkCmdBeginRenderPass(primaryCommandBuffers[currentImage], &renderPassInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
-		//
-		//	Submit SceneNode Sub-Command Buffers
-		for (size_t i = 0; i < SceneNodes.size(); i++) {
-			SceneNodes[i]->drawFrame(primaryCommandBuffers[currentImage]);
+		if (!tryCleanupWorld) {
+			//
+			//	Submit SceneNode Sub-Command Buffers
+			for (size_t i = 0; i < SceneNodes.size(); i++) {
+				SceneNodes[i]->drawFrame(primaryCommandBuffers[currentImage]);
+			}
 		}
 
 #ifdef _DEBUG
-		dynamicsWorld->debugDrawWorld();
+		if (isWorld) {
+			dynamicsWorld->debugDrawWorld();
+		}
 #endif
 
 		_Driver->DrawExternal(currentImage);
@@ -321,22 +364,20 @@ const std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
 //
 //
 
-SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new ImportFBX) {
-	cleanupWorld();
+SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new ImportFBX), tryCleanupWorld(false), FrameCount(0), isWorld(false) {
 	createCommandPool();
 	createPrimaryCommandBuffers();
 	createUniformBuffers();
 }
 
 SceneGraph::~SceneGraph() {
+	forceCleanupWorld();
+	printf("Destroy SceneGraph\n");
 	for (size_t i = 0; i < UniformBuffers_Lighting.size(); i++) {
 		vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
 	}
 
 	delete _ImportFBX;
-#ifdef _DEBUG
-	std::cout << "Delete SceneGraph" << std::endl;
-#endif
 	vkDestroyCommandPool(_Driver->device, commandPool, nullptr);
 }
 

@@ -171,20 +171,20 @@ class EventReceiver : public Gwen::Event::Handler {
 
 	void OnPress(Gwen::Controls::Base* pControl) {
 		Gwen::String ControlName = pControl->GetName();
-		printf("Press %s\n", ControlName);
+		printf("Press %s\n", ControlName.c_str());
 		if (ControlName == "Quit") {
 			glfwSetWindowShouldClose(_Driver->_Window, GLFW_TRUE);
 		}
 		else if (ControlName == "Play") {
-			if (!isWorldInitialized) {
+			if (!isWorldInitialized && !_Driver->_SceneGraph->isWorld) {
 				_Driver->_SceneGraph->initWorld();
 				isWorldInitialized = true;
-				((Gwen::Controls::Button*)pControl)->SetText("Disconnect");
+				((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Disconnect"));
 			}
 			else {
 				_Driver->_SceneGraph->cleanupWorld();
 				isWorldInitialized = false;
-				((Gwen::Controls::Button*)pControl)->SetText("Play");
+				((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Play"));
 			}
 		}
 	}

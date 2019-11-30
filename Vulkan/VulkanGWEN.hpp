@@ -199,7 +199,6 @@ namespace Gwen
 				vertexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
 				vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &GUI_VertexBuffer, &GUI_VertexAllocation, nullptr);
-				printf("Create GUI Vertex Buffer\n");
 				//	Vertex Buffer
 				VkBufferCreateInfo indexBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 				indexBufferInfo.size = vertexBufferSize;
@@ -211,7 +210,6 @@ namespace Gwen
 				indexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
 				vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &GUI_IndexBuffer, &GUI_IndexAllocation, nullptr);
-				printf("Create GUI Index Buffer\n");
 			}
 			//
 			//	Font Texture
@@ -258,8 +256,6 @@ namespace Gwen
 				_Driver->_SceneGraph->endSingleTimeCommands(CB);
 
 				vmaDestroyBuffer(_Driver->allocator, Font_VertexBuffer_Stage, Font_VertexAllocation_Stage);
-
-				printf("Create Font Vertex Buffer\n");
 			}
 			void createFontTextureBuffer() {
 				writeBuffer.resize(dst_Size);
@@ -339,8 +335,6 @@ namespace Gwen
 				indirectAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
 				vmaCreateBuffer(_Driver->allocator, &indirectBufferInfo, &indirectAllocInfo, &indirectBuffer, &indirectAllocation, nullptr);
-
-				printf("Create Indirect Buffer\n");
 			}
 
 			void AddVert(const int x, const int y, const float u = 0.0f, const float v = 0.0f)
@@ -377,7 +371,7 @@ namespace Gwen
 				Pipe = _Driver->_MaterialCache->GetPipe_GUI();
 			}
 			~Vulkan() {
-				printf("Delete GWEN\n");
+				printf("Destroy GWEN\n");
 				vmaDestroyBuffer(_Driver->allocator, indirectBuffer, indirectAllocation);
 				vmaDestroyBuffer(_Driver->allocator, GUI_VertexBuffer, GUI_VertexAllocation);
 				vmaDestroyBuffer(_Driver->allocator, GUI_IndexBuffer, GUI_IndexAllocation);

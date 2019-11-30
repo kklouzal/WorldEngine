@@ -82,9 +82,7 @@ public:
 	}
 
 	~SkinnedMeshSceneNode() {
-#ifdef _DEBUG
-		std::cout << "Destroy TriangleMeshSceneNode" << std::endl;
-#endif
+		printf("Destroy SkinnedMeshSceneNode\n");
 		delete _Mesh;
 	}
 

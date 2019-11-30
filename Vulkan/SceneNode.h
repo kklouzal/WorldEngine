@@ -12,17 +12,14 @@ public:
 	virtual void preDelete(btDiscreteDynamicsWorld* _BulletWorld) = 0;
 };
 
-SceneNode::~SceneNode() {
-#ifdef _DEBUG
-	std::cout << "Destroy SceneNode" << std::endl;
-#endif
-}
+SceneNode::~SceneNode() {}
 
 //	btDefaultMotionState
 class SceneNodeMotionState : public btMotionState {
 	SceneNode* _SceneNode;
+	glm::f32* ModelPtr;
 
-	glm::mat4 btScalar2mat4(btScalar* matrix) {
+	/*glm::mat4 btScalar2mat4(btScalar* matrix) {
 		return glm::mat4(
 			matrix[0], matrix[1], matrix[2], matrix[3],
 			matrix[4], matrix[5], matrix[6], matrix[7],
@@ -37,22 +34,24 @@ class SceneNodeMotionState : public btMotionState {
 			}
 		}
 		return matrix;
-	}
+	}*/
 
 	btTransform _btPos;
 
 public:
-	SceneNodeMotionState(SceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos) {}
+	SceneNodeMotionState(SceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos), ModelPtr(glm::value_ptr(_SceneNode->Model)) {}
 
 	virtual void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
-		worldTrans.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
+		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
+		_btPos.getOpenGLMatrix(ModelPtr);
 	}
 
 	//Bullet only calls the update of worldtransform for active objects
 	virtual void setWorldTransform(const btTransform& worldTrans) {
 		_btPos = worldTrans;
-		worldTrans.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
+		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
+		_btPos.getOpenGLMatrix(ModelPtr);
 	}
 };
 

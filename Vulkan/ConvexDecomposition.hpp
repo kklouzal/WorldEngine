@@ -1,9 +1,15 @@
 #pragma once
 #include <VHACD.h>
 
+struct DecompResults {
+	btCompoundShape* CompoundShape = nullptr;
+	btAlignedObjectArray<btConvexShape*> m_convexShapes = {};
+	btAlignedObjectArray<btTriangleMesh*> m_trimeshes = {};
+};
+
 //
 //	FBXObject contains vectors of Vertices and Indices
-btCollisionShape* Decomp(FBXObject* FBX) {
+DecompResults* Decomp(FBXObject* FBX) {
 	//
 	//	Setup Indices
 	const uint32_t nTriangles = FBX->Indices.size();
@@ -35,8 +41,7 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 	//printf("V-HACD Done: Hull Count %i\n", nConvexHulls);
 	//
 	//	Iterate through each convex hull
-	btAlignedObjectArray<btConvexShape*> m_convexShapes;
-	btAlignedObjectArray<btTriangleMesh*> m_trimeshes;
+	DecompResults* Results = new DecompResults;
 	btAlignedObjectArray<btVector3> m_convexCentroids;
 	VHACD::IVHACD::ConvexHull Hull;
 	for (unsigned int h = 0; h < nConvexHulls; ++h)
@@ -48,7 +53,7 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 		btAlignedObjectArray<btVector3> vertices;
 
 		btTriangleMesh* trimesh = new btTriangleMesh();
-		m_trimeshes.push_back(trimesh);
+		Results->m_trimeshes.push_back(trimesh);
 		btVector3 centroid = btVector3(0, 0, 0);
 		//
 		//	Calculate centroid and fill vertices
@@ -81,12 +86,12 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 		//
 		//	Create a new ConvexShape from our Hull
 		btConvexShape* convexShape = new btConvexTriangleMeshShape(trimesh);
-		m_convexShapes.push_back(convexShape);
+		Results->m_convexShapes.push_back(convexShape);
 		m_convexCentroids.push_back(centroid);
 	}
 	//
 	//	Create a new Compound Shape
-	btCompoundShape* compound = new btCompoundShape();
+	Results->CompoundShape = new btCompoundShape();
 	//
 	btTransform trans;
 	trans.setIdentity();
@@ -98,8 +103,7 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 		btVector3 centroid = m_convexCentroids[i];
 		//printf("\t\tCentroid: %f %f %f\n", centroid.x(), centroid.y(), centroid.z());
 		trans.setOrigin(centroid);
-		btConvexShape* convexShape = m_convexShapes[i];
-		compound->addChildShape(trans, convexShape);
+		Results->CompoundShape->addChildShape(trans, Results->m_convexShapes[i]);
 	}
 	//
 	// release memory
@@ -107,5 +111,5 @@ btCollisionShape* Decomp(FBXObject* FBX) {
 	interfaceVHACD->Release();
 
 	//	Return our Compound Shape full of Convexically Decomposed Convex Shapes
-	return compound;
+	return Results;
 }

@@ -14,13 +14,10 @@ public:
 	WorldSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
 
 	~WorldSceneNode() {
-#ifdef _DEBUG
-		std::cout << "Destroy TriangleMeshSceneNode" << std::endl;
-#endif
-
+		printf("Destroy WorldSceneNode\n");
 		delete _RigidBody->getMotionState();
 		delete _RigidBody;
-		delete _CollisionShape;
+		//delete _CollisionShape;
 		delete _Mesh;
 	}
 
@@ -60,6 +57,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 		btCollisionShape* ColShape;
 		if (_CollisionShapes.count(FileFBX) == 0) {
 			btTriangleMesh* trimesh = new btTriangleMesh();
+			_TriangleMeshes.push_back(trimesh);
 			for (unsigned int i = 0; i < FBX->Indices.size() / 3; i++) {
 				auto V1 = FBX->Vertices[i * 3].pos;
 				auto V2 = FBX->Vertices[i * 3 + 1].pos;
@@ -104,11 +102,3 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 		return MeshNode;
 	}
 }
-/*TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const std::vector<Vertex> Vertices, const std::vector<uint32_t> Indices) {
-
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, _Driver->_MaterialCache->GetPipe_Default(), Vertices, Indices);
-	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
-	SceneNodes.push_back(MeshNode);
-	this->invalidate();
-	return MeshNode;
-}*/

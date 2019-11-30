@@ -23,6 +23,13 @@ struct PipelineObject {
 	virtual DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) = 0;
 	virtual TextureObject* createTextureImage(const char* File) = 0;
 
+	void EmptyCache() {
+		for (auto Tex : _Textures) {
+			delete Tex.second;
+		}
+		_Textures.clear();
+	}
+
 protected:
 
 	std::unordered_map<const char*, TextureObject*> _Textures;

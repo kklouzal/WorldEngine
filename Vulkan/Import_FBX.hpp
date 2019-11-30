@@ -14,7 +14,7 @@ struct FBXObject {
 	FBXObject() {}
 
 	~FBXObject() {
-		printf("Delete FBX Object\n");
+		printf("Destroy FBX Object\n");
 		Vertices.clear();
 		Indices.clear();
 		bindPoses.clear();
@@ -24,46 +24,6 @@ struct FBXObject {
 class ImportFBX {
 	std::unordered_map<const char*, FBXObject*> _FbxObjects;
 public:
-	/**
-	 * Print an attribute.
-	 */
-	FbxString GetAttributeTypeName(FbxNodeAttribute::EType type) {
-		switch (type) {
-		case FbxNodeAttribute::eUnknown: return "unidentified";
-		case FbxNodeAttribute::eNull: return "null";
-		case FbxNodeAttribute::eMarker: return "marker";
-		case FbxNodeAttribute::eSkeleton: return "skeleton";
-		case FbxNodeAttribute::eMesh: return "mesh";
-		case FbxNodeAttribute::eNurbs: return "nurbs";
-		case FbxNodeAttribute::ePatch: return "patch";
-		case FbxNodeAttribute::eCamera: return "camera";
-		case FbxNodeAttribute::eCameraStereo: return "stereo";
-		case FbxNodeAttribute::eCameraSwitcher: return "camera switcher";
-		case FbxNodeAttribute::eLight: return "light";
-		case FbxNodeAttribute::eOpticalReference: return "optical reference";
-		case FbxNodeAttribute::eOpticalMarker: return "marker";
-		case FbxNodeAttribute::eNurbsCurve: return "nurbs curve";
-		case FbxNodeAttribute::eTrimNurbsSurface: return "trim nurbs surface";
-		case FbxNodeAttribute::eBoundary: return "boundary";
-		case FbxNodeAttribute::eNurbsSurface: return "nurbs surface";
-		case FbxNodeAttribute::eShape: return "shape";
-		case FbxNodeAttribute::eLODGroup: return "lodgroup";
-		case FbxNodeAttribute::eSubDiv: return "subdiv";
-		default: return "unknown";
-		}
-	}
-	/**
-	 * Print an attribute.
-	 */
-	void PrintAttribute(FbxNodeAttribute* pAttribute) {
-		if (!pAttribute) return;
-
-		FbxString typeName = GetAttributeTypeName(pAttribute->GetAttributeType());
-		FbxString attrName = pAttribute->GetName();
-		// Note: to retrieve the character array of a FbxString, use its Buffer() method.
-		printf("\t<attribute type='%s' name='%s'/>\n", typeName.Buffer(), attrName.Buffer());
-	}
-
 	FbxManager* _FbxManager = nullptr;
 
 	ImportFBX() {
@@ -74,7 +34,13 @@ public:
 
 	~ImportFBX() {
 		_FbxManager->Destroy();
+	}
 
+	void EmptyCache() {
+		for (auto FBX : _FbxObjects) {
+			delete FBX.second;
+		}
+		_FbxObjects.clear();
 	}
 
 	//	For now, only return mesh nodes.
@@ -150,7 +116,6 @@ public:
 								// Then, you can get all the properties of the texture, include its name
 								NewFBX->Texture_Diffuse = texture->GetRelativeFileName();
 								printf("\tRelative File %s\n", NewFBX->Texture_Diffuse);
-								printf("\tFile %s\n", texture->GetFileName());
 							}
 							else { printf("\tTexture Invalid\n"); }
 						}
@@ -205,7 +170,6 @@ public:
 					//if (UVSets > 0) {
 					const char* lUVSetName = lUVSetNameList.GetStringAt(0);
 					const FbxGeometryElementUV* lUVElement = Mesh->GetElementUV(lUVSetName);
-					printf("\tUV Set Name: %s\n", lUVSetName);
 					//if (lUVElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex) {
 					printf("\tPolygon Vertex Mapping\n");
 					const bool lUseIndex = lUVElement->GetReferenceMode() != FbxGeometryElement::eDirect;
