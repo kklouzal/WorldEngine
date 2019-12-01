@@ -1,6 +1,8 @@
 #pragma once
 #include <VHACD.h>
 
+//
+//	Structure containing objects created during composition
 struct DecompResults {
 	btCompoundShape* CompoundShape = nullptr;
 	btAlignedObjectArray<btConvexShape*> m_convexShapes = {};
@@ -30,6 +32,7 @@ DecompResults* Decomp(FBXObject* FBX) {
 	//	Setup VHACD Parameters and create its interface
 	VHACD::IVHACD::Parameters params;
 	VHACD::IVHACD* interfaceVHACD = VHACD::CreateVHACD();
+	VHACD::IVHACD::ConvexHull Hull;
 	//
 	//	Compute approximate convex decomposition
 	//printf("Compute V-HACD: Points %i Triangles %i\n", Points.size(), Triangles.size());
@@ -40,77 +43,65 @@ DecompResults* Decomp(FBXObject* FBX) {
 	unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
 	//printf("V-HACD Done: Hull Count %i\n", nConvexHulls);
 	//
-	//	Iterate through each convex hull
+	//	Create a new DecompResults structure
 	DecompResults* Results = new DecompResults;
-	btAlignedObjectArray<btVector3> m_convexCentroids;
-	VHACD::IVHACD::ConvexHull Hull;
+	//
+	//	Create a new Compound Shape for this decomposition
+	Results->CompoundShape = new btCompoundShape();
+	//
+	//	Iterate through each convex hull and fill results
 	for (unsigned int h = 0; h < nConvexHulls; ++h)
 	{
 		//printf("\tHull: %i\n", h);
-		//	Fill Hull for each individual convex hull
-		interfaceVHACD->GetConvexHull(h, Hull);
-
-		btAlignedObjectArray<btVector3> vertices;
-
-		btTriangleMesh* trimesh = new btTriangleMesh();
-		Results->m_trimeshes.push_back(trimesh);
-		btVector3 centroid = btVector3(0, 0, 0);
-		printf("Hull Center %f %f %f\n", Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
-		//
-		//	Calculate centroid and fill vertices
-		for (unsigned int i = 0; i < Hull.m_nTriangles; i++) {
-			const unsigned int index0 = Hull.m_triangles[i * 3];
-			const unsigned int index1 = Hull.m_triangles[i * 3 + 1];
-			const unsigned int index2 = Hull.m_triangles[i * 3 + 2];
-
-			btVector3 vertex0(Hull.m_points[index0 * 3], Hull.m_points[index0 * 3 + 1], Hull.m_points[index0 * 3 + 2]);
-			btVector3 vertex1(Hull.m_points[index1 * 3], Hull.m_points[index1 * 3 + 1], Hull.m_points[index1 * 3 + 2]);
-			btVector3 vertex2(Hull.m_points[index2 * 3], Hull.m_points[index2 * 3 + 1], Hull.m_points[index2 * 3 + 2]);
-
-			centroid += vertex0;
-			centroid += vertex1;
-			centroid += vertex2;
-
-			vertices.push_back(vertex0);
-			vertices.push_back(vertex1);
-			vertices.push_back(vertex2);
-		}
 		//printf("\t\tPoints: %i\n", Hull.m_points);
 		//printf("\t\tTriangles: %i\n", Hull.m_triangles);
 		//printf("\t\tVertices: %i\n", vertices.size());
 		//
-		//	Offset vertices by centroid and add them to the trimesh
-		for (unsigned int i = 0; i < vertices.size()/3; i++) {
-
-			trimesh->addTriangle(vertices[i*3] - centroid, vertices[i*3 + 1] - centroid, vertices[i*3 + 2] - centroid);
+		//	Fill 'Hull' for each individual convex hull
+		interfaceVHACD->GetConvexHull(h, Hull);
+		//
+		//	Create a new Triangle Mesh for this hull
+		btTriangleMesh* trimesh = new btTriangleMesh();
+		Results->m_trimeshes.push_back(trimesh);
+		//
+		//	Grab the hulls center position
+		const btVector3 centroid(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
+		printf("Hull Center %f %f %f\n", Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
+		//
+		//	Iterate through this hulls triangles
+		for (unsigned int i = 0; i < Hull.m_nTriangles; i++) {
+			//
+			//	Calculate indices
+			const unsigned int index0 = Hull.m_triangles[i * 3];
+			const unsigned int index1 = Hull.m_triangles[i * 3 + 1];
+			const unsigned int index2 = Hull.m_triangles[i * 3 + 2];
+			//
+			//	Calculate vertices
+			const btVector3 vertex0(Hull.m_points[index0 * 3], Hull.m_points[index0 * 3 + 1], Hull.m_points[index0 * 3 + 2]);
+			const btVector3 vertex1(Hull.m_points[index1 * 3], Hull.m_points[index1 * 3 + 1], Hull.m_points[index1 * 3 + 2]);
+			const btVector3 vertex2(Hull.m_points[index2 * 3], Hull.m_points[index2 * 3 + 1], Hull.m_points[index2 * 3 + 2]);
+			//
+			//	Add this triangle into our Triangle Mesh
+			trimesh->addTriangle(vertex0 - centroid, vertex1 - centroid, vertex2 - centroid);
 		}
 		//
-		//	Create a new ConvexShape from our Hull
+		//	Create a new ConvexShape from this hulls Triangle Mesh
 		btConvexShape* convexShape = new btConvexTriangleMeshShape(trimesh);
 		Results->m_convexShapes.push_back(convexShape);
-		m_convexCentroids.push_back(centroid);
-	}
-	//
-	//	Create a new Compound Shape
-	Results->CompoundShape = new btCompoundShape();
-	//
-	btTransform trans;
-	trans.setIdentity();
-	//
-	//	Add each individual Convex Shape into our Compound Shape offset by its centroid
-	for (unsigned int i = 0; i < nConvexHulls; i++)
-	{
-		//printf("\tConvex Shape: %i\n", i);
-		btVector3 centroid = m_convexCentroids[i];
-		//printf("\t\tCentroid: %f %f %f\n", centroid.x(), centroid.y(), centroid.z());
+		//
+		//	Create a transform using centroid as origin
+		btTransform trans;
+		trans.setIdentity();
 		trans.setOrigin(centroid);
-		Results->CompoundShape->addChildShape(trans, Results->m_convexShapes[i]);
+		//
+		//	Add this ConvexShape to our CompoundShape
+		Results->CompoundShape->addChildShape(trans, convexShape);
 	}
 	//
 	// release memory
 	interfaceVHACD->Clean();
 	interfaceVHACD->Release();
-
-	//	Return our Compound Shape full of Convexically Decomposed Convex Shapes
+	//
+	//	Return our DecompResults containing the CompoundShape full of Convexically Decomposed Convex Shapes
 	return Results;
 }
