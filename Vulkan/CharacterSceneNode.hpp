@@ -9,6 +9,7 @@ public:
 	TriangleMesh* _Mesh = nullptr;
 	btCollisionShape* _CollisionShape = nullptr;
 	btRigidBody* _RigidBody = nullptr;
+	Camera* _Camera = nullptr;
 public:
 	CharacterSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
 
@@ -18,6 +19,21 @@ public:
 		delete _RigidBody;
 		//delete _CollisionShape;
 		delete _Mesh;
+	}
+
+	void setPosition(btVector3 NewPosition) {
+		_RigidBody->activate(true);
+		btTransform Trans = _RigidBody->getWorldTransform();
+		Trans.setOrigin(btVector3(NewPosition));
+		_RigidBody->setWorldTransform(Trans);
+	}
+
+	void setYaw(float Yaw) {
+		_RigidBody->activate(true);
+		btTransform Trans = _RigidBody->getWorldTransform();
+		printf("%f\n", glm::radians(-Yaw));
+		Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));
+		_RigidBody->setWorldTransform(Trans);
 	}
 
 	void preDelete(btDiscreteDynamicsWorld* _BulletWorld) {
@@ -33,6 +49,32 @@ public:
 	void drawFrame(const VkCommandBuffer& primaryCommandBuffer) {
 		if (!Valid) {
 			_Mesh->drawFrame(primaryCommandBuffer);
+		}
+	}
+};
+
+class CharacterSceneNodeMotionState : public btMotionState {
+	CharacterSceneNode* _SceneNode;
+	glm::f32* ModelPtr;
+	btTransform _btPos;
+
+public:
+	CharacterSceneNodeMotionState(CharacterSceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos), ModelPtr(glm::value_ptr(_SceneNode->Model)) {}
+
+	virtual void getWorldTransform(btTransform& worldTrans) const {
+		worldTrans = _btPos;
+		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
+		_btPos.getOpenGLMatrix(ModelPtr);
+	}
+
+	//Bullet only calls the update of worldtransform for active objects
+	virtual void setWorldTransform(const btTransform& worldTrans) {
+		_btPos = worldTrans;
+		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
+		_btPos.getOpenGLMatrix(ModelPtr);
+		if (_SceneNode->_Camera) {
+			glm::vec3 NewCamPos(worldTrans.getOrigin().x(), worldTrans.getOrigin().y(), worldTrans.getOrigin().z());
+			_SceneNode->_Camera->SetPosition(NewCamPos + _SceneNode->_Camera->getOffset());
 		}
 	}
 };
@@ -86,7 +128,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 			MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
 		}
 
-		SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
+		CharacterSceneNodeMotionState* MotionState = new CharacterSceneNodeMotionState(MeshNode, Transform);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
 		MeshNode->_RigidBody = new btRigidBody(rbInfo);
 		MeshNode->_RigidBody->setAngularFactor(btVector3(0.0f, 1.0f, 0.0f));

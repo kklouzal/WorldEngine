@@ -4,6 +4,7 @@
 #include "Bullet_DebugDraw.hpp"
 #include "Import_FBX.hpp"
 #include "ConvexDecomposition.hpp"
+
 #include "Camera.hpp"
 
 //
@@ -25,6 +26,7 @@ class SceneGraph {
 	//	When false, each SceneNode Sub-Command-Buffer will be resubmitted.
 	std::vector<bool> IsValid = {};
 	Camera _Camera;
+	CharacterSceneNode* _Character;
 	UniformBufferObject_PointLights PointLights;
 
 	///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
@@ -63,6 +65,9 @@ public:
 	Camera &GetCamera() {
 		return _Camera;
 	}
+	CharacterSceneNode* GetCharacter() {
+		return _Character;
+	}
 
 	void createCommandPool();
 	void createPrimaryCommandBuffers();
@@ -79,6 +84,8 @@ public:
 	void invalidate();
 
 	void stepSimulation(const btScalar& timeStep);
+
+	void SetCharacter(CharacterSceneNode* Character);
 
 	//
 	//	Create SceneNode Functions
@@ -133,12 +140,18 @@ public:
 
 //
 //	Include All SceneNode Types
-
 #include "TriangleMesh.hpp"
 #include "SceneNode.h"
 
 //
 //	Define SceneGraph Implementation
+
+//
+//	Defines the active controlled character
+//	nullptr results in a free roaming camera
+void SceneGraph::SetCharacter(CharacterSceneNode* Character) {
+	_Character = Character;
+}
 
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
@@ -158,6 +171,8 @@ void SceneGraph::initWorld() {
 #endif
 
 	createWorldSceneNode("media/world.fbx");
+	_Character = createCharacterSceneNode("media/box.fbx", btVector3(5, 5, 5));
+	_Character->_Camera = &_Camera;
 
 	isWorld = true;
 }

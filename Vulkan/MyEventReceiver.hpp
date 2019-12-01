@@ -17,20 +17,52 @@ public:
 		//	Only keyboard-move-camera when menus closed and world initialized
 		if (!IsMenuOpen() && IsWorldInitialized()) {
 			if (isW) {
+				CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				Cam->GoForward(10.0f * (_Driver->deltaFrame / 1000));
+				if (Character && Character->_Camera) {
+					glm::vec3 MoveDir = Cam->GetForward(1.0f * (_Driver->deltaFrame / 1000));
+					MoveDir -= Cam->getOffset();
+					Character->setPosition(btVector3(MoveDir.x, MoveDir.y, MoveDir.z));
+				}
+				else {
+					Cam->GoForward(10.0f * (_Driver->deltaFrame / 1000));
+				}
 			}
 			if (isS) {
+				CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				Cam->GoBackward(10.0f * (_Driver->deltaFrame / 1000));
+				if (Character && Character->_Camera) {
+					glm::vec3 MoveDir = Cam->GetBackward(1.0f * (_Driver->deltaFrame / 1000));
+					MoveDir -= Cam->getOffset();
+					Character->setPosition(btVector3(MoveDir.x, MoveDir.y, MoveDir.z));
+				}
+				else {
+					Cam->GoBackward(10.0f * (_Driver->deltaFrame / 1000));
+				}
 			}
 			if (isA) {
+				CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				Cam->GoLeft(10.0f * (_Driver->deltaFrame / 1000));
+				if (Character && Character->_Camera) {
+					glm::vec3 MoveDir = Cam->GetLeft(1.0f * (_Driver->deltaFrame / 1000));
+					MoveDir -= Cam->getOffset();
+					Character->setPosition(btVector3(MoveDir.x, MoveDir.y, MoveDir.z));
+				}
+				else {
+					Cam->GoLeft(10.0f * (_Driver->deltaFrame / 1000));
+				}
 			}
 			if (isD) {
+				CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				Cam->GoRight(10.0f * (_Driver->deltaFrame / 1000));
+				if (Character && Character->_Camera) {
+					glm::vec3 MoveDir = Cam->GetRight(1.0f * (_Driver->deltaFrame / 1000));
+					MoveDir -= Cam->getOffset();
+					Character->setPosition(btVector3(MoveDir.x, MoveDir.y, MoveDir.z));
+				}
+				else {
+					Cam->GoRight(10.0f * (_Driver->deltaFrame / 1000));
+				}
 			}
 		}
 	}
@@ -95,10 +127,14 @@ public:
 			else if (NewEvent.Action == EventActions::Repeat) {
 			}
 			else if (NewEvent.Action == EventActions::Move) {
+				CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
+				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+				if (Character && Character->_Camera) {
+					Character->setYaw(Cam->getYaw());
+				}
 				//
 				//	Only mouse-move-camera when menus closed
 				if (!IsMenuOpen()) {
-					Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 					Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
 				}
 			}
