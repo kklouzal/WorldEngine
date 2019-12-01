@@ -177,6 +177,38 @@ void SceneGraph::initWorld() {
 	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
 	solver = new btSequentialImpulseConstraintSolver;
 	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+	dynamicsWorld->getSolverInfo().m_numIterations = 3;
+	printf("[Bullet Physics Settings]\n");
+	printf("\tm_articulatedWarmstartingFactor %f\n", dynamicsWorld->getSolverInfo().m_articulatedWarmstartingFactor);
+	printf("\tm_damping %f\n", dynamicsWorld->getSolverInfo().m_damping);
+	printf("\tm_deformable_erp %f\n", dynamicsWorld->getSolverInfo().m_deformable_erp);
+	printf("\tm_erp %f\n", dynamicsWorld->getSolverInfo().m_erp);
+	printf("\tm_erp2 %f\n", dynamicsWorld->getSolverInfo().m_erp2);
+	printf("\tm_friction %f\n", dynamicsWorld->getSolverInfo().m_friction);
+	printf("\tm_frictionCFM %f\n", dynamicsWorld->getSolverInfo().m_frictionCFM);
+	printf("\tm_frictionERP %f\n", dynamicsWorld->getSolverInfo().m_frictionERP);
+	printf("\tm_globalCfm %f\n", dynamicsWorld->getSolverInfo().m_globalCfm);
+	printf("\tm_jointFeedbackInJointFrame %i\n", dynamicsWorld->getSolverInfo().m_jointFeedbackInJointFrame);
+	printf("\tm_jointFeedbackInWorldSpace %i\n", dynamicsWorld->getSolverInfo().m_jointFeedbackInWorldSpace);
+	printf("\tm_leastSquaresResidualThreshold %f\n", dynamicsWorld->getSolverInfo().m_leastSquaresResidualThreshold);
+	printf("\tm_linearSlop %f\n", dynamicsWorld->getSolverInfo().m_linearSlop);
+	printf("\tm_maxErrorReduction %f\n", dynamicsWorld->getSolverInfo().m_maxErrorReduction);
+	printf("\tm_maxGyroscopicForce %f\n", dynamicsWorld->getSolverInfo().m_maxGyroscopicForce);
+	printf("\tm_minimumSolverBatchSize %i\n", dynamicsWorld->getSolverInfo().m_minimumSolverBatchSize);
+	printf("\tm_numIterations %i\n", dynamicsWorld->getSolverInfo().m_numIterations);
+	printf("\tm_reportSolverAnalytics %i\n", dynamicsWorld->getSolverInfo().m_reportSolverAnalytics);
+	printf("\tm_restingContactRestitutionThreshold %i\n", dynamicsWorld->getSolverInfo().m_restingContactRestitutionThreshold);
+	printf("\tm_restitution %f\n", dynamicsWorld->getSolverInfo().m_restitution);
+	printf("\tm_restitutionVelocityThreshold %f\n", dynamicsWorld->getSolverInfo().m_restitutionVelocityThreshold);
+	printf("\tm_singleAxisRollingFrictionThreshold %f\n", dynamicsWorld->getSolverInfo().m_singleAxisRollingFrictionThreshold);
+	printf("\tm_solverMode %i\n", dynamicsWorld->getSolverInfo().m_solverMode);
+	printf("\tm_sor %f\n", dynamicsWorld->getSolverInfo().m_sor);
+	printf("\tm_splitImpulse %i\n", dynamicsWorld->getSolverInfo().m_splitImpulse);
+	printf("\tm_splitImpulsePenetrationThreshold %f\n", dynamicsWorld->getSolverInfo().m_splitImpulsePenetrationThreshold);
+	printf("\tm_splitImpulseTurnErp %f\n", dynamicsWorld->getSolverInfo().m_splitImpulseTurnErp);
+	printf("\tm_tau %f\n", dynamicsWorld->getSolverInfo().m_tau);
+	printf("\tm_timeStep %f\n", dynamicsWorld->getSolverInfo().m_timeStep);
+	printf("\tm_warmstartingFactor %f\n", dynamicsWorld->getSolverInfo().m_warmstartingFactor);
 
 	dynamicsWorld->setGravity(btVector3(0, -10, 0));
 #ifdef _DEBUG

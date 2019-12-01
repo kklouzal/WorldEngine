@@ -66,7 +66,7 @@ DecompResults* Decomp(FBXObject* FBX) {
 		//
 		//	Grab the hulls center position
 		const btVector3 centroid(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
-		printf("Hull Center %f %f %f\n", Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
+		//printf("Hull Center %f %f %f\n", Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
 		//
 		//	Iterate through this hulls triangles
 		for (unsigned int i = 0; i < Hull.m_nTriangles; i++) {
