@@ -18,7 +18,7 @@ public:
 
 	Camera() : Pos(glm::vec3(0, 0, 0)), Ang(glm::vec3(0, 0, -1)), Up(glm::vec3(0.0f, 1.0f, 0.0f)) {
 		View = glm::lookAt(Pos, Pos + Ang, Up);
-		Offset = glm::vec3(0, 2, 0);
+		Offset = glm::vec3(0, 3, 0);
 	}
 
 	glm::vec3 GetForward(float Speed) {

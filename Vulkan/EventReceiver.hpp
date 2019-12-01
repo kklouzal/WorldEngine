@@ -64,6 +64,7 @@ class EventReceiver : public Gwen::Event::Handler {
 					if (glfwRawMouseMotionSupported()) {
 						glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 					}
+					Rcvr->Crosshair->Show();
 				}
 				else {
 					Rcvr->isMenuOpen = true;
@@ -71,6 +72,7 @@ class EventReceiver : public Gwen::Event::Handler {
 						glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
 					}
 					glfwSetInputMode(Rcvr->_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+					Rcvr->Crosshair->Hide();
 				}
 			}
 		}
@@ -180,11 +182,14 @@ class EventReceiver : public Gwen::Event::Handler {
 				_Driver->_SceneGraph->initWorld();
 				isWorldInitialized = true;
 				((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Disconnect"));
+
+				Crosshair->Show();
 			}
 			else {
 				_Driver->_SceneGraph->cleanupWorld();
 				isWorldInitialized = false;
 				((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Play"));
+				Crosshair->Hide();
 			}
 		}
 	}
@@ -228,7 +233,7 @@ protected:
 	const bool& IsWorldInitialized() const {
 		return isWorldInitialized;
 	}
-
+	Gwen::Controls::ImagePanel* Crosshair;
 public:
 	EventReceiver(VulkanDriver* Driver) :_Driver(Driver) {
 		printf("Create EventReceiver\n");
@@ -273,11 +278,16 @@ public:
 		QuitButton->SetText("Quit");
 		QuitButton->onPress.Add(this, &EventReceiver::OnPress);
 
+		Crosshair = new Gwen::Controls::ImagePanel(pCanvas);
+		Crosshair->SetImage("media/crosshairs/focus1.png");
+		Crosshair->SetPos(_Driver->WIDTH/2-16, _Driver->HEIGHT/2-16);
+		Crosshair->SetSize(32, 32);
+		Crosshair->Hide();
+
 	}
 
 	virtual ~EventReceiver() {
-
-		printf("Destroy EventReceiver\n");
+		printf("\tDestroy Base EventReceiver\n");
 
 		delete pCanvas;
 		delete pSkin;

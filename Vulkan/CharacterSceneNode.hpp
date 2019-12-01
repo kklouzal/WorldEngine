@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Weapon.hpp"
+
 class CharacterSceneNode : public SceneNode {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
@@ -7,17 +9,13 @@ class CharacterSceneNode : public SceneNode {
 	UniformBufferObject ubo = {};
 public:
 	TriangleMesh* _Mesh = nullptr;
-	btCollisionShape* _CollisionShape = nullptr;
-	btRigidBody* _RigidBody = nullptr;
 	Camera* _Camera = nullptr;
+	Weapon _Weapon;
 public:
 	CharacterSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
 
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
-		delete _RigidBody->getMotionState();
-		delete _RigidBody;
-		//delete _CollisionShape;
 		delete _Mesh;
 	}
 
@@ -31,7 +29,6 @@ public:
 	void setYaw(float Yaw) {
 		_RigidBody->activate(true);
 		btTransform Trans = _RigidBody->getWorldTransform();
-		printf("%f\n", glm::radians(-Yaw));
 		Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));
 		_RigidBody->setWorldTransform(Trans);
 	}
@@ -63,17 +60,17 @@ public:
 
 	virtual void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
-		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
 		_btPos.getOpenGLMatrix(ModelPtr);
 	}
 
 	//Bullet only calls the update of worldtransform for active objects
 	virtual void setWorldTransform(const btTransform& worldTrans) {
 		_btPos = worldTrans;
-		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
 		_btPos.getOpenGLMatrix(ModelPtr);
 		if (_SceneNode->_Camera) {
-			glm::vec3 NewCamPos(worldTrans.getOrigin().x(), worldTrans.getOrigin().y(), worldTrans.getOrigin().z());
+			const btVector3 cmt = _SceneNode->_RigidBody->getCenterOfMassPosition();
+			//printf("CMT %f %f %f\n", cmt.x(), cmt.y(), cmt.z());
+			glm::vec3 NewCamPos(cmt.x(), cmt.y(), cmt.z());
 			_SceneNode->_Camera->SetPosition(NewCamPos + _SceneNode->_Camera->getOffset());
 		}
 	}
@@ -87,7 +84,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 	FBXObject* FBX = _ImportFBX->Import(FileFBX);
 	std::string DiffuseFile("media/");
 	DiffuseFile += FBX->Texture_Diffuse;
-	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile.c_str());
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
 	if (DiffuseTex == nullptr) {
 		return nullptr;
 	}
@@ -111,6 +108,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 		}
 
 		CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
+		MeshNode->Name = "Character Scene Node";
 
 		//
 		//	Bullet Physics
@@ -131,6 +129,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 		CharacterSceneNodeMotionState* MotionState = new CharacterSceneNodeMotionState(MeshNode, Transform);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
 		MeshNode->_RigidBody = new btRigidBody(rbInfo);
+		MeshNode->_RigidBody->setUserPointer(MeshNode);
 		MeshNode->_RigidBody->setAngularFactor(btVector3(0.0f, 1.0f, 0.0f));
 		dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 

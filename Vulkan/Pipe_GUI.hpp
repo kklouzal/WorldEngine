@@ -265,7 +265,7 @@ namespace Pipeline {
 		//	Create Texture
 		//
 		//
-		TextureObject* createTextureImage(const char* File) {
+		TextureObject* createTextureImage(const std::string& File) {
 
 			if (_Textures.count(File) == 1) {
 				return _Textures[File];
@@ -276,7 +276,6 @@ namespace Pipeline {
 				const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
 				if (error) {
-					printf("PNG Decoder error: (%i) %s\n", error, lodepng_error_text(error));
 					const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
 					if (error2) {
 						_Textures.erase(File);

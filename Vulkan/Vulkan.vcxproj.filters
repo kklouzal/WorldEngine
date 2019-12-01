@@ -142,5 +142,8 @@
     <ClInclude Include="CharacterSceneNode.hpp">
       <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
+    <ClInclude Include="Weapon.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

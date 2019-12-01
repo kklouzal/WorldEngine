@@ -2,6 +2,7 @@
 
 #include "btBulletDynamicsCommon.h"
 #include "Bullet_DebugDraw.hpp"
+#include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
 #include "Import_FBX.hpp"
 #include "ConvexDecomposition.hpp"
 
@@ -130,6 +131,8 @@ public:
 		FrameCount = 3;
 		cleanupWorld();
 	}
+
+	btCollisionWorld::ClosestRayResultCallback& castRay(const btVector3& From, const btVector3& To);
 };
 
 #include "Pipe_Default.hpp"
@@ -153,6 +156,16 @@ void SceneGraph::SetCharacter(CharacterSceneNode* Character) {
 	_Character = Character;
 }
 
+btCollisionWorld::ClosestRayResultCallback& SceneGraph::castRay(const btVector3& From, const btVector3& To) {
+
+	btCollisionWorld::ClosestRayResultCallback closestResults(From, To);
+	closestResults.m_flags |= btTriangleRaycastCallback::kF_FilterBackfaces;
+
+	dynamicsWorld->rayTest(From, To, closestResults);
+
+	return closestResults;
+}
+
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
@@ -171,7 +184,7 @@ void SceneGraph::initWorld() {
 #endif
 
 	createWorldSceneNode("media/world.fbx");
-	_Character = createCharacterSceneNode("media/box.fbx", btVector3(5, 5, 5));
+	_Character = createCharacterSceneNode("media/cube.fbx", btVector3(5, 5, 5));
 	_Character->_Camera = &_Camera;
 
 	isWorld = true;
@@ -183,6 +196,7 @@ void SceneGraph::cleanupWorld() {
 	isWorld = false;
 	FrameCount = 0;
 	tryCleanupWorld = false;
+	_Character = nullptr;
 	//
 	//	Cleanup SceneNodes
 	for (size_t i = 0; i < SceneNodes.size(); i++) {

@@ -557,8 +557,7 @@ namespace Gwen
 			}
 			void LoadTexture(Gwen::Texture* pTexture)
 			{
-				const char* FileName = pTexture->name.c_str();
-				TextureObject* Tex = Pipe->createTextureImage(FileName);
+				TextureObject* Tex = Pipe->createTextureImage(std::string(pTexture->name.c_str()));
 				DescriptorObject* Descriptor = Pipe->createDescriptor(Tex);
 				GWENTex* TexObj = new GWENTex;
 				TexObj->Descriptor = Descriptor;

@@ -55,6 +55,7 @@ DecompResults* Decomp(FBXObject* FBX) {
 		btTriangleMesh* trimesh = new btTriangleMesh();
 		Results->m_trimeshes.push_back(trimesh);
 		btVector3 centroid = btVector3(0, 0, 0);
+		printf("Hull Center %f %f %f\n", Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
 		//
 		//	Calculate centroid and fill vertices
 		for (unsigned int i = 0; i < Hull.m_nTriangles; i++) {

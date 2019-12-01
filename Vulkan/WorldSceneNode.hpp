@@ -8,16 +8,11 @@ class WorldSceneNode : public SceneNode {
 	UniformBufferObject ubo = {};
 public:
 	TriangleMesh* _Mesh = nullptr;
-	btCollisionShape* _CollisionShape = nullptr;
-	btRigidBody* _RigidBody = nullptr;
 public:
 	WorldSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
 
 	~WorldSceneNode() {
 		printf("Destroy WorldSceneNode\n");
-		delete _RigidBody->getMotionState();
-		delete _RigidBody;
-		//delete _CollisionShape;
 		delete _Mesh;
 	}
 
@@ -48,7 +43,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	std::filesystem::path P(FBX->Texture_Diffuse);
 	DiffuseFile += P.filename().string();
 	//DiffuseFile += FBX->Texture_Diffuse;
-	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile.c_str());
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
 	if (DiffuseTex == nullptr) {
 		return nullptr;
 	}
@@ -73,6 +68,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 		}
 
 		WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
+		MeshNode->Name = "World";
 
 		//
 		//	Bullet Physics
@@ -93,6 +89,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 		SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
 		MeshNode->_RigidBody = new btRigidBody(rbInfo);
+		MeshNode->_RigidBody->setUserPointer(MeshNode);
 		dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
 		//

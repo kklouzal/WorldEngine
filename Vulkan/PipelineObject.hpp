@@ -11,6 +11,7 @@ struct PipelineObject {
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
 	~PipelineObject() {
+		printf("\tDestroy Base PipelineObject\n");
 		for (auto Tex : _Textures) {
 			delete Tex.second;
 		}
@@ -21,7 +22,7 @@ struct PipelineObject {
 	}
 
 	virtual DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) = 0;
-	virtual TextureObject* createTextureImage(const char* File) = 0;
+	virtual TextureObject* createTextureImage(const std::string& File) = 0;
 
 	void EmptyCache() {
 		for (auto Tex : _Textures) {
@@ -32,7 +33,7 @@ struct PipelineObject {
 
 protected:
 
-	std::unordered_map<const char*, TextureObject*> _Textures;
+	std::unordered_map<std::string, TextureObject*> _Textures;
 
 	PipelineObject(VulkanDriver* Driver) : _Driver(Driver) {}
 
