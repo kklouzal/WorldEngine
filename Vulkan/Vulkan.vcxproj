@@ -183,6 +183,7 @@
     <ClInclude Include="SceneGraph.hpp" />
     <ClInclude Include="SceneNode.h" />
     <ClInclude Include="SkinnedMeshSceneNode.hpp" />
+    <ClInclude Include="SpawnMenu.hpp" />
     <ClInclude Include="TriangleMesh.hpp" />
     <ClInclude Include="TriangleMeshSceneNode.hpp" />
     <ClInclude Include="vk_mem_alloc.h" />

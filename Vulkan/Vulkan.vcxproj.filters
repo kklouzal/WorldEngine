@@ -154,5 +154,8 @@
     <ClInclude Include="ConsoleMenu.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
+    <ClInclude Include="SpawnMenu.hpp">
+      <Filter>Header Files\Menus</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

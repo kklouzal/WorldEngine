@@ -4,6 +4,7 @@
 //	Menu Class Forward Declarations
 class MainMenu;
 class ConsoleMenu;
+class SpawnMenu;
 
 //
 //	EventReceiver Declaration
@@ -29,6 +30,7 @@ class EventReceiver : public Gwen::Event::Handler {
 	//	Menus
 	MainMenu* _MainMenu = nullptr;
 	ConsoleMenu* _ConsoleMenu = nullptr;
+	SpawnMenu* _SpawnMenu = nullptr;
 	//
 
 	void drawGWEN(const uint32_t& currentImage) {
@@ -93,12 +95,14 @@ public:
 	friend class VulkanDriver;
 	friend class MainMenu;
 	friend class ConsoleMenu;
+	friend class SpawnMenu;
 };
 
 //
 //	Define Menu Implementations
 #include "MainMenu.hpp"
 #include "ConsoleMenu.hpp"
+#include "SpawnMenu.hpp"
 
 //
 //	Define EventReceiver Implementations
@@ -120,6 +124,7 @@ EventReceiver::EventReceiver(VulkanDriver* Driver) :_Driver(Driver) {
 	//	Initialize Menus
 	_MainMenu = new MainMenu(this);
 	_ConsoleMenu = new ConsoleMenu(this);
+	_SpawnMenu = new SpawnMenu(this);
 	//
 
 	Crosshair = new Gwen::Controls::ImagePanel(pCanvas);
@@ -136,6 +141,7 @@ EventReceiver::~EventReceiver() {
 	//	Cleanup Menus
 	delete _MainMenu;
 	delete _ConsoleMenu;
+	delete _SpawnMenu;
 	//
 	//	Cleanup GWEN
 	delete pCanvas;
@@ -144,7 +150,7 @@ EventReceiver::~EventReceiver() {
 }
 
 const bool& EventReceiver::IsMenuOpen() const {
-	return _MainMenu->IsOpen() || _ConsoleMenu->IsActive();
+	return _MainMenu->IsOpen() || _ConsoleMenu->IsActive() || _SpawnMenu->IsOpen();
 }
 
 void EventReceiver::EnableCursor() {
@@ -176,6 +182,7 @@ void EventReceiver::OnPress(Gwen::Controls::Base* pControl) {
 			isWorldInitialized = true;
 			((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Disconnect"));
 
+			_SpawnMenu->Hide(false);
 			_ConsoleMenu->ForceHide();
 			_MainMenu->Hide();
 			Crosshair->Show();
@@ -226,7 +233,6 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 	else if (key == GLFW_KEY_DOWN) { iKey = Gwen::Key::Down; }
 
 	if (action == GLFW_PRESS && key == GLFW_KEY_GRAVE_ACCENT) {
-		
 		Rcvr->_ConsoleMenu->Toggle();
 	}
 
@@ -240,6 +246,22 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 			else {
 				Rcvr->Crosshair->Hide();
 				Rcvr->_MainMenu->Show();
+			}
+			if (Rcvr->_SpawnMenu->IsOpen()) {
+				Rcvr->_SpawnMenu->Hide(false);
+			}
+		}
+		else if (key == GLFW_KEY_Q) {
+			if (action == GLFW_PRESS) {
+				if (!Rcvr->IsMenuOpen()) {
+					if (!Rcvr->_SpawnMenu->IsOpen()) {
+						Rcvr->_SpawnMenu->Show();
+					}
+				}
+			}
+			else if (action == GLFW_RELEASE) {
+				
+				Rcvr->_SpawnMenu->Hide(!(Rcvr->_MainMenu->IsOpen() || Rcvr->_ConsoleMenu->IsActive()));
 			}
 		}
 	}
