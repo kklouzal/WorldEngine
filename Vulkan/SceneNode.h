@@ -33,15 +33,11 @@ public:
 
 	virtual void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
-		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
 		_btPos.getOpenGLMatrix(ModelPtr);
-		
 	}
 
-	//Bullet only calls the update of worldtransform for active objects
 	virtual void setWorldTransform(const btTransform& worldTrans) {
 		_btPos = worldTrans;
-		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
 		_btPos.getOpenGLMatrix(ModelPtr);
 	}
 };

@@ -21,7 +21,7 @@ public:
 
 	void moveForward(const btScalar& Speed) {
 		btTransform Trans = _RigidBody->getWorldTransform();
-		btVector3 Forward = Trans(btVector3(1 * Speed, 0, 0));
+		const btVector3 Forward = Trans(btVector3(1 * Speed, 0, 0));
 		Trans.setOrigin(Forward);
 		_RigidBody->activate(true);
 		_RigidBody->setWorldTransform(Trans);
@@ -29,43 +29,47 @@ public:
 
 	void moveBackward(const btScalar& Speed) {
 		btTransform Trans = _RigidBody->getWorldTransform();
-		btVector3 Forward = Trans(btVector3(-1 * Speed, 0, 0));
-		Trans.setOrigin(Forward);
+		const btVector3 Backward = Trans(btVector3(-1 * Speed, 0, 0));
+		Trans.setOrigin(Backward);
 		_RigidBody->activate(true);
 		_RigidBody->setWorldTransform(Trans);
 	}
 
 	void moveLeft(const btScalar& Speed) {
 		btTransform Trans = _RigidBody->getWorldTransform();
-		btVector3 Forward = Trans(btVector3(0, 0, -1 * Speed));
-		Trans.setOrigin(Forward);
+		const btVector3 Left = Trans(btVector3(0, 0, -1 * Speed));
+		Trans.setOrigin(Left);
 		_RigidBody->activate(true);
 		_RigidBody->setWorldTransform(Trans);
 	}
 
 	void moveRight(const btScalar& Speed) {
 		btTransform Trans = _RigidBody->getWorldTransform();
-		btVector3 Forward = Trans(btVector3(0, 0, 1 * Speed));
-		Trans.setOrigin(Forward);
+		const btVector3 Right = Trans(btVector3(0, 0, 1 * Speed));
+		Trans.setOrigin(Right);
 		_RigidBody->activate(true);
 		_RigidBody->setWorldTransform(Trans);
 	}
 
 	void doJump(const btScalar& Speed) {
-		glm::vec3 up = glm::vec3(Model[0][1], Model[1][1], Model[2][1]);
+		btTransform Trans = _RigidBody->getWorldTransform();
+		const btVector3 Up = Trans(btVector3(0, 1 * Speed, 0));
+		Trans.setOrigin(Up);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
 	}
 
 	void setPosition(btVector3 NewPosition) {
-		_RigidBody->activate(true);
 		btTransform Trans = _RigidBody->getWorldTransform();
 		Trans.setOrigin(btVector3(NewPosition));
+		_RigidBody->activate(true);
 		_RigidBody->setWorldTransform(Trans);
 	}
 
 	void setYaw(float Yaw) {
-		_RigidBody->activate(true);
 		btTransform Trans = _RigidBody->getWorldTransform();
 		Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));
+		_RigidBody->activate(true);
 		_RigidBody->setWorldTransform(Trans);
 	}
 
@@ -75,7 +79,6 @@ public:
 
 	void updateUniformBuffer(const uint32_t& currentImage) {
 		ubo.model = Model;
-
 		_Mesh->updateUniformBuffer(currentImage, ubo);
 	}
 
@@ -99,15 +102,12 @@ public:
 		_btPos.getOpenGLMatrix(ModelPtr);
 	}
 
-	//Bullet only calls the update of worldtransform for active objects
 	virtual void setWorldTransform(const btTransform& worldTrans) {
 		_btPos = worldTrans;
 		_btPos.getOpenGLMatrix(ModelPtr);
 		if (_SceneNode->_Camera) {
-			const btVector3 cmt = _SceneNode->_RigidBody->getCenterOfMassPosition();
-			//printf("CMT %f %f %f\n", cmt.x(), cmt.y(), cmt.z());
-			glm::vec3 NewCamPos(cmt.x(), cmt.y(), cmt.z());
-			_SceneNode->_Camera->SetPosition(NewCamPos + _SceneNode->_Camera->getOffset());
+			const btVector3 Pos = _btPos.getOrigin();
+			_SceneNode->_Camera->SetPosition(glm::vec3(Pos.x(), Pos.y(), Pos.z()) + _SceneNode->_Camera->getOffset());
 		}
 	}
 };
