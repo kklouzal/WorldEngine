@@ -120,7 +120,7 @@ public:
 			else if (NewEvent.Action == EventActions::Move) {
 				CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				if (Character && Character->_Camera) {
+				if (Character && Character->_Camera && !IsMenuOpen()) {
 					Character->setYaw(Cam->getYaw());
 				}
 				//

@@ -86,8 +86,6 @@ public:
 
 	void stepSimulation(const btScalar& timeStep);
 
-	void SetCharacter(CharacterSceneNode* Character);
-
 	//
 	//	Create SceneNode Functions
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
@@ -148,13 +146,6 @@ public:
 
 //
 //	Define SceneGraph Implementation
-
-//
-//	Defines the active controlled character
-//	nullptr results in a free roaming camera
-void SceneGraph::SetCharacter(CharacterSceneNode* Character) {
-	_Character = Character;
-}
 
 btCollisionWorld::ClosestRayResultCallback& SceneGraph::castRay(const btVector3& From, const btVector3& To) {
 

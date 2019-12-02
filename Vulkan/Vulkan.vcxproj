@@ -165,10 +165,12 @@
     <ClInclude Include="Bullet_DebugDraw.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="CharacterSceneNode.hpp" />
+    <ClInclude Include="ConsoleMenu.hpp" />
     <ClInclude Include="ConvexDecomposition.hpp" />
     <ClInclude Include="Import_FBX.hpp" />
     <ClInclude Include="lodepng.h" />
     <ClInclude Include="LuaScripting.hpp" />
+    <ClInclude Include="MainMenu.hpp" />
     <ClInclude Include="MyEventReceiver.hpp" />
     <ClInclude Include="Pipe_Default.hpp" />
     <ClInclude Include="EventReceiver.hpp" />

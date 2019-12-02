@@ -230,7 +230,7 @@ void VulkanDriver::drawFrame() {
 	float FPS = (1.0f / DF) * 1000.0f;
 	
 	if (_EventReceiver) {
-		_EventReceiver->m_StatusBar->SetText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
+		_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
 	}
 	//const VkResult Status = vkGetFenceStatus(device, inFlightFences[currentFrame]);
 	//if (Status == VK_SUCCESS) {

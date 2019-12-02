@@ -37,6 +37,9 @@
     <Filter Include="Source Files\Libraries">
       <UniqueIdentifier>{72bb51b6-9e2a-4d89-b48c-ae3c88d507eb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Menus">
+      <UniqueIdentifier>{0011d504-520c-484f-a350-91180c8eea52}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -144,6 +147,12 @@
     </ClInclude>
     <ClInclude Include="Weapon.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MainMenu.hpp">
+      <Filter>Header Files\Menus</Filter>
+    </ClInclude>
+    <ClInclude Include="ConsoleMenu.hpp">
+      <Filter>Header Files\Menus</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
