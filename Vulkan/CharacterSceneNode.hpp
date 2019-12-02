@@ -19,6 +19,42 @@ public:
 		delete _Mesh;
 	}
 
+	void moveForward(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		btVector3 Forward = Trans(btVector3(1 * Speed, 0, 0));
+		Trans.setOrigin(Forward);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
+	}
+
+	void moveBackward(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		btVector3 Forward = Trans(btVector3(-1 * Speed, 0, 0));
+		Trans.setOrigin(Forward);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
+	}
+
+	void moveLeft(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		btVector3 Forward = Trans(btVector3(0, 0, -1 * Speed));
+		Trans.setOrigin(Forward);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
+	}
+
+	void moveRight(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		btVector3 Forward = Trans(btVector3(0, 0, 1 * Speed));
+		Trans.setOrigin(Forward);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
+	}
+
+	void doJump(const btScalar& Speed) {
+		glm::vec3 up = glm::vec3(Model[0][1], Model[1][1], Model[2][1]);
+	}
+
 	void setPosition(btVector3 NewPosition) {
 		_RigidBody->activate(true);
 		btTransform Trans = _RigidBody->getWorldTransform();
@@ -116,7 +152,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 		btTransform Transform;
 		Transform.setIdentity();
 		Transform.setOrigin(Position);
-		Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
+		//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
 
 		btScalar Mass = 1.0f;
 		bool isDynamic = (Mass != 0.f);
@@ -130,7 +166,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
 		MeshNode->_RigidBody = new btRigidBody(rbInfo);
 		MeshNode->_RigidBody->setUserPointer(MeshNode);
-		MeshNode->_RigidBody->setAngularFactor(btVector3(0.0f, 1.0f, 0.0f));
+		MeshNode->_RigidBody->setAngularFactor(btVector3(0.0f, 0.0f, 0.0f));
 		dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
 		//

@@ -35,6 +35,7 @@ public:
 		worldTrans = _btPos;
 		//_btPos.getOpenGLMatrix(glm::value_ptr(_SceneNode->Model));
 		_btPos.getOpenGLMatrix(ModelPtr);
+		
 	}
 
 	//Bullet only calls the update of worldtransform for active objects

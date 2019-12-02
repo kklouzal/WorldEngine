@@ -20,9 +20,7 @@ public:
 			Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 			if (isW) {
 				if (Character && Character->_Camera) {
-					glm::vec3 MoveDir = Cam->GetForward(10.0f * (_Driver->deltaFrame / 1000));
-					MoveDir -= Cam->getOffset();
-					Character->setPosition(btVector3(MoveDir.x, MoveDir.y, MoveDir.z));
+					Character->moveForward(10.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoForward(10.0f * (_Driver->deltaFrame / 1000));
@@ -30,9 +28,7 @@ public:
 			}
 			if (isS) {
 				if (Character && Character->_Camera) {
-					glm::vec3 MoveDir = Cam->GetBackward(10.0f * (_Driver->deltaFrame / 1000));
-					MoveDir -= Cam->getOffset();
-					Character->setPosition(btVector3(MoveDir.x, MoveDir.y, MoveDir.z));
+					Character->moveBackward(10.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoBackward(10.0f * (_Driver->deltaFrame / 1000));
@@ -40,9 +36,7 @@ public:
 			}
 			if (isA) {
 				if (Character && Character->_Camera) {
-					glm::vec3 MoveDir = Cam->GetLeft(10.0f * (_Driver->deltaFrame / 1000));
-					MoveDir -= Cam->getOffset();
-					Character->setPosition(btVector3(MoveDir.x, MoveDir.y, MoveDir.z));
+					Character->moveLeft(10.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoLeft(10.0f * (_Driver->deltaFrame / 1000));
@@ -50,9 +44,7 @@ public:
 			}
 			if (isD) {
 				if (Character && Character->_Camera) {
-					glm::vec3 MoveDir = Cam->GetRight(10.0f * (_Driver->deltaFrame / 1000));
-					MoveDir -= Cam->getOffset();
-					Character->setPosition(btVector3(MoveDir.x, MoveDir.y, MoveDir.z));
+					Character->moveRight(10.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoRight(10.0f * (_Driver->deltaFrame / 1000));
@@ -76,9 +68,6 @@ public:
 							_Driver->_SceneGraph->createCharacterSceneNode("media/cube.fbx", btVector3(5,5,5));
 						}
 					else {
-						//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/test/test.fbx");
-						//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/lua.fbx");
-						//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/arnaud/arnaud.fbx");
 						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cube.fbx");
 					}
 				}
