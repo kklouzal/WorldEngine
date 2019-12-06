@@ -1,3 +1,4 @@
 language: cpp
 os: windows
-compiler: visualstudio
+script:
+- MSBuild.exe Vulkan.sln /p:Configuration=Release
