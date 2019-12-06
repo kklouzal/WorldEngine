@@ -5,4 +5,4 @@ env:
 - MSBUILD_PATH="/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin"
 script:
 - export PATH=$MSBUILD_PATH:$PATH
-- MSBuild Vulkan.sln /p:Configuration=Release
+- MSBuild.exe Vulkan.sln /p:Configuration=Release
