@@ -24,13 +24,13 @@ struct UniformBufferObject_PointLights {
 //
 //	Vertex
 struct Vertex {
-	glm::vec3 pos;
-	glm::vec4 color;
-	glm::vec2 texCoord;
-	glm::vec3 normal;
+	glm::vec3 pos{};
+	glm::vec4 color{};
+	glm::vec2 texCoord{};
+	glm::vec3 normal{};
 
-	glm::ivec4 Bones;
-	glm::vec4 Weights;
+	glm::ivec4 Bones{};
+	glm::vec4 Weights{};
 
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription = {};

@@ -206,6 +206,7 @@ void SceneGraph::initWorld() {
 	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
 #endif
 
+	//createWorldSceneNode("media/IndustrialBuilding6.fbx");
 	createWorldSceneNode("media/world.fbx");
 	_Character = createCharacterSceneNode("media/cube.fbx", btVector3(5, 5, 5));
 	_Character->_Camera = &_Camera;

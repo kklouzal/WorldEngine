@@ -45,15 +45,15 @@ public:
 
 	//	For now, only return mesh nodes.
 	//	ToDo: Implement lights and possibly others
-	void SearchNodes(fbxsdk::FbxNode* Node, std::vector<fbxsdk::FbxNode*>& Nodes) {
-		for (int i = 0; i < Node->GetChildCount(); i++) {
-			fbxsdk::FbxNode* Child = Node->GetChild(i);
-			fbxsdk::FbxNodeAttribute* Attribute = Child->GetNodeAttribute();
+	void SearchNodes(const fbxsdk::FbxNode* Node, std::vector<const fbxsdk::FbxNode*>& Nodes) {
+		for (unsigned int i = 0; i < Node->GetChildCount(); i++) {
+			const fbxsdk::FbxNode* Child = Node->GetChild(i);
+			const fbxsdk::FbxNodeAttribute* Attribute = Child->GetNodeAttribute();
 			if (Attribute == NULL) {
 				SearchNodes(Child, Nodes);
 			}
 			else {
-				FbxNodeAttribute::EType AttributeType = Attribute->GetAttributeType();
+				const FbxNodeAttribute::EType AttributeType = Attribute->GetAttributeType();
 				if (AttributeType != FbxNodeAttribute::eMesh) {
 					SearchNodes(Child, Nodes);
 				}
@@ -66,7 +66,7 @@ public:
 	}
 
 	struct VertexBoneInfo {
-		std::vector<int> Bones = {};
+		std::vector<unsigned int> Bones = {};
 		std::vector<float> Weights = {};
 	};
 
@@ -88,32 +88,31 @@ public:
 			Importer->Destroy();
 			fbxsdk::FbxGeometryConverter(_FbxManager).Triangulate(Scene, true);
 
-			FbxNode* RootNode = Scene->GetRootNode();
+			const FbxNode* RootNode = Scene->GetRootNode();
 			if (RootNode) {
-				std::vector<fbxsdk::FbxNode*> Nodes;
+				std::vector<const fbxsdk::FbxNode*> Nodes;
 				SearchNodes(RootNode, Nodes);
 				printf("\t%i Nodes - %zi Usable\n", RootNode->GetChildCount(true), Nodes.size());
-
-				std::unordered_map<int, VertexBoneInfo> BoneData = {};
 
 				FBXObject* NewFBX = _FbxObjects.emplace(File, new FBXObject).first->second;
 
 				uint32_t IndexCount = 0;
 				for (auto Node : Nodes) {
+					//
+					//	Material Information
 					const int Materials = Node->GetSrcObjectCount<FbxSurfaceMaterial>();
 					printf("\tMaterials %i\n", Materials);
-					FbxSurfaceMaterial* Material = (FbxSurfaceMaterial*)Node->GetSrcObject<FbxSurfaceMaterial>(0);
+					const FbxSurfaceMaterial* Material = FbxCast<const FbxSurfaceMaterial>(Node->GetSrcObject<FbxSurfaceMaterial>(0));
 					if (Material) {
 						//
 						//	Diffuse Texture
-						FbxProperty pDiffuse = Material->FindProperty(FbxSurfaceMaterial::sDiffuse);
+						const FbxProperty pDiffuse = Material->FindProperty(FbxSurfaceMaterial::sDiffuse);
 						if (pDiffuse.IsValid()) {
-							int layered_texture_count = pDiffuse.GetSrcObjectCount<FbxLayeredTexture>();
-							int textureCount = pDiffuse.GetSrcObjectCount<FbxFileTexture>();
+							const unsigned int layered_texture_count = pDiffuse.GetSrcObjectCount<FbxLayeredTexture>();
+							const unsigned int textureCount = pDiffuse.GetSrcObjectCount<FbxFileTexture>();
 							printf("\tTextures: %i %i\n", layered_texture_count, textureCount);
-							FbxFileTexture* texture = FbxCast<FbxFileTexture>(pDiffuse.GetSrcObject<FbxFileTexture>(0));
+							const FbxFileTexture* texture = FbxCast<const FbxFileTexture>(pDiffuse.GetSrcObject<FbxFileTexture>(0));
 							if (texture) {
-								// Then, you can get all the properties of the texture, include its name
 								NewFBX->Texture_Diffuse = texture->GetRelativeFileName();
 								printf("\tRelative File %s\n", NewFBX->Texture_Diffuse);
 							}
@@ -122,36 +121,38 @@ public:
 						else { printf("\tNo Diffuse\n"); }
 					}
 					else { printf("\tMaterial 1 invalid\n"); }
-					FbxMesh* Mesh = (FbxMesh*)Node->GetNodeAttribute();
-					FbxVector4* Vertices = Mesh->GetControlPoints();
-					int Deformers = Mesh->GetDeformerCount();
+					//
+					//
+					const FbxMesh* Mesh = FbxCast<const FbxMesh>(Node->GetNodeAttribute());
+					//
+					//	Skinning Information
+					std::unordered_map<unsigned int, VertexBoneInfo> BoneData = {};
+					const unsigned int Deformers = Mesh->GetDeformerCount();
 					printf("\tDeformers %i\n", Deformers);
-					FbxSkin* pSkin = (FbxSkin*)Mesh->GetDeformer(0, FbxDeformer::eSkin);
+					const FbxSkin* pSkin = FbxCast<const FbxSkin>(Mesh->GetDeformer(0, FbxDeformer::eSkin));
 					if (pSkin) {
-						int ncBones = pSkin->GetClusterCount();
+						const unsigned int ncBones = pSkin->GetClusterCount();
 						printf("\tBones: %i\n", ncBones);
-						for (int boneIndex = 0; boneIndex < ncBones; ++boneIndex)
+						for (unsigned int boneIndex = 0; boneIndex < ncBones; ++boneIndex)
 						{
-							FbxCluster* cluster = pSkin->GetCluster(boneIndex);
-							FbxNode* pBone = cluster->GetLink();
+							const FbxCluster* cluster = pSkin->GetCluster(boneIndex);
+							const FbxNode* pBone = cluster->GetLink();
 
 							FbxAMatrix bindPoseMatrix, transformMatrix;
 							cluster->GetTransformMatrix(transformMatrix);
 							cluster->GetTransformLinkMatrix(bindPoseMatrix);
 							NewFBX->bindPoses.push_back(bindPoseMatrix);
 
-							int* pVertexIndices = cluster->GetControlPointIndices();
-							double* pVertexWeights = cluster->GetControlPointWeights();
+							const int* const pVertexIndices = cluster->GetControlPointIndices();
+							const double* const pVertexWeights = cluster->GetControlPointWeights();
 
 							// Iterate through all the vertices, which are affected by the bone
-							int ncVertexIndices = cluster->GetControlPointIndicesCount();
-
-							for (int iBoneVertexIndex = 0; iBoneVertexIndex < ncVertexIndices; iBoneVertexIndex++)
+							for (unsigned int iBoneVertexIndex = 0; iBoneVertexIndex < cluster->GetControlPointIndicesCount(); iBoneVertexIndex++)
 							{
 								// vertex
-								int niVertex = pVertexIndices[iBoneVertexIndex];
+								const unsigned int niVertex = pVertexIndices[iBoneVertexIndex];
 								// weight
-								float fWeight = (float)pVertexWeights[iBoneVertexIndex];
+								const float fWeight = (const float)pVertexWeights[iBoneVertexIndex];
 
 								BoneData[niVertex].Bones.push_back(boneIndex);
 								BoneData[niVertex].Weights.push_back(fWeight);
@@ -162,31 +163,32 @@ public:
 						printf("\tModel Has No Skin\n");
 					}
 					//
-					//	UV Mapping
+					//	UV Mapping *only uses first uv set*
 					FbxStringList lUVSetNameList;
 					Mesh->GetUVSetNames(lUVSetNameList);
-					int UVSets = lUVSetNameList.GetCount();
+					const unsigned int UVSets = lUVSetNameList.GetCount();
 					printf("\tUV Sets: %i\n", UVSets);
-					//if (UVSets > 0) {
 					const char* lUVSetName = lUVSetNameList.GetStringAt(0);
 					const FbxGeometryElementUV* lUVElement = Mesh->GetElementUV(lUVSetName);
-					//if (lUVElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex) {
-					printf("\tPolygon Vertex Mapping\n");
-					const bool lUseIndex = lUVElement->GetReferenceMode() != FbxGeometryElement::eDirect;
-					const int lIndexCount = (lUseIndex) ? lUVElement->GetIndexArray().GetCount() : 0;
-					//}
-				//}
+					bool lUseIndex;
+					int lIndexCount;
+					if (lUVElement) {
+						//if (lUVElement->GetMappingMode() == FbxGeometryElement::eByPolygonVertex) {
+						//printf("\tPolygon Vertex Mapping\n");
+						lUseIndex = lUVElement->GetReferenceMode() != FbxGeometryElement::eDirect;
+						lIndexCount = (lUseIndex) ? lUVElement->GetIndexArray().GetCount() : 0;
+					}
+					//
+					//	Normal Mapping
+					const FbxGeometryElementNormal* lNormalElement = Mesh->GetElementNormal();
 
-				//
-				//	Normal Mapping
-					FbxGeometryElementNormal* lNormalElement = Mesh->GetElementNormal();
-
-					int lPolyIndexCounter = 0;
-					for (int j = 0; j < Mesh->GetPolygonCount(); j++) {
-						int NumVerts = Mesh->GetPolygonSize(j);
+					const FbxVector4* const Vertices = Mesh->GetControlPoints();
+					unsigned int lPolyIndexCounter = 0;
+					for (unsigned int j = 0; j < Mesh->GetPolygonCount(); j++) {
+						const unsigned int NumVerts = Mesh->GetPolygonSize(j);
 						if (NumVerts != 3) { continue; }
 
-						for (int k = 0; k < NumVerts; k++) {
+						for (unsigned int k = 0; k < NumVerts; k++) {
 							Vertex* NewVertex = &NewFBX->Vertices.emplace_back();
 							//
 							//	Bone Data
@@ -222,15 +224,16 @@ public:
 							//
 							//	Normap Mapping Data
 							int lNormalIndex = 0;
-							//reference mode is direct, the normal index is same as lIndexByPolygonVertex.
-							if (lNormalElement->GetReferenceMode() == FbxGeometryElement::eDirect)
+							// reference mode is direct, the normal index is same as lIndexByPolygonVertex.
+							if (lNormalElement->GetReferenceMode() == FbxGeometryElement::eDirect) {
 								lNormalIndex = lPolyIndexCounter;
-
-							//reference mode is index-to-direct, get normals by the index-to-direct
-							if (lNormalElement->GetReferenceMode() == FbxGeometryElement::eIndexToDirect)
+							}
+							// reference mode is index-to-direct, get normals by the index-to-direct
+							else if (lNormalElement->GetReferenceMode() == FbxGeometryElement::eIndexToDirect) {
 								lNormalIndex = lNormalElement->GetIndexArray().GetAt(lPolyIndexCounter);
+							}
 
-							//Got normals of each polygon-vertex.
+							// Got normals of each polygon-vertex.
 							FbxVector4 lNormal = lNormalElement->GetDirectArray().GetAt(lNormalIndex);
 
 							NewVertex->normal.x = lNormal[0];
@@ -238,24 +241,24 @@ public:
 							NewVertex->normal.z = lNormal[2];
 							//
 							//	UV Mapping Data
-							if (lPolyIndexCounter < lIndexCount)
-							{
-								FbxVector2 lUVValue;
+							if (lUVElement) {
+								if (lPolyIndexCounter < lIndexCount)
+								{
+									//the UV index depends on the reference mode
+									int lUVIndex = lUseIndex ? lUVElement->GetIndexArray().GetAt(lPolyIndexCounter) : lPolyIndexCounter;
 
-								//the UV index depends on the reference mode
-								int lUVIndex = lUseIndex ? lUVElement->GetIndexArray().GetAt(lPolyIndexCounter) : lPolyIndexCounter;
+									const FbxVector2 lUVValue = lUVElement->GetDirectArray().GetAt(lUVIndex);
 
-								lUVValue = lUVElement->GetDirectArray().GetAt(lUVIndex);
+									NewVertex->texCoord.x = lUVValue.mData[0];
+									NewVertex->texCoord.y = -lUVValue.mData[1];
 
-								NewVertex->texCoord.x = lUVValue.mData[0];
-								NewVertex->texCoord.y = -lUVValue.mData[1];
-
-								lPolyIndexCounter++;
+									lPolyIndexCounter++;
+								}
 							}
 							//
 							//	Vertex & Index data
 							//	ToDo: Remove duplicate vertices using indices
-							int VertID = Mesh->GetPolygonVertex(j, k);
+							const unsigned int VertID = Mesh->GetPolygonVertex(j, k);
 							NewVertex->pos.x = (float)Vertices[VertID].mData[0];
 							NewVertex->pos.y = (float)Vertices[VertID].mData[1];
 							NewVertex->pos.z = (float)Vertices[VertID].mData[2];
