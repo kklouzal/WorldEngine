@@ -119,16 +119,16 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 
 	FBXObject* FBX = _ImportFBX->Import(FileFBX);
 	std::string DiffuseFile("media/");
-	DiffuseFile += FBX->Texture_Diffuse;
+	DiffuseFile += FBX->Meshes[0]->Texture_Diffuse;
 	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
 	if (DiffuseTex == nullptr) {
 		return nullptr;
 	}
 	else {
-		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX, DiffuseTex);
+		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX->Meshes[0], DiffuseTex);
 		btCollisionShape* ColShape;
 		if (_CollisionShapes.count(FileFBX) == 0) {
-			DecompResults* Results = Decomp(FBX);
+			DecompResults* Results = Decomp(FBX->Meshes[0]);
 			ColShape = Results->CompoundShape;
 			_CollisionShapes[FileFBX] = ColShape;
 			for (unsigned int i = 0; i < Results->m_convexShapes.size(); i++) {

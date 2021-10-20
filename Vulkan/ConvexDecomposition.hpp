@@ -11,7 +11,7 @@ struct DecompResults {
 
 //
 //	FBXObject contains vectors of Vertices and Indices
-DecompResults* Decomp(FBXObject* FBX) {
+DecompResults* Decomp(FBXMesh* FBX) {
 	//
 	//	Setup Indices
 	const uint32_t nTriangles = FBX->Indices.size();

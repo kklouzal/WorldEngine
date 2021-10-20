@@ -39,16 +39,16 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 	FBXObject* FBX = _ImportFBX->Import(FileFBX);
 	std::string DiffuseFile("media/");
-	DiffuseFile += FBX->Texture_Diffuse;
+	DiffuseFile += FBX->Meshes[0]->Texture_Diffuse;
 	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
 	if (DiffuseTex == nullptr) {
 		return nullptr;
 	}
 	else {
-		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX, DiffuseTex);
+		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX->Meshes[0], DiffuseTex);
 		btCollisionShape* ColShape;
 		if (_CollisionShapes.count(FileFBX) == 0) {
-			DecompResults* Results = Decomp(FBX);
+			DecompResults* Results = Decomp(FBX->Meshes[0]);
 			ColShape = Results->CompoundShape;
 			_CollisionShapes[FileFBX] = ColShape;
 			for (unsigned int i = 0; i < Results->m_convexShapes.size(); i++) {
@@ -81,7 +81,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 			MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
 		}
 
-		SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode,Transform);
+		SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
 		MeshNode->_RigidBody = new btRigidBody(rbInfo);
 		MeshNode->_RigidBody->setUserPointer(MeshNode);

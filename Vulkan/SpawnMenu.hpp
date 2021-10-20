@@ -13,6 +13,11 @@ public:
 		SpawnWindow->SetTitle("Spawn Menu");
 		SpawnWindow->SetClosable(false);
 		SpawnWindow->DisableResizing();
+		SpawnWindow->Hide();
+
+		auto txt = new Gwen::Controls::TextBox(SpawnWindow);
+		txt->SetWidth(100);
+		txt->SetPos(50, 50);
 	}
 	~SpawnMenu() {}
 

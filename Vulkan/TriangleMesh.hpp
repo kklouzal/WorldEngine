@@ -11,7 +11,7 @@ public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
 	PipelineObject* Pipe;
 
-	FBXObject* _FbxObject;
+	FBXMesh* _FbxObject;
 	size_t vertexBufferSize;
 	size_t indexBufferSize;
 
@@ -32,7 +32,7 @@ public:
 
 public:
 	
-	TriangleMesh(VulkanDriver* Driver, PipelineObject* Pipeline, FBXObject* Fbx, TextureObject* Diffuse)
+	TriangleMesh(VulkanDriver* Driver, PipelineObject* Pipeline, FBXMesh* Fbx, TextureObject* Diffuse)
 		: _Driver(Driver), Pipe(Pipeline), _FbxObject(Fbx), vertexBufferSize(sizeof(Vertex)* Fbx->Vertices.size()), indexBufferSize(sizeof(uint32_t)* Fbx->Indices.size()) {
 		createVertexBuffer();
 		createUniformBuffers();
