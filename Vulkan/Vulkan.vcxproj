@@ -70,14 +70,14 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2.1\include;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\v-hacd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2.1\lib\vs2019\x64\debug;C:\Libraries\v-hacd\lib\debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2.1\include;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2.1\lib\vs2019\x64\debug;C:\Libraries\vhacd\lib\debug;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <SourcePath>$(SourcePath)</SourcePath>
+    <SourcePath>C:\Libraries\VHACD\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2.1\include;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\v-hacd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2.1\lib\vs2019\x64\release;C:\Libraries\v-hacd\lib\release;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2.1\include;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.2.1\lib\vs2019\x64\release;C:\Libraries\vhacd\lib\release;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
@@ -170,7 +170,13 @@
     <ClInclude Include="CharacterSceneNode.hpp" />
     <ClInclude Include="ConsoleMenu.hpp" />
     <ClInclude Include="ConvexDecomposition.hpp" />
+    <ClInclude Include="ConvexDecomposition_old.hpp" />
+    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="stb_image_write.h" />
+    <ClInclude Include="TinyGLTF.hpp" />
     <ClInclude Include="Import_FBX.hpp" />
+    <ClInclude Include="Import_GLTF.hpp" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="lodepng.h" />
     <ClInclude Include="LuaScripting.hpp" />
     <ClInclude Include="MainMenu.hpp" />

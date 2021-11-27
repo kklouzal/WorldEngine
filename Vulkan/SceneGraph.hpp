@@ -3,7 +3,7 @@
 #include "btBulletDynamicsCommon.h"
 #include "Bullet_DebugDraw.hpp"
 #include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
-#include "Import_FBX.hpp"
+#include "Import_GLTF.hpp"
 #include "ConvexDecomposition.hpp"
 
 #include "Camera.hpp"
@@ -58,7 +58,7 @@ public:
 
 	std::deque<SceneNode*> SceneNodes = {};
 
-	ImportFBX* _ImportFBX;
+	ImportGLTF* _ImportGLTF;
 
 	SceneGraph(VulkanDriver* Driver);
 	~SceneGraph();
@@ -206,12 +206,8 @@ void SceneGraph::initWorld() {
 	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
 #endif
 
-	createWorldSceneNode("media/warehouse.fbx");
-	//createWorldSceneNode("media/world2.fbx");
-	//createWorldSceneNode("media/flat_ass.fbx");
-	//createWorldSceneNode("media/box.fbx");
-	//createWorldSceneNode("media/square_scaled.fbx");
-	_Character = createCharacterSceneNode("media/cube2.fbx", btVector3(0, 5, 0));
+	createWorldSceneNode("media/models/StartingArea.gltf");
+	_Character = createCharacterSceneNode("media/models/box.gltf", btVector3(0, 5, 0));
 	_Character->_Camera = &_Camera;
 
 	isWorld = true;
@@ -260,7 +256,6 @@ void SceneGraph::cleanupWorld() {
 	delete dispatcher;
 	delete collisionConfiguration;
 
-	_ImportFBX->EmptyCache();
 	_Driver->_MaterialCache->GetPipe_Default()->EmptyCache();
 }
 
@@ -333,7 +328,7 @@ void SceneGraph::validate(const uint32_t& currentImage) {
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	//	Point Light 1
 	PointLights.position[0] = glm::vec3(-2.0f, 4.0f, 2.0f);
-	PointLights.ambient[0] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.ambient[0] = glm::vec3(0.3, 0.3, 0.3);
 	PointLights.diffuse[0] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[0].x = glm::f32(1.0f);
@@ -341,7 +336,7 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	PointLights.CLQ[0].z = glm::f32(0.032f);
 	//	Point Light 2
 	PointLights.position[1] = glm::vec3(2.0f, 4.0f, 2.0f);
-	PointLights.ambient[1] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.ambient[1] = glm::vec3(0.3, 0.3, 0.3);
 	PointLights.diffuse[1] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[1].x = glm::f32(1.0f);
@@ -349,7 +344,7 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	PointLights.CLQ[1].z = glm::f32(0.032f);
 	//	Point Light 3
 	PointLights.position[2] = glm::vec3(2.0f, 4.0f, -2.0f);
-	PointLights.ambient[2] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.ambient[2] = glm::vec3(0.3, 0.3, 0.3);
 	PointLights.diffuse[2] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[2].x = glm::f32(1.0f);
@@ -357,7 +352,7 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	PointLights.CLQ[2].z = glm::f32(0.032f);
 	//	Point Light 4
 	PointLights.position[3] = glm::vec3(-2.0f, 4.0f, -2.0f);
-	PointLights.ambient[3] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.ambient[3] = glm::vec3(0.3, 0.3, 0.3);
 	PointLights.diffuse[3] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[3].x = glm::f32(1.0f);
@@ -365,7 +360,7 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	PointLights.CLQ[3].z = glm::f32(0.032f);
 	//	Point Light 5 (Camera Light)
 	PointLights.position[4] = _Camera.Pos+_Camera.Ang;
-	PointLights.ambient[4] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.ambient[4] = glm::vec3(0.3, 0.3, 0.3);
 	PointLights.diffuse[4] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[4].x = glm::f32(1.0f);
@@ -422,7 +417,7 @@ const std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
 //
 //
 
-SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new ImportFBX), tryCleanupWorld(false), FrameCount(0), isWorld(false) {
+SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), FrameCount(0), isWorld(false) {
 	createCommandPool();
 	createPrimaryCommandBuffers();
 	createUniformBuffers();
@@ -435,7 +430,7 @@ SceneGraph::~SceneGraph() {
 		vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
 	}
 
-	delete _ImportFBX;
+	delete _ImportGLTF;
 	vkDestroyCommandPool(_Driver->device, commandPool, nullptr);
 }
 

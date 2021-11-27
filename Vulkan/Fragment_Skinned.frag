@@ -9,7 +9,7 @@ layout(binding = 1) uniform sampler2D texSampler;
 
 void main() {
 	vec4 lightColor = vec4(8,8,8,10);
-	float ambientStrength = 0.1;
+	float ambientStrength = 0.5;
 	vec4 ambient = ambientStrength * lightColor;
 
 	vec4 result = ambient * texture(texSampler, fragTexCoord);

@@ -37,60 +37,65 @@ public:
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
-	FBXObject* FBX = _ImportFBX->Import(FileFBX);
+	tinygltf::Model Mdl;
+	_ImportGLTF->loadModel(Mdl, FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+
+	//	TODO:
+	//	Place this into Import_GLTF
 	std::string DiffuseFile("media/");
-	DiffuseFile += FBX->Meshes[0]->Texture_Diffuse;
+	DiffuseFile += Infos->TexDiffuse;
 	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
 	if (DiffuseTex == nullptr) {
 		return nullptr;
 	}
-	else {
-		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX->Meshes[0], DiffuseTex);
-		btCollisionShape* ColShape;
-		if (_CollisionShapes.count(FileFBX) == 0) {
-			DecompResults* Results = Decomp(FBX->Meshes[0]);
-			ColShape = Results->CompoundShape;
-			_CollisionShapes[FileFBX] = ColShape;
-			for (unsigned int i = 0; i < Results->m_convexShapes.size(); i++) {
-				_ConvexShapes.push_back(Results->m_convexShapes[i]);
-			}
-			for (unsigned int i = 0; i < Results->m_trimeshes.size(); i++) {
-				_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-			}
-			delete Results;
+	//	END TODO
+	
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	btCollisionShape* ColShape;
+	if (_CollisionShapes.count(FileFBX) == 0) {
+		DecompResults* Results = Decomp(Infos);
+		ColShape = Results->CompoundShape;
+		_CollisionShapes[FileFBX] = ColShape;
+		for (unsigned int i = 0; i < Results->m_convexShapes.size(); i++) {
+			_ConvexShapes.push_back(Results->m_convexShapes[i]);
 		}
-		else {
-			ColShape = _CollisionShapes[FileFBX];
+		for (unsigned int i = 0; i < Results->m_trimeshes.size(); i++) {
+			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
 		}
-
-		TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
-		MeshNode->Name = "TriangleMeshSceneNode";
-
-		//
-		//	Bullet Physics
-		MeshNode->_CollisionShape = ColShape;
-		btTransform Transform;
-		Transform.setIdentity();
-		Transform.setOrigin(Position);
-		//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
-
-		bool isDynamic = (Mass != 0.f);
-
-		btVector3 localInertia(0, 0, 0);
-		if (isDynamic) {
-			MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
-		}
-
-		SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
-		btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
-		MeshNode->_RigidBody = new btRigidBody(rbInfo);
-		MeshNode->_RigidBody->setUserPointer(MeshNode);
-		dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
-
-		//
-		//	Push new SceneNode into the SceneGraph
-		SceneNodes.push_back(MeshNode);
-		this->invalidate();
-		return MeshNode;
+		delete Results;
 	}
+	else {
+		ColShape = _CollisionShapes[FileFBX];
+	}
+
+	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
+	MeshNode->Name = "TriangleMeshSceneNode";
+
+	//
+	//	Bullet Physics
+	MeshNode->_CollisionShape = ColShape;
+	btTransform Transform;
+	Transform.setIdentity();
+	Transform.setOrigin(Position);
+	//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
+
+	bool isDynamic = (Mass != 0.f);
+
+	btVector3 localInertia(0, 0, 0);
+	if (isDynamic) {
+		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	}
+
+	SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+	MeshNode->_RigidBody = new btRigidBody(rbInfo);
+	MeshNode->_RigidBody->setUserPointer(MeshNode);
+	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+
+	//
+	//	Push new SceneNode into the SceneGraph
+	SceneNodes.push_back(MeshNode);
+	this->invalidate();
+	return MeshNode;
 }

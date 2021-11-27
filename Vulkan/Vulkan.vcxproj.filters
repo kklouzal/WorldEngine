@@ -40,6 +40,9 @@
     <Filter Include="Header Files\Menus">
       <UniqueIdentifier>{0011d504-520c-484f-a350-91180c8eea52}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\GLTF">
+      <UniqueIdentifier>{7a2b7321-ae84-4f11-94f3-ff17d5da7090}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -121,7 +124,7 @@
     <ClInclude Include="Bullet_DebugDraw.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ConvexDecomposition.hpp">
+    <ClInclude Include="ConvexDecomposition_old.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LuaScripting.hpp">
@@ -156,6 +159,24 @@
     </ClInclude>
     <ClInclude Include="SpawnMenu.hpp">
       <Filter>Header Files\Menus</Filter>
+    </ClInclude>
+    <ClInclude Include="Import_GLTF.hpp">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyGLTF.hpp">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image_write.h">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="ConvexDecomposition.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

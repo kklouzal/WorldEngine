@@ -62,13 +62,13 @@ public:
 				//	Only keyboard-spawn-objects when menus closed and world initialized
 				if (!IsMenuOpen() && IsWorldInitialized()) {
 					if (NewEvent.Key == GLFW_KEY_SPACE) {
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cup.fbx");
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf");
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
-							_Driver->_SceneGraph->createCharacterSceneNode("media/cube2.fbx", btVector3(0,5,0));
+							_Driver->_SceneGraph->createCharacterSceneNode("media/models/box.gltf", btVector3(0,5,0));
 						}
 					else {
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cube2.fbx");
+						//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf");
 					}
 				}
 				if (NewEvent.Key == GLFW_KEY_W) {
