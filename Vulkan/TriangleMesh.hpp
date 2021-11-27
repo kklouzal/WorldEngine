@@ -11,7 +11,7 @@ public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
 	PipelineObject* Pipe;
 
-	FBXObject* _FbxObject;
+	GLTFInfo* _GLTF;
 	size_t vertexBufferSize;
 	size_t indexBufferSize;
 
@@ -32,8 +32,8 @@ public:
 
 public:
 	
-	TriangleMesh(VulkanDriver* Driver, PipelineObject* Pipeline, FBXObject* Fbx, TextureObject* Diffuse)
-		: _Driver(Driver), Pipe(Pipeline), _FbxObject(Fbx), vertexBufferSize(sizeof(Vertex)* Fbx->Vertices.size()), indexBufferSize(sizeof(uint32_t)* Fbx->Indices.size()) {
+	TriangleMesh(VulkanDriver* Driver, PipelineObject* Pipeline, GLTFInfo* GLTF, TextureObject* Diffuse)
+		: _Driver(Driver), Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
 		createUniformBuffers();
 		Texture = Diffuse;
@@ -94,7 +94,7 @@ public:
 		VmaAllocation stagingVertexBufferAlloc = VK_NULL_HANDLE;
 		vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &stagingVertexBuffer, &stagingVertexBufferAlloc, nullptr);
 
-		memcpy(stagingVertexBufferAlloc->GetMappedData(), _FbxObject->Vertices.data(), vertexBufferSize);
+		memcpy(stagingVertexBufferAlloc->GetMappedData(), _GLTF->Vertices.data(), vertexBufferSize);
 
 		vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		vertexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -116,7 +116,7 @@ public:
 		VmaAllocation stagingIndexBufferAlloc = VK_NULL_HANDLE;
 		vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &stagingIndexBuffer, &stagingIndexBufferAlloc, nullptr);
 
-		memcpy(stagingIndexBufferAlloc->GetMappedData(), _FbxObject->Indices.data(), indexBufferSize);
+		memcpy(stagingIndexBufferAlloc->GetMappedData(), _GLTF->Indices.data(), indexBufferSize);
 
 		indexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		indexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -157,7 +157,7 @@ public:
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer, offsets);
 			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(_FbxObject->Indices.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
 			//
 			//	End recording
 			vkEndCommandBuffer(commandBuffers[i]);
@@ -165,13 +165,6 @@ public:
 	}
 
 	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo) {
-		static auto startTime = std::chrono::high_resolution_clock::now();
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-		
-		float radius = 512.0f;
-		float camX = sin(time * radius);
-		float camZ = cos(time * radius);
 
 		Camera Cam = _Driver->_SceneGraph->GetCamera();
 			//ubo.view = glm::lookAt(glm::vec3(512.0f, 512.0f, 128.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));

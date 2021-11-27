@@ -11,36 +11,59 @@ struct DecompResults {
 
 //
 //	FBXObject contains vectors of Vertices and Indices
-DecompResults* Decomp(FBXObject* FBX) {
+DecompResults* Decomp(GLTFInfo* Infos) {
 	//
 	//	Setup Indices
-	const uint32_t nTriangles = FBX->Indices.size();
-	std::vector<uint32_t> Triangles;
-	for (uint32_t i = 0; i < nTriangles; i++) {
-		Triangles.push_back(FBX->Indices[i]);
-	}
+	const size_t nTriangles = Infos->Indices.size();
+	printf("[DECOMP] Index Count: %zu (Triangles: %zu)", nTriangles, nTriangles / 3);
 	//
 	//	Setup Points (3 Points is 1 Vertex)
-	const uint32_t nPoints = FBX->Vertices.size();
+	const size_t nPoints = Infos->Vertices.size();
+	printf("[DECOMP] Raw Verticies %zu", nPoints);
 	std::vector<float> Points;
-	for (uint32_t i = 0; i < nPoints; i++) {
-		Points.push_back(FBX->Vertices[i].pos.x);
-		Points.push_back(FBX->Vertices[i].pos.y);
-		Points.push_back(FBX->Vertices[i].pos.z);
+	for (size_t i = 0; i < nPoints; i++) {
+		Points.emplace_back(Infos->Vertices[i].pos.x);
+		Points.emplace_back(Infos->Vertices[i].pos.y);
+		Points.emplace_back(Infos->Vertices[i].pos.z);
 	}
+	printf(" (Points: %zu)\n", Points.size());
 	//
 	//	Setup VHACD Parameters and create its interface
 	VHACD::IVHACD::Parameters params;
 	VHACD::IVHACD* interfaceVHACD = VHACD::CreateVHACD();
 	VHACD::IVHACD::ConvexHull Hull;
+	params.m_resolution = 100000;
+	params.m_concavity = 0.0025;
+	params.m_planeDownsampling = 4;
+	params.m_convexhullDownsampling = 4;
+	params.m_alpha = 0.05;
+	params.m_beta = 0.05;
+	params.m_pca = 0;
+	params.m_maxNumVerticesPerCH = 64;
+	params.m_minVolumePerCH = 0.0001;
+	//printf("alpha %f\n", params.m_alpha);
+	//printf("beta %f\n", params.m_beta);
+	//printf("concavity %f\n", params.m_concavity);
+	//printf("approx %i\n", params.m_convexhullApproximation);
+	//printf("downsample %i\n", params.m_convexhullDownsampling);
+	//printf("max hulls %i\n", params.m_maxConvexHulls);
+	//printf("max verts %i\n", params.m_maxNumVerticesPerCH);
+	//printf("min volume %f\n", params.m_minVolumePerCH);
+	//printf("mode %i\n", params.m_mode);
+	//printf("accel %i\n", params.m_oclAcceleration);
+	//printf("pca %i\n", params.m_pca);
+	//printf("downsample %i\n", params.m_planeDownsampling);
+	//printf("hull verts %i\n", params.m_projectHullVertices);
+	//printf("res %i\n", params.m_resolution);
 	//
 	//	Compute approximate convex decomposition
 	//printf("Compute V-HACD: Points %i Triangles %i\n", Points.size(), Triangles.size());
-	bool res = interfaceVHACD->Compute(Points.data(), (uint32_t)(Points.size() / 3),
-		Triangles.data(), (uint32_t)(Triangles.size() / 3), params);
+	//const bool res = interfaceVHACD->Compute(Points.data(), (uint32_t)(Points.size() / 3),
+	//	Triangles.data(), (uint32_t)(Triangles.size() / 3), params);
+	const bool res = interfaceVHACD->Compute(Points.data(), nPoints/3, Infos->Indices.data(), nTriangles/3, params);
 	//
 	//	Get the number of convex hulls
-	unsigned int nConvexHulls = interfaceVHACD->GetNConvexHulls();
+	const uint32_t nConvexHulls = interfaceVHACD->GetNConvexHulls();
 	//printf("V-HACD Done: Hull Count %i\n", nConvexHulls);
 	//
 	//	Create a new DecompResults structure
@@ -48,33 +71,28 @@ DecompResults* Decomp(FBXObject* FBX) {
 	//
 	//	Create a new Compound Shape for this decomposition
 	Results->CompoundShape = new btCompoundShape();
+	printf("[DECOMP] Num Hulls: %i\n", nConvexHulls);
 	//
 	//	Iterate through each convex hull and fill results
-	for (unsigned int h = 0; h < nConvexHulls; ++h)
+	for (uint32_t h = 0; h < nConvexHulls; ++h)
 	{
-		//printf("\tHull: %i\n", h);
-		//printf("\t\tPoints: %i\n", Hull.m_points);
-		//printf("\t\tTriangles: %i\n", Hull.m_triangles);
-		//printf("\t\tVertices: %i\n", vertices.size());
 		//
 		//	Fill 'Hull' for each individual convex hull
 		interfaceVHACD->GetConvexHull(h, Hull);
+		printf("\tHull: %i\n", h);
+		printf("\t\tVerts: %i\n", Hull.m_nPoints);
+		printf("\t\tTris: %i\n", Hull.m_nTriangles);
 		//
-		//	Create a new Triangle Mesh for this hull
-		btTriangleMesh* trimesh = new btTriangleMesh();
-		Results->m_trimeshes.push_back(trimesh);
-		//
-		//	Grab the hulls center position
-		const btVector3 centroid(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
-		//printf("Hull Center %f %f %f\n", Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]);
+		//	Create a new ConvexShape from this hulls Triangle Mesh
+		btConvexHullShape* convexShape = new btConvexHullShape();
 		//
 		//	Iterate through this hulls triangles
-		for (unsigned int i = 0; i < Hull.m_nTriangles; i++) {
+		for (uint32_t i = 0; i < Hull.m_nTriangles; i++) {
 			//
 			//	Calculate indices
-			const unsigned int index0 = Hull.m_triangles[i * 3];
-			const unsigned int index1 = Hull.m_triangles[i * 3 + 1];
-			const unsigned int index2 = Hull.m_triangles[i * 3 + 2];
+			const uint32_t index0 = Hull.m_triangles[i * 3];
+			const uint32_t index1 = Hull.m_triangles[i * 3 + 1];
+			const uint32_t index2 = Hull.m_triangles[i * 3 + 2];
 			//
 			//	Calculate vertices
 			const btVector3 vertex0(Hull.m_points[index0 * 3], Hull.m_points[index0 * 3 + 1], Hull.m_points[index0 * 3 + 2]);
@@ -82,17 +100,16 @@ DecompResults* Decomp(FBXObject* FBX) {
 			const btVector3 vertex2(Hull.m_points[index2 * 3], Hull.m_points[index2 * 3 + 1], Hull.m_points[index2 * 3 + 2]);
 			//
 			//	Add this triangle into our Triangle Mesh
-			trimesh->addTriangle(vertex0 - centroid, vertex1 - centroid, vertex2 - centroid);
+			convexShape->addPoint(vertex0);
+			convexShape->addPoint(vertex1);
+			convexShape->addPoint(vertex2);
 		}
-		//
-		//	Create a new ConvexShape from this hulls Triangle Mesh
-		btConvexShape* convexShape = new btConvexTriangleMeshShape(trimesh);
 		Results->m_convexShapes.push_back(convexShape);
 		//
-		//	Create a transform using centroid as origin
+		//	Grab the hulls center position
 		btTransform trans;
 		trans.setIdentity();
-		trans.setOrigin(centroid);
+		trans.setOrigin(btVector3(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]));
 		//
 		//	Add this ConvexShape to our CompoundShape
 		Results->CompoundShape->addChildShape(trans, convexShape);

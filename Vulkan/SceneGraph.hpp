@@ -3,7 +3,7 @@
 #include "btBulletDynamicsCommon.h"
 #include "Bullet_DebugDraw.hpp"
 #include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
-#include "Import_FBX.hpp"
+#include "Import_GLTF.hpp"
 #include "ConvexDecomposition.hpp"
 
 #include "Camera.hpp"
@@ -30,13 +30,9 @@ class SceneGraph {
 	CharacterSceneNode* _Character;
 	UniformBufferObject_PointLights PointLights;
 
-	///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
 	btDefaultCollisionConfiguration* collisionConfiguration;
-	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
 	btCollisionDispatcher* dispatcher;
-	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
 	btBroadphaseInterface* overlappingPairCache;
-	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
 	btSequentialImpulseConstraintSolver* solver;
 	btDiscreteDynamicsWorld* dynamicsWorld;
 
@@ -58,7 +54,7 @@ public:
 
 	std::deque<SceneNode*> SceneNodes = {};
 
-	ImportFBX* _ImportFBX;
+	ImportGLTF* _ImportGLTF;
 
 	SceneGraph(VulkanDriver* Driver);
 	~SceneGraph();
@@ -90,9 +86,9 @@ public:
 	//	Create SceneNode Functions
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
 	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, btVector3 Position);
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 15, 0));
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
 	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
-	//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
+	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
 
 	std::vector<VkBuffer> UniformBuffers_Lighting = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
@@ -168,7 +164,7 @@ void SceneGraph::initWorld() {
 	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
 	solver = new btSequentialImpulseConstraintSolver;
 	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-	dynamicsWorld->getSolverInfo().m_numIterations = 3;
+	dynamicsWorld->getSolverInfo().m_numIterations = 2;
 	printf("[Bullet Physics Settings]\n");
 	printf("\tm_articulatedWarmstartingFactor %f\n", dynamicsWorld->getSolverInfo().m_articulatedWarmstartingFactor);
 	printf("\tm_damping %f\n", dynamicsWorld->getSolverInfo().m_damping);
@@ -206,8 +202,8 @@ void SceneGraph::initWorld() {
 	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
 #endif
 
-	createWorldSceneNode("media/world.fbx");
-	_Character = createCharacterSceneNode("media/cube.fbx", btVector3(5, 5, 5));
+	createWorldSceneNode("media/models/StartingArea.gltf");
+	_Character = createCharacterSceneNode("media/models/box.gltf", btVector3(0, 5, 0));
 	_Character->_Camera = &_Camera;
 
 	isWorld = true;
@@ -256,13 +252,12 @@ void SceneGraph::cleanupWorld() {
 	delete dispatcher;
 	delete collisionConfiguration;
 
-	_ImportFBX->EmptyCache();
 	_Driver->_MaterialCache->GetPipe_Default()->EmptyCache();
 }
 
 void SceneGraph::stepSimulation(const btScalar &timeStep) {
 	if (isWorld) {
-		dynamicsWorld->stepSimulation(timeStep, 10);
+		dynamicsWorld->stepSimulation(timeStep, 0);
 	}
 }
 
@@ -328,47 +323,55 @@ void SceneGraph::validate(const uint32_t& currentImage) {
 
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	//	Point Light 1
-	PointLights.position[0] = glm::vec3(-2.0f, 4.0f, 2.0f);
-	PointLights.ambient[0] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.position[0] = glm::vec3(0.0f, 10.0f, 0.0f);
+	PointLights.ambient[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[0] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[0].x = glm::f32(1.0f);
 	PointLights.CLQ[0].y = glm::f32(0.09f);
 	PointLights.CLQ[0].z = glm::f32(0.032f);
 	//	Point Light 2
-	PointLights.position[1] = glm::vec3(2.0f, 4.0f, 2.0f);
-	PointLights.ambient[1] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.position[1] = glm::vec3(50.0f, 10.0f, 50.0f);
+	PointLights.ambient[1] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[1] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[1].x = glm::f32(1.0f);
 	PointLights.CLQ[1].y = glm::f32(0.09f);
 	PointLights.CLQ[1].z = glm::f32(0.032f);
 	//	Point Light 3
-	PointLights.position[2] = glm::vec3(2.0f, 4.0f, -2.0f);
-	PointLights.ambient[2] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.position[2] = glm::vec3(50.0f, 10.0f, -50.0f);
+	PointLights.ambient[2] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[2] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[2].x = glm::f32(1.0f);
 	PointLights.CLQ[2].y = glm::f32(0.09f);
 	PointLights.CLQ[2].z = glm::f32(0.032f);
 	//	Point Light 4
-	PointLights.position[3] = glm::vec3(-2.0f, 4.0f, -2.0f);
-	PointLights.ambient[3] = glm::vec3(0.05, 0.05, 0.05);
+	PointLights.position[3] = glm::vec3(-50.0f, 10.0f, 50.0f);
+	PointLights.ambient[3] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[3] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[3].x = glm::f32(1.0f);
 	PointLights.CLQ[3].y = glm::f32(0.09f);
 	PointLights.CLQ[3].z = glm::f32(0.032f);
-	//	Point Light 5 (Camera Light)
-	PointLights.position[4] = _Camera.Pos+_Camera.Ang;
-	PointLights.ambient[4] = glm::vec3(0.05, 0.05, 0.05);
+	//	Point Light 5
+	PointLights.position[4] = glm::vec3(-50.0f, 10.0f, -50.0f);
+	PointLights.ambient[4] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[4] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[4].x = glm::f32(1.0f);
 	PointLights.CLQ[4].y = glm::f32(0.09f);
 	PointLights.CLQ[4].z = glm::f32(0.032f);
+	//	Point Light 6 (Camera Light)
+	PointLights.position[5] = _Camera.Pos+_Camera.Ang;
+	PointLights.ambient[5] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.diffuse[5] = glm::vec3(0.4, 0.4, 0.4);
+	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.CLQ[5].x = glm::f32(1.0f);
+	PointLights.CLQ[5].y = glm::f32(0.09f);
+	PointLights.CLQ[5].z = glm::f32(0.032f);
 
-	PointLights.count = glm::uint32(5);
+	PointLights.count = glm::uint32(6);
 
 	memcpy(uniformAllocations[currentImage]->GetMappedData(), &PointLights, sizeof(PointLights));
 	//
@@ -418,7 +421,7 @@ const std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
 //
 //
 
-SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportFBX(new ImportFBX), tryCleanupWorld(false), FrameCount(0), isWorld(false) {
+SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), FrameCount(0), isWorld(false) {
 	createCommandPool();
 	createPrimaryCommandBuffers();
 	createUniformBuffers();
@@ -431,7 +434,7 @@ SceneGraph::~SceneGraph() {
 		vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
 	}
 
-	delete _ImportFBX;
+	delete _ImportGLTF;
 	vkDestroyCommandPool(_Driver->device, commandPool, nullptr);
 }
 

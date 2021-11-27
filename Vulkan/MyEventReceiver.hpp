@@ -20,7 +20,7 @@ public:
 			Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 			if (isW) {
 				if (Character && Character->_Camera) {
-					Character->moveForward(10.0f * (_Driver->deltaFrame / 1000));
+					Character->moveForward(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoForward(10.0f * (_Driver->deltaFrame / 1000));
@@ -28,7 +28,7 @@ public:
 			}
 			if (isS) {
 				if (Character && Character->_Camera) {
-					Character->moveBackward(10.0f * (_Driver->deltaFrame / 1000));
+					Character->moveBackward(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoBackward(10.0f * (_Driver->deltaFrame / 1000));
@@ -36,7 +36,7 @@ public:
 			}
 			if (isA) {
 				if (Character && Character->_Camera) {
-					Character->moveLeft(10.0f * (_Driver->deltaFrame / 1000));
+					Character->moveLeft(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoLeft(10.0f * (_Driver->deltaFrame / 1000));
@@ -44,7 +44,7 @@ public:
 			}
 			if (isD) {
 				if (Character && Character->_Camera) {
-					Character->moveRight(10.0f * (_Driver->deltaFrame / 1000));
+					Character->moveRight(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoRight(10.0f * (_Driver->deltaFrame / 1000));
@@ -62,13 +62,13 @@ public:
 				//	Only keyboard-spawn-objects when menus closed and world initialized
 				if (!IsMenuOpen() && IsWorldInitialized()) {
 					if (NewEvent.Key == GLFW_KEY_SPACE) {
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cup.fbx");
+						_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, btVector3(0, 15, 0));
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
-							_Driver->_SceneGraph->createCharacterSceneNode("media/cube.fbx", btVector3(5,5,5));
+							_Driver->_SceneGraph->createCharacterSceneNode("media/models/box.gltf", btVector3(0,5,0));
 						}
 					else {
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/cube.fbx");
+						//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf");
 					}
 				}
 				if (NewEvent.Key == GLFW_KEY_W) {
@@ -99,6 +99,9 @@ public:
 				}
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
+				if (NewEvent.Key == GLFW_KEY_C) {
+					_Driver->_SceneGraph->createCharacterSceneNode("media/models/box.gltf", btVector3(0, 50, 0));
+				}
 			}
 		}
 		else if (NewEvent.Type == EventTypes::Mouse) {

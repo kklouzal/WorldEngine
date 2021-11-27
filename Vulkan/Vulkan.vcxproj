@@ -28,26 +28,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -70,14 +70,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\include;C:\Libraries\bullet\include\bullet;C:\Libraries\v-hacd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\lib\vs2017\x64\debug;C:\Libraries\v-hacd\lib\debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz_animation\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz_animation\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Libraries\vhacd\lib\debug;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
-    <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\VulkanSDK\1.1.121.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\include;C:\Libraries\bullet\include\bullet;C:\Libraries\v-hacd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.1.121.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet\lib;C:\Program Files\Autodesk\FBX\FBX SDK\2020.0\lib\vs2017\x64\release;C:\Libraries\v-hacd\lib\release;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz_animation\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz_animation\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Libraries\vhacd\lib\release;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
@@ -98,12 +97,14 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;BT_NO_SIMD_OPERATOR_OVERLOADS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;Lua_Debug.lib;vhacd.lib;ozz_animation_d.lib;ozz_base_d.lib;ozz_geometry_d.lib;gwen_d.lib;FreeImage.lib;freetyped.lib;libfbxsdk.lib;BulletCollision_Debug.lib;BulletDynamics_Debug.lib;LinearMath_Debug.lib;BulletSoftBody_Debug.lib;BulletInverseDynamics_Debug.lib;BulletInverseDynamicsUtils_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;Lua_Debug.lib;vhacd.lib;ozz_animation_d.lib;ozz_base_d.lib;ozz_geometry_d.lib;gwen_d.lib;FreeImage.lib;freetyped.lib;BulletCollision_Debug.lib;BulletDynamics_Debug.lib;LinearMath_Debug.lib;BulletSoftBody_Debug.lib;BulletInverseDynamics_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -130,21 +131,22 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;BT_NO_SIMD_OPERATOR_OVERLOADS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <StringPooling>true</StringPooling>
       <FloatingPointModel>Fast</FloatingPointModel>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;Lua.lib;vhacd.lib;ozz_animation_r.lib;ozz_base_r.lib;ozz_geometry_r.lib;gwen.lib;freetype.lib;libfbxsdk.lib;BulletCollision.lib;BulletDynamics.lib;LinearMath.lib;BulletSoftBody.lib;BulletInverseDynamics.lib;BulletInverseDynamicsUtils.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;Lua.lib;vhacd.lib;ozz_animation_r.lib;ozz_base_r.lib;ozz_geometry_r.lib;gwen.lib;freetype.lib;BulletCollision.lib;BulletDynamics.lib;LinearMath.lib;BulletSoftBody.lib;BulletInverseDynamics.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
@@ -152,6 +154,8 @@
   <ItemGroup>
     <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ozz_mesh.cc" />
+    <ClCompile Include="ozz_utils.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Fragment_Default.frag" />
@@ -167,7 +171,14 @@
     <ClInclude Include="CharacterSceneNode.hpp" />
     <ClInclude Include="ConsoleMenu.hpp" />
     <ClInclude Include="ConvexDecomposition.hpp" />
+    <ClInclude Include="ozz_mesh.h" />
+    <ClInclude Include="ozz_utils.h" />
+    <ClInclude Include="stb_image.h" />
+    <ClInclude Include="stb_image_write.h" />
+    <ClInclude Include="TinyGLTF.hpp" />
     <ClInclude Include="Import_FBX.hpp" />
+    <ClInclude Include="Import_GLTF.hpp" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="lodepng.h" />
     <ClInclude Include="LuaScripting.hpp" />
     <ClInclude Include="MainMenu.hpp" />
