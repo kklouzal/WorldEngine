@@ -137,10 +137,10 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 		DecompResults* Results = Decomp(Infos);
 		ColShape = Results->CompoundShape;
 		_CollisionShapes[FileFBX] = ColShape;
-		for (unsigned int i = 0; i < Results->m_convexShapes.size(); i++) {
+		for (int i = 0; i < Results->m_convexShapes.size(); i++) {
 			_ConvexShapes.push_back(Results->m_convexShapes[i]);
 		}
-		for (unsigned int i = 0; i < Results->m_trimeshes.size(); i++) {
+		for (int i = 0; i < Results->m_trimeshes.size(); i++) {
 			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
 		}
 		delete Results;

@@ -14,22 +14,17 @@ struct DecompResults {
 DecompResults* Decomp(GLTFInfo* Infos) {
 	//
 	//	Setup Indices
-	const uint32_t nTriangles = Infos->Indices.size();
-	printf("[DECOMP] Vertex Count: %i", nTriangles);
-	std::vector<uint32_t> Triangles;
-	for (uint32_t i = 0; i < nTriangles; i++) {
-		Triangles.push_back(Infos->Indices[i]);
-	}
-	printf(" (Triangles: %zu)\n", Triangles.size() / 3);
+	const size_t nTriangles = Infos->Indices.size();
+	printf("[DECOMP] Index Count: %zu (Triangles: %zu)", nTriangles, nTriangles / 3);
 	//
 	//	Setup Points (3 Points is 1 Vertex)
-	const uint32_t nPoints = Infos->Vertices.size();
-	printf("[DECOMP] Raw Verticies %i", nPoints);
+	const size_t nPoints = Infos->Vertices.size();
+	printf("[DECOMP] Raw Verticies %zu", nPoints);
 	std::vector<float> Points;
-	for (uint32_t i = 0; i < nPoints; i++) {
-		Points.push_back(Infos->Vertices[i].pos.x);
-		Points.push_back(Infos->Vertices[i].pos.y);
-		Points.push_back(Infos->Vertices[i].pos.z);
+	for (size_t i = 0; i < nPoints; i++) {
+		Points.emplace_back(Infos->Vertices[i].pos.x);
+		Points.emplace_back(Infos->Vertices[i].pos.y);
+		Points.emplace_back(Infos->Vertices[i].pos.z);
 	}
 	printf(" (Points: %zu)\n", Points.size());
 	//
@@ -65,7 +60,7 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 	//printf("Compute V-HACD: Points %i Triangles %i\n", Points.size(), Triangles.size());
 	//const bool res = interfaceVHACD->Compute(Points.data(), (uint32_t)(Points.size() / 3),
 	//	Triangles.data(), (uint32_t)(Triangles.size() / 3), params);
-	const bool res = interfaceVHACD->Compute(Points.data(), nPoints, Triangles.data(), Triangles.size()/3, params);
+	const bool res = interfaceVHACD->Compute(Points.data(), nPoints/3, Infos->Indices.data(), nTriangles/3, params);
 	//
 	//	Get the number of convex hulls
 	const uint32_t nConvexHulls = interfaceVHACD->GetNConvexHulls();

@@ -80,7 +80,7 @@ public:
                     if (_Attribute.first == "POSITION")
                     {
                         printf("[GLTF]: POSITION\n");
-                        printf("\tAccessor ID %i\n", AccessorID, Accessor.bufferView);
+                        printf("\tAccessor ID %i\n", AccessorID);
                         printf("\tBufferView ID %i\n", Accessor.bufferView);
                         printf("\tBuffer ID %i\n", BufferNum);
                         printf("\tData Start Position %zu\n", DataStart);
@@ -120,7 +120,7 @@ public:
                     else if (_Attribute.first == "JOINTS_0")
                     {
                         printf("[GLTF]: JOINTS_0\n");
-                        printf("\tAccessor ID %i\n", AccessorID, Accessor.bufferView);
+                        printf("\tAccessor ID %i\n", AccessorID);
                         printf("\tBufferView ID %i\n", Accessor.bufferView);
                         printf("\tBuffer ID %i\n", BufferNum);
                         printf("\tData Start Position %zu\n", DataStart);
@@ -161,7 +161,7 @@ public:
                     else if (_Attribute.first == "WEIGHTS_0")
                     {
                         printf("[GLTF]: WEIGHTS_0\n");
-                        printf("\tAccessor ID %i\n", AccessorID, Accessor.bufferView);
+                        printf("\tAccessor ID %i\n", AccessorID);
                         printf("\tBufferView ID %i\n", Accessor.bufferView);
                         printf("\tBuffer ID %i\n", BufferNum);
                         printf("\tData Start Position %zu\n", DataStart);
@@ -202,7 +202,7 @@ public:
                     else if (_Attribute.first == "TEXCOORD_0")
                     {
                         printf("[GLTF]: TEXCOORD_0\n");
-                        printf("\tAccessor ID %i\n", AccessorID, Accessor.bufferView);
+                        printf("\tAccessor ID %i\n", AccessorID);
                         printf("\tBufferView ID %i\n", Accessor.bufferView);
                         printf("\tBuffer ID %i\n", BufferNum);
                         printf("\tData Start Position %zu\n", DataStart);
@@ -239,7 +239,7 @@ public:
                     else if (_Attribute.first == "NORMAL")
                     {
                         printf("[GLTF]: NORMAL\n");
-                        printf("\tAccessor ID %i\n", AccessorID, Accessor.bufferView);
+                        printf("\tAccessor ID %i\n", AccessorID);
                         printf("\tBufferView ID %i\n", Accessor.bufferView);
                         printf("\tBuffer ID %i\n", BufferNum);
                         printf("\tData Start Position %zu\n", DataStart);
@@ -297,7 +297,7 @@ public:
                 size_t DataStart = BufferView.byteOffset + Accessor.byteOffset;
                 int DataStride = Accessor.ByteStride(BufferView);
                 printf("[GLTF]: INDEX\n");
-                printf("\tAccessor ID %i\n", AccessorID, Accessor.bufferView);
+                printf("\tAccessor ID %i\n", AccessorID);
                 printf("\tBufferView ID %i\n", Accessor.bufferView);
                 printf("\tBuffer ID %i\n", BufferNum);
                 printf("\tData Start Position %zu\n", DataStart);

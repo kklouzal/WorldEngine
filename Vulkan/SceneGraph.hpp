@@ -30,13 +30,9 @@ class SceneGraph {
 	CharacterSceneNode* _Character;
 	UniformBufferObject_PointLights PointLights;
 
-	///collision configuration contains default setup for memory, collision setup. Advanced users can create their own configuration.
 	btDefaultCollisionConfiguration* collisionConfiguration;
-	///use the default collision dispatcher. For parallel processing you can use a diffent dispatcher (see Extras/BulletMultiThreaded)
 	btCollisionDispatcher* dispatcher;
-	///btDbvtBroadphase is a good general purpose broadphase. You can also try out btAxis3Sweep.
 	btBroadphaseInterface* overlappingPairCache;
-	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
 	btSequentialImpulseConstraintSolver* solver;
 	btDiscreteDynamicsWorld* dynamicsWorld;
 
@@ -261,7 +257,7 @@ void SceneGraph::cleanupWorld() {
 
 void SceneGraph::stepSimulation(const btScalar &timeStep) {
 	if (isWorld) {
-		dynamicsWorld->stepSimulation(timeStep, 10);
+		dynamicsWorld->stepSimulation(timeStep, 0);
 	}
 }
 
@@ -327,47 +323,55 @@ void SceneGraph::validate(const uint32_t& currentImage) {
 
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	//	Point Light 1
-	PointLights.position[0] = glm::vec3(-2.0f, 4.0f, 2.0f);
-	PointLights.ambient[0] = glm::vec3(0.3, 0.3, 0.3);
+	PointLights.position[0] = glm::vec3(0.0f, 10.0f, 0.0f);
+	PointLights.ambient[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[0] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[0].x = glm::f32(1.0f);
 	PointLights.CLQ[0].y = glm::f32(0.09f);
 	PointLights.CLQ[0].z = glm::f32(0.032f);
 	//	Point Light 2
-	PointLights.position[1] = glm::vec3(2.0f, 4.0f, 2.0f);
-	PointLights.ambient[1] = glm::vec3(0.3, 0.3, 0.3);
+	PointLights.position[1] = glm::vec3(50.0f, 10.0f, 50.0f);
+	PointLights.ambient[1] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[1] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[1].x = glm::f32(1.0f);
 	PointLights.CLQ[1].y = glm::f32(0.09f);
 	PointLights.CLQ[1].z = glm::f32(0.032f);
 	//	Point Light 3
-	PointLights.position[2] = glm::vec3(2.0f, 4.0f, -2.0f);
-	PointLights.ambient[2] = glm::vec3(0.3, 0.3, 0.3);
+	PointLights.position[2] = glm::vec3(50.0f, 10.0f, -50.0f);
+	PointLights.ambient[2] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[2] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[2].x = glm::f32(1.0f);
 	PointLights.CLQ[2].y = glm::f32(0.09f);
 	PointLights.CLQ[2].z = glm::f32(0.032f);
 	//	Point Light 4
-	PointLights.position[3] = glm::vec3(-2.0f, 4.0f, -2.0f);
-	PointLights.ambient[3] = glm::vec3(0.3, 0.3, 0.3);
+	PointLights.position[3] = glm::vec3(-50.0f, 10.0f, 50.0f);
+	PointLights.ambient[3] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[3] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[3].x = glm::f32(1.0f);
 	PointLights.CLQ[3].y = glm::f32(0.09f);
 	PointLights.CLQ[3].z = glm::f32(0.032f);
-	//	Point Light 5 (Camera Light)
-	PointLights.position[4] = _Camera.Pos+_Camera.Ang;
-	PointLights.ambient[4] = glm::vec3(0.3, 0.3, 0.3);
+	//	Point Light 5
+	PointLights.position[4] = glm::vec3(-50.0f, 10.0f, -50.0f);
+	PointLights.ambient[4] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.diffuse[4] = glm::vec3(0.4, 0.4, 0.4);
 	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
 	PointLights.CLQ[4].x = glm::f32(1.0f);
 	PointLights.CLQ[4].y = glm::f32(0.09f);
 	PointLights.CLQ[4].z = glm::f32(0.032f);
+	//	Point Light 6 (Camera Light)
+	PointLights.position[5] = _Camera.Pos+_Camera.Ang;
+	PointLights.ambient[5] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.diffuse[5] = glm::vec3(0.4, 0.4, 0.4);
+	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
+	PointLights.CLQ[5].x = glm::f32(1.0f);
+	PointLights.CLQ[5].y = glm::f32(0.09f);
+	PointLights.CLQ[5].z = glm::f32(0.032f);
 
-	PointLights.count = glm::uint32(5);
+	PointLights.count = glm::uint32(6);
 
 	memcpy(uniformAllocations[currentImage]->GetMappedData(), &PointLights, sizeof(PointLights));
 	//

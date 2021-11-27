@@ -99,6 +99,9 @@ public:
 				}
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
+				if (NewEvent.Key == GLFW_KEY_C) {
+					_Driver->_SceneGraph->createCharacterSceneNode("media/models/box.gltf", btVector3(0, 50, 0));
+				}
 			}
 		}
 		else if (NewEvent.Type == EventTypes::Mouse) {
