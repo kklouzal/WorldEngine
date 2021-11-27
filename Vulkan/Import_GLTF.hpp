@@ -50,7 +50,7 @@ public:
         for (size_t i = 0; i < model.meshes.size(); i++)
         {
             const tinygltf::Mesh &_Mesh = model.meshes[i];
-
+            
             for (size_t j = 0; j < _Mesh.primitives.size(); j++)
             {
                 const tinygltf::Primitive& _Primitive = _Mesh.primitives[j];
@@ -63,8 +63,8 @@ public:
                     }
                     //
                     int AccessorID = _Attribute.second;
-                    tinygltf::Accessor Accessor = model.accessors[AccessorID];
-                    tinygltf::BufferView BufferView = model.bufferViews[Accessor.bufferView];
+                    const tinygltf::Accessor Accessor = model.accessors[AccessorID];
+                    const tinygltf::BufferView BufferView = model.bufferViews[Accessor.bufferView];
                     int BufferNum = BufferView.buffer;
                     std::vector<unsigned char> Buffer = model.buffers[BufferNum].data;
                     size_t DataStart = BufferView.byteOffset + Accessor.byteOffset;
@@ -290,8 +290,8 @@ public:
                     }
                 }
                 int AccessorID = _Primitive.indices;
-                tinygltf::Accessor Accessor = model.accessors[AccessorID];
-                tinygltf::BufferView BufferView = model.bufferViews[Accessor.bufferView];
+                const tinygltf::Accessor Accessor = model.accessors[AccessorID];
+                const tinygltf::BufferView BufferView = model.bufferViews[Accessor.bufferView];
                 int BufferNum = BufferView.buffer;
                 std::vector<unsigned char> Buffer = model.buffers[BufferNum].data;
                 size_t DataStart = BufferView.byteOffset + Accessor.byteOffset;
@@ -325,6 +325,14 @@ public:
                     }
                 }
             }
+        }
+        //
+        //  Load Textures
+        for (int i = 0; i < model.images.size(); i++)
+        {
+            const tinygltf::Image &Img = model.images[i];
+            
+                //tinygltf::LoadImageData()
         }
         Infos->TexDiffuse = "grass.png";
         return Infos;

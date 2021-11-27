@@ -70,13 +70,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Libraries\vhacd\lib\debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz_animation\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz_animation\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Libraries\vhacd\lib\debug;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Libraries\vhacd\lib\release;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.189.2\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz_animation\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Libraries\bullet_physics\include\bullet;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Libraries\GLFW\lib-vc2019;C:\VulkanSDK\1.2.189.2\Lib;C:\Libraries\Lua\Library;C:\Libraries\ozz_animation\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\bullet_physics\lib;C:\Libraries\vhacd\lib\release;$(LibraryPath)</LibraryPath>
     <ExecutablePath>$(ExecutablePath)</ExecutablePath>
     <SourcePath>$(SourcePath)</SourcePath>
   </PropertyGroup>
@@ -98,7 +98,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;BT_NO_SIMD_OPERATOR_OVERLOADS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -134,7 +134,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;BT_NO_SIMD_OPERATOR_OVERLOADS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
@@ -154,6 +154,8 @@
   <ItemGroup>
     <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ozz_mesh.cc" />
+    <ClCompile Include="ozz_utils.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Fragment_Default.frag" />
@@ -169,6 +171,8 @@
     <ClInclude Include="CharacterSceneNode.hpp" />
     <ClInclude Include="ConsoleMenu.hpp" />
     <ClInclude Include="ConvexDecomposition.hpp" />
+    <ClInclude Include="ozz_mesh.h" />
+    <ClInclude Include="ozz_utils.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="TinyGLTF.hpp" />

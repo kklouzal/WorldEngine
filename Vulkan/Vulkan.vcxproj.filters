@@ -39,6 +39,9 @@
     <Filter Include="Header Files\GLTF">
       <UniqueIdentifier>{7a2b7321-ae84-4f11-94f3-ff17d5da7090}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\OZZ">
+      <UniqueIdentifier>{35ccf428-6358-485e-ae8e-958f5fe4b7e2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -46,6 +49,12 @@
     </ClCompile>
     <ClCompile Include="lodepng.cpp">
       <Filter>Source Files\Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="ozz_mesh.cc">
+      <Filter>Header Files\OZZ</Filter>
+    </ClCompile>
+    <ClCompile Include="ozz_utils.cc">
+      <Filter>Header Files\OZZ</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -170,6 +179,12 @@
     </ClInclude>
     <ClInclude Include="ConvexDecomposition.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ozz_mesh.h">
+      <Filter>Header Files\OZZ</Filter>
+    </ClInclude>
+    <ClInclude Include="ozz_utils.h">
+      <Filter>Header Files\OZZ</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -162,7 +162,7 @@ public:
 
 	float GetDeltaFrames() {
 		float DF = 0;
-		for (auto F : Frames) {
+		for (auto &F : Frames) {
 			DF += F;
 		}
 		return DF / Frames.size();
@@ -220,7 +220,7 @@ void VulkanDriver::mainLoop() {
 	vkDeviceWaitIdle(device);
 }
 
-void VulkanDriver::drawFrame() {	
+void VulkanDriver::drawFrame() {
 	endFrame = std::chrono::high_resolution_clock::now();
 	deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count();
 	startFrame = endFrame;

@@ -6,6 +6,13 @@
 #include "ozz/animation/runtime/skeleton.h"
 #include "ozz/animation/runtime/skeleton_utils.h"
 
+#include "ozz/animation/offline/additive_animation_builder.h"
+#include "ozz/animation/offline/animation_builder.h"
+#include "ozz/animation/offline/animation_optimizer.h"
+#include "ozz/animation/offline/raw_animation.h"
+#include "ozz/animation/offline/raw_skeleton.h"
+#include "ozz/animation/offline/skeleton_builder.h"
+
 #include "ozz/base/maths/box.h"
 #include "ozz/base/maths/simd_math.h"
 #include "ozz/base/maths/simd_quaternion.h"
@@ -16,35 +23,40 @@
 #include "ozz/base/io/archive.h"
 #include "ozz/base/io/stream.h"
 
-#include "PlaybackController.hpp"
+#include "ozz_utils.h"
+#include "ozz_mesh.h"
+
+#include <ozz/options/options.h>
 
 
 class SkinnedMeshSceneNode : public SceneNode {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
+	UniformBufferObject ubo = {};
 
-	PlaybackController controller_;
+	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
+	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
+	float deltaFrame = 0;
+
+	ozz::sample::PlaybackController controller_;
 	// Runtime skeleton.
 	ozz::animation::Skeleton skeleton_;
 	// Runtime animation.
 	ozz::animation::Animation animation_;
 	// Buffer of local transforms as sampled from animation_.
-	ozz::Vector<ozz::math::SoaTransform>::Std locals_;
+	ozz::vector<ozz::math::SoaTransform> locals_;
 	// Buffer of model space matrices.
-	ozz::Vector<ozz::math::Float4x4>::Std models_;
+	ozz::vector<ozz::math::Float4x4> models_;
 	// Sampling cache.
 	ozz::animation::SamplingCache cache_;
-	// Per Bone Bind Pose.
-	std::vector<FbxAMatrix> bindPoses = {};
 
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<FbxAMatrix>& binds) : _Mesh(Mesh) {
-		bindPoses.swap(binds);
+	SkinnedMeshSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {
 		printf("Loading Skeleton\n");
-		ozz::io::File file_skel("media/arnaud/skeleton.ozz", "rb");
+		ozz::io::File file_skel("media/models/skeleton.ozz", "rb");
 		if (!file_skel.opened()) {
 			printf("Skeleton Not Opened\n");
 			return;
@@ -58,7 +70,7 @@ public:
 		archive_skel >> skeleton_;
 
 		printf("Loading Animation\n");
-		ozz::io::File file_anim("media/arnaud/take 001.ozz", "rb");
+		ozz::io::File file_anim("media/models/Idle.ozz", "rb");
 		if (!file_anim.opened()) {
 			printf("Animation Not Opened\n");
 			return;
@@ -86,22 +98,26 @@ public:
 		delete _Mesh;
 	}
 
+	void preDelete(btDiscreteDynamicsWorld* _BulletWorld)
+	{
+		_BulletWorld->removeRigidBody(_RigidBody);
+	}
+
 	void updateUniformBuffer(const uint32_t &currentImage) {
-		static auto startTime = std::chrono::high_resolution_clock::now();
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+		endFrame = std::chrono::high_resolution_clock::now();
+		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count();
+		startFrame = endFrame;
 
-		UniformBufferObject ubo = {};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(30.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.model = Model;
 
-		controller_.Update(animation_, 1.0f);
+		controller_.Update(animation_, deltaFrame);
 
 		//	Samples optimized animation at t = animation_time_
 		ozz::animation::SamplingJob sampling_job;
 		sampling_job.animation = &animation_;
 		sampling_job.cache = &cache_;
 		sampling_job.ratio = controller_.time_ratio();
-		sampling_job.output = make_range(locals_);
+		sampling_job.output = make_span(locals_);
 		if (!sampling_job.Run()) {
 			printf("Sampling Job Failed\n");
 			return;
@@ -110,8 +126,8 @@ public:
 		//	Converts from local space to model space matrices
 		ozz::animation::LocalToModelJob ltm_job;
 		ltm_job.skeleton = &skeleton_;
-		ltm_job.input = make_range(locals_);
-		ltm_job.output = make_range(models_);
+		ltm_job.input = make_span(locals_);
+		ltm_job.output = make_span(models_);
 		if (!ltm_job.Run()) {
 			printf("LocalToModel Job Failed\n");
 			return;
@@ -121,70 +137,39 @@ public:
 		//printf("UBO Joints %i\n", joints);
 		for (int i = 0; i < joints; i++) {
 
-			if (i >= bindPoses.size()) { break; }
-
-			FbxAMatrix InvBind = bindPoses[i].Inverse();
-
 			//	glm_row* == Final Bone Matrix Sent To GPU
 			//	ozz_row* == Bone Matrix After Animation
-			//	fbx_row* == Bone Inverse Bind Pose
 
 			glm::vec4* glm_row1 = &ubo.bones[i][0];
 			ozz::math::SimdFloat4 ozz_row1 = models_[i].cols[0];
-			FbxDouble4 fbx_row1 = InvBind.mData[0];
-			glm_row1->x = ozz_row1.m128_f32[0];// *fbx_row1.mData[0];
-			glm_row1->y = ozz_row1.m128_f32[1];// *fbx_row1.mData[1];
-			glm_row1->z = ozz_row1.m128_f32[2];// *fbx_row1.mData[2];
-			glm_row1->w = ozz_row1.m128_f32[3];// *fbx_row1.mData[3];
+			glm_row1->x = ozz_row1.m128_f32[0];
+			glm_row1->y = ozz_row1.m128_f32[1];
+			glm_row1->z = ozz_row1.m128_f32[2];
+			glm_row1->w = ozz_row1.m128_f32[3];
 
 			glm::vec4* glm_row2 = &ubo.bones[i][1];
 			ozz::math::SimdFloat4 ozz_row2 = models_[i].cols[1];
-			FbxDouble4 fbx_row2 = InvBind.mData[1];
-			glm_row2->x = ozz_row2.m128_f32[0];// *fbx_row2.mData[0];
-			glm_row2->y = ozz_row2.m128_f32[1];// *fbx_row2.mData[1];
-			glm_row2->z = ozz_row2.m128_f32[2];// *fbx_row2.mData[2];
-			glm_row2->w = ozz_row2.m128_f32[3];// *fbx_row2.mData[3];
+			glm_row2->x = ozz_row2.m128_f32[0];
+			glm_row2->y = ozz_row2.m128_f32[1];
+			glm_row2->z = ozz_row2.m128_f32[2];
+			glm_row2->w = ozz_row2.m128_f32[3];
 
 			glm::vec4* glm_row3 = &ubo.bones[i][2];
 			ozz::math::SimdFloat4 ozz_row3 = models_[i].cols[2];
-			FbxDouble4 fbx_row3 = InvBind.mData[2];
-			glm_row3->x = ozz_row3.m128_f32[0];// *fbx_row3.mData[0];
-			glm_row3->y = ozz_row3.m128_f32[1];// *fbx_row3.mData[1];
-			glm_row3->z = ozz_row3.m128_f32[2];// *fbx_row3.mData[2];
-			glm_row3->w = ozz_row3.m128_f32[3];// *fbx_row3.mData[3];
+			glm_row3->x = ozz_row3.m128_f32[0];
+			glm_row3->y = ozz_row3.m128_f32[1];
+			glm_row3->z = ozz_row3.m128_f32[2];
+			glm_row3->w = ozz_row3.m128_f32[3];
 
 			glm::vec4* glm_row4 = &ubo.bones[i][3];
 			ozz::math::SimdFloat4 ozz_row4 = models_[i].cols[3];
-			FbxDouble4 fbx_row4 = InvBind.mData[3];
-			glm_row4->x = ozz_row4.m128_f32[0];// *fbx_row4.mData[0];
-			glm_row4->y = ozz_row4.m128_f32[1];// *fbx_row4.mData[1];
-			glm_row4->z = ozz_row4.m128_f32[2];// *fbx_row4.mData[2];
-			glm_row4->w = ozz_row4.m128_f32[3];// *fbx_row4.mData[3];
+			glm_row4->x = ozz_row4.m128_f32[0];
+			glm_row4->y = ozz_row4.m128_f32[1];
+			glm_row4->z = ozz_row4.m128_f32[2];
+			glm_row4->w = ozz_row4.m128_f32[3];
 
-			//ubo.bones[i] = glm::transpose(ubo.bones[i]);
+			ubo.bones[i] = glm::transpose(ubo.bones[i]);
 
-			glm::mat4 InverseBind = {};
-			InverseBind[0].x = fbx_row1.mData[0];
-			InverseBind[0].y = fbx_row1.mData[1];
-			InverseBind[0].z = fbx_row1.mData[2];
-			InverseBind[0].w = fbx_row1.mData[3];
-
-			InverseBind[1].x = fbx_row2.mData[0];
-			InverseBind[1].y = fbx_row2.mData[1];
-			InverseBind[1].z = fbx_row2.mData[2];
-			InverseBind[1].w = fbx_row2.mData[3];
-
-			InverseBind[2].x = fbx_row3.mData[0];
-			InverseBind[2].y = fbx_row3.mData[1];
-			InverseBind[2].z = fbx_row3.mData[2];
-			InverseBind[2].w = fbx_row3.mData[3];
-
-			InverseBind[3].x = fbx_row4.mData[0];
-			InverseBind[3].y = fbx_row4.mData[1];
-			InverseBind[3].z = fbx_row4.mData[2];
-			InverseBind[3].w = fbx_row4.mData[3];
-
-			ubo.bones[i] *= InverseBind;
 		}
 		//	Send updated bone matrices to GPU
 		_Mesh->updateUniformBuffer(currentImage, ubo);
@@ -199,25 +184,67 @@ public:
 
 //
 //	SceneGraph Create Function
-SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX) {
+SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
 	Pipeline::Skinned* Pipe = _Driver->_MaterialCache->GetPipe_Skinned();
 
-	FBXObject* FBX = _ImportFBX->Import(FileFBX);
 
+	tinygltf::Model Mdl;
+	_ImportGLTF->loadModel(Mdl, FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+
+	//	TODO:
+	//	Place this into Import_GLTF
 	std::string DiffuseFile("media/");
-	DiffuseFile += FBX->Texture_Diffuse;
-	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile.c_str());
-
+	DiffuseFile += Infos->TexDiffuse;
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
 	if (DiffuseTex == nullptr) {
-		delete FBX;
 		return nullptr;
 	}
-	else {
-		TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, FBX->Vertices, FBX->Indices, DiffuseTex);
-		SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, FBX->bindPoses);
-		SceneNodes.push_back(MeshNode);
-		delete FBX;
-		this->invalidate();
-		return MeshNode;
+	//	END TODO
+
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	btCollisionShape* ColShape;
+	if (_CollisionShapes.count(FileFBX) == 0) {
+		DecompResults* Results = Decomp(Infos);
+		ColShape = Results->CompoundShape;
+		_CollisionShapes[FileFBX] = ColShape;
+		for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+			_ConvexShapes.push_back(Results->m_convexShapes[i]);
+		}
+		for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+		}
+		delete Results;
 	}
+	else {
+		ColShape = _CollisionShapes[FileFBX];
+	}
+
+	SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh);
+	MeshNode->Name = "SkinnedMeshSceneNode";
+
+	//
+	//	Bullet Physics
+	MeshNode->_CollisionShape = ColShape;
+	btTransform Transform;
+	Transform.setIdentity();
+	Transform.setOrigin(Position);
+	//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
+
+	bool isDynamic = (Mass != 0.f);
+
+	btVector3 localInertia(0, 0, 0);
+	if (isDynamic) {
+		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	}
+
+	SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+	MeshNode->_RigidBody = new btRigidBody(rbInfo);
+	MeshNode->_RigidBody->setUserPointer(MeshNode);
+	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+
+	SceneNodes.push_back(MeshNode);
+	this->invalidate();
+	return MeshNode;
 }
