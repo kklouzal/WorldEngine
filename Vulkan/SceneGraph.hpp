@@ -90,7 +90,7 @@ public:
 	//	Create SceneNode Functions
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
 	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, btVector3 Position);
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 15, 0));
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
 	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 	//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX);
 
@@ -168,7 +168,7 @@ void SceneGraph::initWorld() {
 	///the default constraint solver. For parallel processing you can use a different solver (see Extras/BulletMultiThreaded)
 	solver = new btSequentialImpulseConstraintSolver;
 	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-	dynamicsWorld->getSolverInfo().m_numIterations = 3;
+	dynamicsWorld->getSolverInfo().m_numIterations = 2;
 	printf("[Bullet Physics Settings]\n");
 	printf("\tm_articulatedWarmstartingFactor %f\n", dynamicsWorld->getSolverInfo().m_articulatedWarmstartingFactor);
 	printf("\tm_damping %f\n", dynamicsWorld->getSolverInfo().m_damping);
@@ -208,7 +208,10 @@ void SceneGraph::initWorld() {
 
 	createWorldSceneNode("media/warehouse.fbx");
 	//createWorldSceneNode("media/world2.fbx");
-	_Character = createCharacterSceneNode("media/cube.fbx", btVector3(0, 5, 0));
+	//createWorldSceneNode("media/flat_ass.fbx");
+	//createWorldSceneNode("media/box.fbx");
+	//createWorldSceneNode("media/square_scaled.fbx");
+	_Character = createCharacterSceneNode("media/cube2.fbx", btVector3(0, 5, 0));
 	_Character->_Camera = &_Camera;
 
 	isWorld = true;

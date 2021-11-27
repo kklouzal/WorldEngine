@@ -77,8 +77,8 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 			MeshNode->_CollisionShape = ColShape;
 			btTransform Transform;
 			Transform.setIdentity();
-			Transform.setOrigin(btVector3(FBXMesh->translation[0], FBXMesh->translation[1], FBXMesh->translation[2]));
-			Transform.setRotation(btQuaternion(glm::radians(FBXMesh->rotation[1]), glm::radians(FBXMesh->rotation[0]), glm::radians(FBXMesh->rotation[2])));
+			//Transform.setOrigin(btVector3(FBXMesh->translation[0], FBXMesh->translation[1], FBXMesh->translation[2]));
+			//Transform.setRotation(btQuaternion(glm::radians(FBXMesh->rotation[1]), glm::radians(FBXMesh->rotation[0]), glm::radians(FBXMesh->rotation[2])));
 
 			btScalar Mass(0.0f);
 			bool isDynamic = (Mass != 0.f);

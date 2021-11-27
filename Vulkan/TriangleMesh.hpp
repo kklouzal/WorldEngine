@@ -165,13 +165,6 @@ public:
 	}
 
 	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo) {
-		static auto startTime = std::chrono::high_resolution_clock::now();
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-		
-		float radius = 512.0f;
-		float camX = sin(time * radius);
-		float camZ = cos(time * radius);
 
 		Camera Cam = _Driver->_SceneGraph->GetCamera();
 			//ubo.view = glm::lookAt(glm::vec3(512.0f, 512.0f, 128.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));

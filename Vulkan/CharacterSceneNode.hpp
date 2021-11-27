@@ -154,7 +154,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 		Transform.setOrigin(Position);
 		//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
 
-		btScalar Mass = 1.0f;
+		btScalar Mass = 0.5f;
 		bool isDynamic = (Mass != 0.f);
 
 		btVector3 localInertia(0, 0, 0);

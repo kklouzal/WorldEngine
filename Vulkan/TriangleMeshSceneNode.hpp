@@ -72,7 +72,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 		btTransform Transform;
 		Transform.setIdentity();
 		Transform.setOrigin(Position);
-		Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
+		//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
 
 		bool isDynamic = (Mass != 0.f);
 

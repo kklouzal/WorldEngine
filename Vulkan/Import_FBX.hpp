@@ -96,6 +96,23 @@ public:
 					FBXMesh* NewMesh = new FBXMesh;
 					NewFBX->Meshes.push_back(NewMesh);
 
+					//
+					//	Compute Global Translation Matrix
+					FbxAMatrix matrixGeo;
+					matrixGeo.SetIdentity();
+					if (Node->GetNodeAttribute())
+					{
+						const fbxsdk::FbxVector4 lT = Node->GetGeometricTranslation(FbxNode::eSourcePivot);
+						const fbxsdk::FbxVector4 lR = Node->GetGeometricRotation(FbxNode::eSourcePivot);
+						const fbxsdk::FbxVector4 lS = Node->GetGeometricScaling(FbxNode::eSourcePivot);
+						matrixGeo.SetT(lT);
+						matrixGeo.SetR(lR);
+						matrixGeo.SetS(lS);
+					}
+					FbxAMatrix globalMatrix = Node->EvaluateGlobalTransform();
+
+					FbxAMatrix matrix = globalMatrix * matrixGeo;
+
 					const char* nodeName = Node->GetName();
 					NewMesh->translation = Node->LclTranslation.Get();
 					NewMesh->rotation = Node->LclRotation.Get();
@@ -134,7 +151,7 @@ public:
 					//
 					//
 					const FbxMesh* Mesh = FbxCast<const FbxMesh>(Node->GetNodeAttribute());
-					FbxVector4* Vertices = Mesh->GetControlPoints();
+					fbxsdk::FbxVector4* Vertices = Mesh->GetControlPoints();
 					//
 					//	UV Mapping *only uses first uv set*
 					FbxStringList lUVSetNameList;
@@ -175,7 +192,7 @@ public:
 							}
 
 							// Got normals of each polygon-vertex.
-							FbxVector4 lNormal = lNormalElement->GetDirectArray().GetAt(lNormalIndex);
+							fbxsdk::FbxVector4 lNormal = lNormalElement->GetDirectArray().GetAt(lNormalIndex);
 
 							NewVertex->normal.x = lNormal[0];
 							NewVertex->normal.y = lNormal[1];
@@ -187,9 +204,7 @@ public:
 								{
 									//the UV index depends on the reference mode
 									int lUVIndex = lUseIndex ? lUVElement->GetIndexArray().GetAt(lPolyIndexCounter) : lPolyIndexCounter;
-
 									const FbxVector2 lUVValue = lUVElement->GetDirectArray().GetAt(lUVIndex);
-
 									NewVertex->texCoord.x = lUVValue.mData[0];
 									NewVertex->texCoord.y = -lUVValue.mData[1];
 
@@ -200,9 +215,13 @@ public:
 							//	Pull Vertex & Index data
 							//	ToDo: Remove duplicate vertices using indices
 							const unsigned int Index = Mesh->GetPolygonVertex(j, k);
-							NewVertex->pos.x = (float)Vertices[Index].mData[0];// +NewMesh->translation[0];
-							NewVertex->pos.y = (float)Vertices[Index].mData[1];// +NewMesh->translation[1];
-							NewVertex->pos.z = (float)Vertices[Index].mData[2];// +NewMesh->translation[2];
+							//NewVertex->pos.x = (float)(Vertices[Index].mData[0]);
+							//NewVertex->pos.y = (float)(Vertices[Index].mData[1]);
+							//NewVertex->pos.z = (float)(Vertices[Index].mData[2]);
+							fbxsdk::FbxVector4 result = matrix.MultT(Vertices[Index]);
+							NewVertex->pos.x = (float)result.mData[0];
+							NewVertex->pos.y = (float)result.mData[1];
+							NewVertex->pos.z = (float)result.mData[2];
 
 							NewFBX->Meshes.back()->Indices.push_back(IndexCount++);
 							NewFBX->Meshes.back()->Vertices.push_back(*NewVertex);
