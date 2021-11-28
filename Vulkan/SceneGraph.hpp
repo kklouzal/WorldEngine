@@ -203,7 +203,7 @@ void SceneGraph::initWorld() {
 #endif
 
 	createWorldSceneNode("media/models/StartingArea.gltf");
-	_Character = createCharacterSceneNode("media/models/box.gltf", btVector3(0, 5, 0));
+	_Character = createCharacterSceneNode("media/models/box.gltf", btVector3(0, 15, 0));
 	_Character->_Camera = &_Camera;
 
 	isWorld = true;

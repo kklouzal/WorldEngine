@@ -747,6 +747,7 @@ void VulkanDriver::createVmaAllocator() {
 	VmaAllocatorCreateInfo allocatorInfo = {};
 	allocatorInfo.physicalDevice = physicalDevice;
 	allocatorInfo.device = device;
+	allocatorInfo.instance = instance;
 	vmaCreateAllocator(&allocatorInfo, &allocator);
 }
 
