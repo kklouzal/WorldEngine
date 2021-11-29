@@ -49,6 +49,7 @@ public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
 	VkCommandPool commandPool = VK_NULL_HANDLE;
 	std::vector<VkCommandBuffer> primaryCommandBuffers = {};
+	std::vector<VkFence> waitFences = {};
 	//
 	//std::vector<VkCommandBuffer> secondaryCommandBuffers = {};
 
@@ -95,10 +96,10 @@ public:
 	void createUniformBuffers() {
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-		UniformBuffers_Lighting.resize(_Driver->swapChainImages.size());
-		uniformAllocations.resize(_Driver->swapChainImages.size());
+		UniformBuffers_Lighting.resize(_Driver->swapChain.images.size());
+		uniformAllocations.resize(_Driver->swapChain.images.size());
 
-		for (size_t i = 0; i < _Driver->swapChainImages.size(); i++) {
+		for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
 
 			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 			uniformBufferInfo.size = bufferSize;
@@ -126,7 +127,7 @@ public:
 		cleanupWorld();
 	}
 
-	btCollisionWorld::ClosestRayResultCallback& castRay(const btVector3& From, const btVector3& To);
+	btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To);
 };
 
 #include "Pipe_Default.hpp"
@@ -143,7 +144,7 @@ public:
 //
 //	Define SceneGraph Implementation
 
-btCollisionWorld::ClosestRayResultCallback& SceneGraph::castRay(const btVector3& From, const btVector3& To) {
+btCollisionWorld::ClosestRayResultCallback SceneGraph::castRay(const btVector3& From, const btVector3& To) {
 
 	btCollisionWorld::ClosestRayResultCallback closestResults(From, To);
 	closestResults.m_flags |= btTriangleRaycastCallback::kF_FilterBackfaces;
@@ -282,7 +283,7 @@ void SceneGraph::validate(const uint32_t& currentImage) {
 
 		VkRenderPassBeginInfo renderPassInfo = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
 		renderPassInfo.renderPass = _Driver->renderPass;
-		renderPassInfo.framebuffer = _Driver->swapChainFramebuffers[currentImage];
+		renderPassInfo.framebuffer = _Driver->frameBuffers[currentImage];
 		renderPassInfo.renderArea.offset = { 0, 0 };
 		renderPassInfo.renderArea.extent = _Driver->swapChainExtent;
 		std::array<VkClearValue, 2> clearValues = {};
@@ -396,7 +397,7 @@ const std::vector<VkCommandBuffer> SceneGraph::newCommandBuffer() {
 	allocInfo.commandPool = commandPool;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_SECONDARY;
 	allocInfo.commandBufferCount = 1;
-	vkAllocateCommandBuffers(_Driver->device, &allocInfo, newCommandBuffers.data());
+	vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &allocInfo, newCommandBuffers.data());
 
 	//	Setup new buffers
 	for (size_t i = 0; i < newCommandBuffers.size(); i++) {
@@ -435,17 +436,19 @@ SceneGraph::~SceneGraph() {
 	}
 
 	delete _ImportGLTF;
-	vkDestroyCommandPool(_Driver->device, commandPool, nullptr);
+	vkDestroyCommandPool(_Driver->_VulkanDevice->logicalDevice, commandPool, nullptr);
+	for (auto& fence : waitFences) {
+		vkDestroyFence(_Driver->_VulkanDevice->logicalDevice, fence, nullptr);
+	}
 }
 
 void SceneGraph::createCommandPool() {
-	QueueFamilyIndices queueFamilyIndices = findQueueFamilies(_Driver->physicalDevice, _Driver->surface);
 
 	VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
-	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+	poolInfo.queueFamilyIndex = _Driver->_VulkanDevice->queueFamilyIndices.graphics;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-	if (vkCreateCommandPool(_Driver->device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+	if (vkCreateCommandPool(_Driver->_VulkanDevice->logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
 #ifdef _DEBUG
 		throw std::runtime_error("failed to create command pool!");
 #endif
@@ -453,8 +456,8 @@ void SceneGraph::createCommandPool() {
 }
 
 void SceneGraph::createPrimaryCommandBuffers() {
-	primaryCommandBuffers.resize(_Driver->swapChainFramebuffers.size());
-	IsValid.resize(_Driver->swapChainFramebuffers.size());
+	primaryCommandBuffers.resize(_Driver->frameBuffers.size());
+	IsValid.resize(_Driver->frameBuffers.size());
 	for (size_t i = 0; i < IsValid.size(); i++) {
 		IsValid[i] = false;
 	}
@@ -464,10 +467,22 @@ void SceneGraph::createPrimaryCommandBuffers() {
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocInfo.commandBufferCount = (uint32_t)primaryCommandBuffers.size();
 
-	if (vkAllocateCommandBuffers(_Driver->device, &allocInfo, primaryCommandBuffers.data()) != VK_SUCCESS) {
+	if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &allocInfo, primaryCommandBuffers.data()) != VK_SUCCESS) {
 #ifdef _DEBUG
 		throw std::runtime_error("failed to allocate command buffers!");
 #endif
+	}
+
+	// Wait fences to sync command buffer access
+	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+	waitFences.resize(primaryCommandBuffers.size());
+	for (auto& fence : waitFences) {
+		if (vkCreateFence(_Driver->_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &fence) != VK_SUCCESS)
+		{
+#ifdef _DEBUG
+			throw std::runtime_error("vkCreateFence Failed!");
+#endif
+		}
 	}
 }
 
@@ -478,7 +493,7 @@ const VkCommandBuffer SceneGraph::beginSingleTimeCommands() {
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(_Driver->device, &allocInfo, &commandBuffer);
+	vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &commandBuffer);
 
 	VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -498,5 +513,5 @@ void SceneGraph::endSingleTimeCommands(const VkCommandBuffer commandBuffer) {
 	vkQueueSubmit(_Driver->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(_Driver->graphicsQueue);
 
-	vkFreeCommandBuffers(_Driver->device, commandPool, 1, &commandBuffer);
+	vkFreeCommandBuffers(_Driver->_VulkanDevice->logicalDevice, commandPool, 1, &commandBuffer);
 }

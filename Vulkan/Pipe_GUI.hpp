@@ -123,8 +123,8 @@ namespace Pipeline {
 
 			createPipeline(shaderStages, vertexInputInfo, inputAssembly, viewportState, rasterizer, multisampling, depthStencil, colorBlending, dynamicState);
 
-			vkDestroyShaderModule(_Driver->device, fragShaderModule, nullptr);
-			vkDestroyShaderModule(_Driver->device, vertShaderModule, nullptr);
+			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, fragShaderModule, nullptr);
+			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, vertShaderModule, nullptr);
 
 			//
 			//	Image Sampler For Entire Pipeline
@@ -144,7 +144,7 @@ namespace Pipeline {
 			samplerInfo.mipLodBias = 0.0f;
 			samplerInfo.minLod = 0.0f;
 			samplerInfo.maxLod = 0.0f;
-			if (vkCreateSampler(_Driver->device, &samplerInfo, nullptr, &Sampler) != VK_SUCCESS) {
+			if (vkCreateSampler(_Driver->_VulkanDevice->logicalDevice, &samplerInfo, nullptr, &Sampler) != VK_SUCCESS) {
 #ifdef _DEBUG
 				throw std::runtime_error("failed to create texture sampler!");
 #endif
@@ -160,33 +160,33 @@ namespace Pipeline {
 
 			std::array<VkDescriptorPoolSize, 1> poolSizes = {};
 			poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
+			poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
 
 			VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 			poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 			poolInfo.pPoolSizes = poolSizes.data();
-			poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChainImages.size());
+			poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChain.images.size());
 
-			if (vkCreateDescriptorPool(_Driver->device, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
+			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
 #ifdef _DEBUG
 				throw std::runtime_error("failed to create descriptor pool!");
 #endif
 			}
 
-			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChainImages.size(), descriptorSetLayout);
+			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChain.images.size(), descriptorSetLayout);
 			VkDescriptorSetAllocateInfo allocInfoDS = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 			allocInfoDS.descriptorPool = NewDescriptor->DescriptorPool;
-			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
+			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
 			allocInfoDS.pSetLayouts = layouts.data();
 
-			NewDescriptor->DescriptorSets.resize(_Driver->swapChainImages.size());
-			if (vkAllocateDescriptorSets(_Driver->device, &allocInfoDS, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
+			NewDescriptor->DescriptorSets.resize(_Driver->swapChain.images.size());
+			if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfoDS, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
 #ifdef _DEBUG
 				throw std::runtime_error("failed to allocate descriptor sets!");
 #endif
 			}
 
-			for (size_t i = 0; i < _Driver->swapChainImages.size(); i++) {
+			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
 
 				VkDescriptorImageInfo imageInfo = {};
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -202,7 +202,7 @@ namespace Pipeline {
 				descriptorWrites[0].descriptorCount = 1;
 				descriptorWrites[0].pImageInfo = &imageInfo;
 
-				vkUpdateDescriptorSets(_Driver->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 			}
 
 			return NewDescriptor;
@@ -213,33 +213,33 @@ namespace Pipeline {
 
 			std::array<VkDescriptorPoolSize, 1> poolSizes = {};
 			poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
+			poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
 
 			VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 			poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 			poolInfo.pPoolSizes = poolSizes.data();
-			poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChainImages.size());
+			poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChain.images.size());
 
-			if (vkCreateDescriptorPool(_Driver->device, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
+			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
 #ifdef _DEBUG
 				throw std::runtime_error("failed to create descriptor pool!");
 #endif
 			}
 
-			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChainImages.size(), descriptorSetLayout);
+			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChain.images.size(), descriptorSetLayout);
 			VkDescriptorSetAllocateInfo allocInfoDS = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 			allocInfoDS.descriptorPool = NewDescriptor->DescriptorPool;
-			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChainImages.size());
+			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
 			allocInfoDS.pSetLayouts = layouts.data();
 
-			NewDescriptor->DescriptorSets.resize(_Driver->swapChainImages.size());
-			if (vkAllocateDescriptorSets(_Driver->device, &allocInfoDS, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
+			NewDescriptor->DescriptorSets.resize(_Driver->swapChain.images.size());
+			if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfoDS, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
 #ifdef _DEBUG
 				throw std::runtime_error("failed to allocate descriptor sets!");
 #endif
 			}
 
-			for (size_t i = 0; i < _Driver->swapChainImages.size(); i++) {
+			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
 
 				VkDescriptorImageInfo imageInfo = {};
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -255,7 +255,7 @@ namespace Pipeline {
 				descriptorWrites[0].descriptorCount = 1;
 				descriptorWrites[0].pImageInfo = &imageInfo;
 
-				vkUpdateDescriptorSets(_Driver->device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 			}
 
 			return NewDescriptor;
@@ -385,7 +385,7 @@ namespace Pipeline {
 				textureImageViewInfo.subresourceRange.levelCount = 1;
 				textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
 				textureImageViewInfo.subresourceRange.layerCount = 1;
-				vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &Tex->ImageView);
+				vkCreateImageView(_Driver->_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Tex->ImageView);
 
 				return Tex;
 			}

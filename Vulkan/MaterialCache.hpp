@@ -10,6 +10,7 @@ class MaterialCache {
 
 public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
+	VkPipelineCache pipelineCache;
 	std::vector<PipelineObject*> Pipes;
 	//
 
@@ -17,12 +18,21 @@ public:
 		CreateDefault();
 		CreateGUI();
 		CreateSkinned();
+		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
+		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+		if (vkCreatePipelineCache(Driver->_VulkanDevice->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) != VK_SUCCESS)
+		{
+			#ifdef _DEBUG
+			throw std::runtime_error("vkCreatePipelineCache Failed!");
+			#endif
+		}
 	}
 
 	~MaterialCache() {
 		for (auto Pipe : Pipes) {
 			delete Pipe;
 		}
+		vkDestroyPipelineCache(_Driver->_VulkanDevice->logicalDevice, pipelineCache, nullptr);
 	}
 
 	Pipeline::Default* GetPipe_Default() {
