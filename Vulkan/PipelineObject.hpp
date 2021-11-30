@@ -15,10 +15,10 @@ struct PipelineObject {
 		for (auto Tex : _Textures) {
 			delete Tex.second;
 		}
-		vkDestroyPipeline(_Driver->device, graphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(_Driver->device, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(_Driver->device, descriptorSetLayout, nullptr);
-		vkDestroySampler(_Driver->device, Sampler, nullptr);
+		vkDestroyPipeline(_Driver->_VulkanDevice->logicalDevice, graphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(_Driver->_VulkanDevice->logicalDevice, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
+		vkDestroySampler(_Driver->_VulkanDevice->logicalDevice, Sampler, nullptr);
 	}
 
 	virtual DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) = 0;
@@ -40,7 +40,7 @@ protected:
 	//
 	//	Create Descriptor Set Layout
 	void createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo &LayoutInfo) {
-		if (vkCreateDescriptorSetLayout(_Driver->device, &LayoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
+		if (vkCreateDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, &LayoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
 #ifdef _DEBUG
 			throw std::runtime_error("failed to create descriptor set layout!");
 #endif
@@ -63,7 +63,7 @@ protected:
 		pipelineLayoutInfo.setLayoutCount = 1;
 		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
-		if (vkCreatePipelineLayout(_Driver->device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+		if (vkCreatePipelineLayout(_Driver->_VulkanDevice->logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
 #ifdef _DEBUG
 			throw std::runtime_error("failed to create pipeline layout!");
 #endif
@@ -84,7 +84,7 @@ protected:
 		pipelineInfo.renderPass = _Driver->renderPass;
 		pipelineInfo.subpass = 0;
 
-		if (vkCreateGraphicsPipelines(_Driver->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+		if (vkCreateGraphicsPipelines(_Driver->_VulkanDevice->logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
 #ifdef _DEBUG
 			throw std::runtime_error("failed to create graphics pipeline!");
 #endif
@@ -117,7 +117,7 @@ protected:
 		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
 		VkShaderModule shaderModule;
-		if (vkCreateShaderModule(_Driver->device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+		if (vkCreateShaderModule(_Driver->_VulkanDevice->logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
 #ifdef _DEBUG
 			throw std::runtime_error("failed to create shader module!");
 #endif

@@ -99,7 +99,7 @@ struct DescriptorObject {
 
 	DescriptorObject(VulkanDriver* Driver) : _Driver(Driver) {}
 	~DescriptorObject() {
-		vkDestroyDescriptorPool(_Driver->device, DescriptorPool, nullptr);
+		vkDestroyDescriptorPool(_Driver->_VulkanDevice->logicalDevice, DescriptorPool, nullptr);
 	}
 };
 
@@ -117,7 +117,7 @@ struct TextureObject {
 	TextureObject(VulkanDriver* Driver) : _Driver(Driver) {}
 	~TextureObject() {
 		if (!Empty) {
-			vkDestroyImageView(_Driver->device, ImageView, nullptr);
+			vkDestroyImageView(_Driver->_VulkanDevice->logicalDevice, ImageView, nullptr);
 			vmaDestroyImage(_Driver->allocator, Image, Allocation);
 		}
 	}

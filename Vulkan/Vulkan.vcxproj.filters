@@ -42,6 +42,9 @@
     <Filter Include="Header Files\OZZ">
       <UniqueIdentifier>{35ccf428-6358-485e-ae8e-958f5fe4b7e2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Vulkan">
+      <UniqueIdentifier>{57d7ea9b-c72f-4357-8675-1c52f408eeea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -185,6 +188,15 @@
     </ClInclude>
     <ClInclude Include="ozz_utils.h">
       <Filter>Header Files\OZZ</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanDevice.hpp">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanInitializers.hpp">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanSwapChain.hpp">
+      <Filter>Header Files\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

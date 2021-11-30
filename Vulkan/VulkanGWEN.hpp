@@ -289,7 +289,7 @@ namespace Gwen
 				textureImageViewInfo.subresourceRange.levelCount = 1;
 				textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
 				textureImageViewInfo.subresourceRange.layerCount = 1;
-				vkCreateImageView(_Driver->device, &textureImageViewInfo, nullptr, &Font_TextureImageView);
+				vkCreateImageView(_Driver->_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Font_TextureImageView);
 
 				//
 				//	Transition image from initial state to workable state
@@ -376,14 +376,14 @@ namespace Gwen
 				vmaDestroyBuffer(_Driver->allocator, GUI_VertexBuffer, GUI_VertexAllocation);
 				vmaDestroyBuffer(_Driver->allocator, GUI_IndexBuffer, GUI_IndexAllocation);
 				vmaDestroyBuffer(_Driver->allocator, Font_VertexBuffer, Font_VertexAllocation);
-				vkDestroyImageView(_Driver->device, Font_TextureImageView, nullptr);
+				vkDestroyImageView(_Driver->_VulkanDevice->logicalDevice, Font_TextureImageView, nullptr);
 				vmaDestroyImage(_Driver->allocator, Font_TextureImage, Font_TextureAllocation);
 				delete Font_Descriptor;
 			}
 			void Init() {
 				printf("GWEN Vulkan Renderer Initialize\n");
 				initFreeType();
-				const size_t SwapChainCount = _Driver->swapChainImages.size();
+				const size_t SwapChainCount = _Driver->swapChain.images.size();
 				ClipScissors.resize(SwapChainCount);
 				for (size_t i = 0; i < SwapChainCount; i++) {
 					auto NewBuffer = _Driver->_SceneGraph->newCommandBuffer();
@@ -536,12 +536,12 @@ namespace Gwen
 			void DrawFilledRect(Gwen::Rect rect)
 			{
 				Translate(rect);
-				AddVert(rect.x, rect.y);
+				/*AddVert(rect.x, rect.y);
 				AddVert(rect.x + rect.w, rect.y);
 				AddVert(rect.x, rect.y + rect.h);
 				AddVert(rect.x + rect.w, rect.y);
 				AddVert(rect.x + rect.w, rect.y + rect.h);
-				AddVert(rect.x, rect.y + rect.h);
+				AddVert(rect.x, rect.y + rect.h);*/
 			}
 			void DrawTexturedRect(Gwen::Texture* pTexture, Gwen::Rect pTargetRect, float u1 = 0.0f, float v1 = 0.0f, float u2 = 1.0f, float v2 = 1.0f)
 			{

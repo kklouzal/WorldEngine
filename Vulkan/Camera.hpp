@@ -50,14 +50,12 @@ public:
 	double lastY = 0;
 	float yaw = 0;
 	float pitch = 0;
-	void DoLook(double deltaX, double deltaY) {
+	float sensitivity = 0.15;
 
-		float sensitivity = 0.15;
-		deltaX *= sensitivity;
-		deltaY *= sensitivity;
-
-		yaw += deltaX;
-		pitch += deltaY;
+	void DoLook(const double deltaX, const double deltaY)
+	{
+		yaw += deltaX * sensitivity;
+		pitch += deltaY * sensitivity;
 
 		if (pitch > 89.0f)
 			pitch = 89.0f;
@@ -71,10 +69,10 @@ public:
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
 
-	float getYaw() {
+	const float getYaw() const {
 		return yaw;
 	}
-	glm::vec3 getOffset() {
+	const glm::vec3 getOffset() const {
 		return Offset;
 	}
 };
