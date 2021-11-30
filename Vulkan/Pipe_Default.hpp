@@ -70,8 +70,8 @@ namespace Pipeline {
 			VkViewport viewport = {};
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
-			viewport.width = (float)_Driver->swapChainExtent.width;
-			viewport.height = (float)_Driver->swapChainExtent.height;
+			viewport.width = (float)_Driver->WIDTH;
+			viewport.height = (float)_Driver->HEIGHT;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
 

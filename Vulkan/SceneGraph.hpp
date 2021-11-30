@@ -456,8 +456,8 @@ void SceneGraph::createCommandPool() {
 }
 
 void SceneGraph::createPrimaryCommandBuffers() {
-	primaryCommandBuffers.resize(_Driver->frameBuffers.size());
-	IsValid.resize(_Driver->frameBuffers.size());
+	primaryCommandBuffers.resize(_Driver->swapChain.imageCount);
+	IsValid.resize(_Driver->swapChain.imageCount);
 	for (size_t i = 0; i < IsValid.size(); i++) {
 		IsValid[i] = false;
 	}

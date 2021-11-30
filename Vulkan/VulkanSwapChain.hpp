@@ -312,7 +312,7 @@ public:
 		swapchainCI.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		swapchainCI.preTransform = (VkSurfaceTransformFlagBitsKHR)preTransform;
 		swapchainCI.imageArrayLayers = 1;
-		if (graphicsQueueNodeIndex != presentQueueNodeIndex)
+		/*if (graphicsQueueNodeIndex != presentQueueNodeIndex)
 		{
 			uint32_t queueFamilyIndices[] = { graphicsQueueNodeIndex, presentQueueNodeIndex };
 			swapchainCI.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -320,10 +320,10 @@ public:
 			swapchainCI.pQueueFamilyIndices = queueFamilyIndices;
 		}
 		else
-		{
+		{*/
 			swapchainCI.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			swapchainCI.queueFamilyIndexCount = 0;
-		}
+		//}
 		swapchainCI.presentMode = swapchainPresentMode;
 		// Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
 		swapchainCI.oldSwapchain = oldSwapchain;

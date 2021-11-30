@@ -113,6 +113,7 @@ public:
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	std::vector<VkFramebuffer>frameBuffers;
 	uint32_t currentFrame = 0;
+	VkFormat depthFormat;
 
 	VkExtent2D swapChainExtent;
 	VkRenderPass renderPass = VK_NULL_HANDLE;
@@ -148,9 +149,6 @@ public:
 	//	Check Physical Device Support
 	//
 
-	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-	VkFormat findDepthFormat();
-
 	void setEventReceiver(EventReceiver* _EventRcvr);
 
 	void DrawExternal(const uint32_t& currentImage);
@@ -175,7 +173,6 @@ public:
 	}
 
 	void Render();
-	void NextFrame();
 };
 
 #include "Forwards.hpp"
@@ -190,6 +187,8 @@ public:
 //
 //	Initialize
 VulkanDriver::VulkanDriver() {
+	swapChainExtent.width = WIDTH;
+	swapChainExtent.height = HEIGHT;
 	initLua();
 	initWindow();
 	//
@@ -200,8 +199,8 @@ VulkanDriver::VulkanDriver() {
 	//
 	//	Initialize Vulkan - Sub
 	swapChain.initSurface(_Window);				//	SwapChain init
-	_SceneGraph = new SceneGraph(this);			//	CommandPool & CommandBuffer init
 	swapChain.create(&WIDTH, &HEIGHT, VSYNC);	//	SwapChain setup
+	_SceneGraph = new SceneGraph(this);			//	CommandPool & CommandBuffer init
 	createDepthResources();						//	Depth Stencil setup
 	createRenderPass();
 	_MaterialCache = new MaterialCache(this);
@@ -248,7 +247,7 @@ void VulkanDriver::mainLoop() {
 		_SceneGraph->stepSimulation(deltaFrame/1000);
 		//
 		//	Draw Frame
-		drawFrame();
+		Render();
 		//
 		//	Calculate End Frame Statistics
 		endFrame = std::chrono::high_resolution_clock::now();
@@ -261,8 +260,15 @@ void VulkanDriver::mainLoop() {
 
 void VulkanDriver::Render()
 {
+		PushFrame(deltaFrame);
+		float DF = GetDeltaFrames();
+		float FPS = (1.0f / DF) * 1000.0f;
+		
+		if (_EventReceiver) {
+			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
+		}
+	// 
 	// Acquire the next image from the swap chain
-	uint32_t currentBuffer = currentFrame;
 	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentFrame);
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
@@ -282,13 +288,21 @@ void VulkanDriver::Render()
 
 	//
 	//	Update the entire scene
-	_SceneGraph->validate(currentBuffer);
-	_SceneGraph->updateUniformBuffer(currentBuffer);
+	_SceneGraph->validate(currentFrame);
+	_SceneGraph->updateUniformBuffer(currentFrame);
+
+	
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &_SceneGraph->primaryCommandBuffers[currentFrame];
+	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+	{
+
+	}
 
 
 	//	END DRAWING
 	//
-	result = swapChain.queuePresent(presentQueue, currentBuffer, semaphores.renderComplete);
+	result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores.renderComplete);
 	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			// Swap chain is no longer compatible with the surface and needs to be recreated
@@ -304,57 +318,7 @@ void VulkanDriver::Render()
 			}
 		}
 	}
-	vkQueueWaitIdle(presentQueue);
-}
-
-void VulkanDriver::drawFrame() {
-//	PushFrame(deltaFrame);
-//	float DF = GetDeltaFrames();
-//	float FPS = (1.0f / DF) * 1000.0f;
-//	
-//	if (_EventReceiver) {
-//		_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
-//	}
-//	//const VkResult Status = vkGetFenceStatus(device, inFlightFences[currentFrame]);
-//	//if (Status == VK_SUCCESS) {
-//		//printf("Success\n");
-//	//}
-//	//else {
-//		//printf("Wait\n");
-//	//}
-//	vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-//	vkResetFences(device, 1, &inFlightFences[currentFrame]);
-//
-//	uint32_t imageIndex;
-//	vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-//
-//	VkSubmitInfo submitInfo = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-//
-//	VkSemaphore waitSemaphores[] = { imageAvailableSemaphores[currentFrame] };
-//	VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-//	submitInfo.waitSemaphoreCount = 1;
-//	submitInfo.pWaitSemaphores = waitSemaphores;
-//	submitInfo.pWaitDstStageMask = waitStages;
-//	submitInfo.commandBufferCount = 1;
-//	submitInfo.pCommandBuffers = &_SceneGraph->primaryCommandBuffers[imageIndex];
-//	VkSemaphore signalSemaphores[] = { renderFinishedSemaphores[currentFrame] };
-//	submitInfo.signalSemaphoreCount = 1;
-//	submitInfo.pSignalSemaphores = signalSemaphores;
-//
-//	//
-//	//	Update the entire scene
-//	_SceneGraph->validate(imageIndex);
-//	_SceneGraph->updateUniformBuffer(imageIndex);
-//
-//	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
-//#ifdef _DEBUG
-//		throw std::runtime_error("failed to submit draw command buffer!");
-//#endif
-//	}
-//
-//	swapChain.queuePresent(presentQueue, currentFrame);
-//
-//	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	vkQueueWaitIdle(graphicsQueue);
 }
 
 void VulkanDriver::DrawExternal(const uint32_t& currentImage) {
@@ -489,9 +453,9 @@ void VulkanDriver::createLogicalDevice()
 	//
 	//	Get graphics queue
 	vkGetDeviceQueue(_VulkanDevice->logicalDevice, _VulkanDevice->queueFamilyIndices.graphics, 0, &graphicsQueue);
-	vkGetDeviceQueue(_VulkanDevice->logicalDevice, _VulkanDevice->queueFamilyIndices.present, 0, &presentQueue);
+	//vkGetDeviceQueue(_VulkanDevice->logicalDevice, _VulkanDevice->queueFamilyIndices.present, 0, &presentQueue);
 
-	VkFormat depthFormat = findDepthFormat();
+	depthFormat = _VulkanDevice->getSupportedDepthFormat(false);
 
 	//
 	//	Connect the swapchain
@@ -529,7 +493,6 @@ void VulkanDriver::createLogicalDevice()
 //	Vulkan Initialization
 //	Stage - 2
 void VulkanDriver::createDepthResources() {
-	VkFormat depthFormat = findDepthFormat();
 
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
@@ -572,8 +535,7 @@ void VulkanDriver::createDepthResources() {
 }
 
 void VulkanDriver::createRenderPass() {
-
-	VkFormat depthFormat = findDepthFormat();
+	
 	std::array<VkAttachmentDescription, 2> attachments = {};
 	// Color attachment
 	attachments[0].format = swapChain.colorFormat;
@@ -676,7 +638,7 @@ void VulkanDriver::createFrameBuffers() {
 			throw std::runtime_error("vkCreateFramebuffer Failed!");
 			#endif
 		}
-}
+	}
 }
 
 //
@@ -695,28 +657,3 @@ void VulkanDriver::createVmaAllocator() {
 //
 //	Check Physical Device Support
 //
-
-
-VkFormat VulkanDriver::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-	for (VkFormat format : candidates) {
-		VkFormatProperties props;
-		vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
-
-		if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-			return format;
-		}
-		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-			return format;
-		}
-	}
-
-	throw std::runtime_error("failed to find supported format!");
-}
-
-VkFormat VulkanDriver::findDepthFormat() {
-	return findSupportedFormat(
-		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-		VK_IMAGE_TILING_OPTIMAL,
-		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-	);
-}
