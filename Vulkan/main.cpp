@@ -24,6 +24,9 @@ int main() {
 #ifdef _DEBUG
 	try {
 		//
+		//	Force world load for testing purposes
+		app->_SceneGraph->initWorld();
+		//
 		//	Loop Main Logic
 		app->mainLoop();
 	}

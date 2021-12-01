@@ -25,9 +25,9 @@ public:
 		_Mesh->updateUniformBuffer(currentImage, ubo);
 	}
 
-	void drawFrame(const VkCommandBuffer &primaryCommandBuffer) {
+	void drawFrame(const VkCommandBuffer& CommandBuffer, uint32_t CurFrame) {
 		if (!Valid) {
-			_Mesh->drawFrame(primaryCommandBuffer);
+			_Mesh->draw(CommandBuffer, CurFrame);
 		}
 	}
 };
