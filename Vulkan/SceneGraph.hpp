@@ -33,18 +33,21 @@ class SceneGraph
 	btDiscreteDynamicsWorld* dynamicsWorld;
 
 	std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
+	//btAlignedObjectArray<btTriangleMesh*> _TriangleMeshes;
+	//btAlignedObjectArray<btConvexShape*> _ConvexShapes;
 	std::deque<btTriangleMesh*> _TriangleMeshes;
 	std::deque<btConvexShape*> _ConvexShapes;
 #ifdef _DEBUG
 	VulkanBTDebugDraw BTDebugDraw;
 #endif
-	//
-	//	Secondary Command Buffers
-	//	One buffer per frame per object type
-	std::vector<VkCommandBuffer> commandBuffers;
 
 public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
+	VkCommandPool commandPool = VK_NULL_HANDLE;
+	std::vector<VkCommandBuffer> primaryCommandBuffers = {};
+	std::vector<VkFence> waitFences = {};
+	//
+	//std::vector<VkCommandBuffer> secondaryCommandBuffers = {};
 
 	std::deque<SceneNode*> SceneNodes = {};
 
@@ -302,27 +305,15 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 			throw std::runtime_error("vkEndCommandBuffer Failed!");
 			#endif
 		}
-		secondaryCommandBuffers.push_back(commandBuffers[CurFrame]);
-	}
-	//
-	//	BUILD ANY SPECIAL/FIXED SECONDARY COMMAND BUFFERS
-	//	LIKE PUSH THE GUI DRAW COMMANDS HERE
-	//_Driver->DrawExternal(CurFrame);
-	#ifdef _DEBUG
-	if (isWorld) {
-		//dynamicsWorld->debugDrawWorld();
-	}
-	#endif
-	//
-	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD
-	// 
-	// Execute render commands from the secondary command buffers
-	vkCmdExecuteCommands(PriCmdBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
-	vkCmdEndRenderPass(PriCmdBuffer);
-	if (vkEndCommandBuffer(PriCmdBuffer) != VK_SUCCESS)
-	{
+#endif
+
+		_Driver->DrawExternal(currentImage);
+
+		vkCmdEndRenderPass(primaryCommandBuffers[currentImage]);
+
+		if (vkEndCommandBuffer(primaryCommandBuffers[currentImage]) != VK_SUCCESS) {
 		#ifdef _DEBUG
-		throw std::runtime_error("vkEndCommandBuffer Failed!");
+			throw std::runtime_error("failed to record command buffer!");
 		#endif
 	}
 }

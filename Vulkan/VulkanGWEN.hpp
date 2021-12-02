@@ -40,7 +40,7 @@ namespace Gwen
 			Pipeline::GUI* Pipe;
 
 			size_t currentBuffer = 0;
-			VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+			std::vector<VkCommandBuffer> commandBuffers = {};
 
 			std::unordered_map<Vertex, const uint32_t> GUI_UniqueVertices = {};
 
@@ -374,8 +374,11 @@ namespace Gwen
 			}
 		public:
 
-			void SetBuffer(const VkCommandBuffer& Buff) {
-				commandBuffer = Buff;
+			void SetBuffer(const size_t &BufferNumber) {
+				currentBuffer = BufferNumber;
+			}
+			const VkCommandBuffer& GetBuffer(const size_t &BufferNumber) {
+				return commandBuffers[BufferNumber];
 			}
 
 			Vulkan(VulkanDriver* Driver)
@@ -402,6 +405,10 @@ namespace Gwen
 				initFreeType();
 				const size_t SwapChainCount = _Driver->swapChain.images.size();
 				ClipScissors.resize(SwapChainCount);
+				for (size_t i = 0; i < SwapChainCount; i++) {
+					auto NewBuffer = _Driver->_SceneGraph->newCommandBuffer();
+					commandBuffers.insert(commandBuffers.end(), NewBuffer.begin(), NewBuffer.end());
+				}
 
 				createIndirectBuffer();
 				createGUIBuffers();
@@ -457,13 +464,13 @@ namespace Gwen
 						}
 					}*/
 
-					vkCmdDrawIndexedIndirect(commandBuffer, indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+					vkCmdDrawIndexedIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 					CurIndirectDraw++;
 					CurIndexCount = 0;
 				}
 				ClipScissors[currentBuffer].offset = { static_cast<int32_t>(clipNew.x), static_cast<int32_t>(clipNew.y) };
 				ClipScissors[currentBuffer].extent = { static_cast<uint32_t>(clipNew.w), static_cast<uint32_t>(clipNew.h) };
-				vkCmdSetScissor(commandBuffer, 0, 1, &ClipScissors[currentBuffer]);
+				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &ClipScissors[currentBuffer]);
 			};
 			//
 			//	End Render
@@ -478,7 +485,7 @@ namespace Gwen
 				//	Indirect Buffer CPU->GPU Copy
 				memcpy(indirectAllocation->GetMappedData(), indirectCommands.data(), sizeof(VkDrawIndexedIndirectCommand) * indirectCommands.size());
 
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
 
 				auto CB = _Driver->beginSingleTimeCommands();
 				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -544,7 +551,7 @@ namespace Gwen
 			}
 			void DrawTexturedRect(Gwen::Texture* pTexture, Gwen::Rect pTargetRect, float u1 = 0.0f, float v1 = 0.0f, float u2 = 1.0f, float v2 = 1.0f)
 			{
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &(static_cast<GWENTex*>(pTexture->data)->Descriptor)->DescriptorSets[currentBuffer], 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &(static_cast<GWENTex*>(pTexture->data)->Descriptor)->DescriptorSets[currentBuffer], 0, nullptr);
 				Translate(pTargetRect);
 
 				AddVert(pTargetRect.x, pTargetRect.y, u1, v1);
