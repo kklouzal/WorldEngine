@@ -319,7 +319,7 @@ namespace Pipeline {
 				vmaCreateImage(_Driver->allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
 				//
 				//	CPU->GPU Copy
-				VkCommandBuffer commandBuffer = _Driver->beginSingleTimeCommands();
+				VkCommandBuffer commandBuffer = _Driver->_SceneGraph->beginSingleTimeCommands();
 				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -367,7 +367,7 @@ namespace Pipeline {
 					0, nullptr,
 					1, &imgMemBarrier);
 
-				_Driver->endSingleTimeCommands(commandBuffer);
+				_Driver->_SceneGraph->endSingleTimeCommands(commandBuffer);
 
 				vmaDestroyBuffer(_Driver->allocator, stagingImageBuffer, stagingImageBufferAlloc);
 
