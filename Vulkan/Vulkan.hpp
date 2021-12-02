@@ -204,11 +204,11 @@ VulkanDriver::VulkanDriver() {
 	//	Initialize Vulkan - Sub
 	swapChain.initSurface(_Window);				//	SwapChain init
 	swapChain.create(&WIDTH, &HEIGHT, VSYNC);	//	SwapChain setup
-	_SceneGraph = new SceneGraph(this);			//	Primary CommandBuffer init
 	createDepthResources();						//	Depth Stencil setup
 	createRenderPass();
-	_MaterialCache = new MaterialCache(this);
 	createFrameBuffers();
+	_SceneGraph = new SceneGraph(this);			//	Primary CommandBuffer init
+	_MaterialCache = new MaterialCache(this);
 }
 
 //

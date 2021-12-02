@@ -42,11 +42,13 @@ class SceneGraph {
 #ifdef _DEBUG
 	VulkanBTDebugDraw BTDebugDraw;
 #endif
+	//
+	//	Secondary Command Buffers
+	//	One buffer per frame per object type
+	std::vector<VkCommandBuffer> commandBuffers;
 
 public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
-	//
-	//std::vector<VkCommandBuffer> secondaryCommandBuffers = {};
 
 	std::deque<SceneNode*> SceneNodes = {};
 
@@ -65,7 +67,7 @@ public:
 	const VkCommandBuffer beginSingleTimeCommands();
 	void endSingleTimeCommands(const VkCommandBuffer commandBuffer);
 
-	void validate(uint32_t CurFrame, const VkCommandPool CmdPool, VkCommandBuffer PriCmdBuffer, VkFramebuffer FrmBuffer);
+	void validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const VkCommandBuffer& PriCmdBuffer, const VkFramebuffer& FrmBuffer);
 
 	void updateUniformBuffer(const uint32_t &currentImage);
 
@@ -252,20 +254,19 @@ void SceneGraph::stepSimulation(const btScalar &timeStep) {
 	}
 }
 
-
-void SceneGraph::validate(uint32_t CurFrame, VkCommandPool CmdPool, VkCommandBuffer PriCmdBuffer, VkFramebuffer FrmBuffer) {
+void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const VkCommandBuffer& PriCmdBuffer, const VkFramebuffer& FrmBuffer) {
 	//
 	//	SceneNode Vaidation
 	//if (!IsValid[currentImage]) {
 
-	//vkResetCommandBuffer(primaryCommandBuffers[currentImage], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+	//vkResetCommandBuffer(PriCmdBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+
+	std::vector<VkCommandBuffer> secondaryCommandBuffers;
 
 	if (tryCleanupWorld) {
 		printf("Attempt World Cleanup\n");
 		cleanupWorld();
 	}
-
-	std::vector<VkCommandBuffer> commandBuffers;
 
 	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
 
@@ -307,21 +308,15 @@ void SceneGraph::validate(uint32_t CurFrame, VkCommandPool CmdPool, VkCommandBuf
 
 		//
 		//	Create a secondary buffer for our object type
-		VkCommandBuffer SecondaryBuffer;
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(CmdPool, VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-		
-		if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &SecondaryBuffer) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-			#endif
-		}
+		// 
+		// 
+		// 
 		//
 		//	Begin recording state
 		VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
 		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
-		if (vkBeginCommandBuffer(SecondaryBuffer, &commandBufferBeginInfo) != VK_SUCCESS)
+		if (vkBeginCommandBuffer(commandBuffers[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
 		{
 			#ifdef _DEBUG
 			throw std::runtime_error("vkBeginCommandBuffer Failed!");
@@ -337,19 +332,19 @@ void SceneGraph::validate(uint32_t CurFrame, VkCommandPool CmdPool, VkCommandBuf
 		//
 		//	Submit SceneNode draw commands
 		for (size_t i = 0; i < SceneNodes.size(); i++) {
-			SceneNodes[i]->drawFrame(PriCmdBuffer, CurFrame);
+			SceneNodes[i]->drawFrame(commandBuffers[CurFrame], CurFrame);
 		}
 		//	test
 		//_Driver->DrawExternal(PriCmdBuffer);
 		//
 		//	End recording state
-		if (vkEndCommandBuffer(SecondaryBuffer) != VK_SUCCESS)
+		if (vkEndCommandBuffer(commandBuffers[CurFrame]) != VK_SUCCESS)
 		{
 #ifdef _DEBUG
 			throw std::runtime_error("vkEndCommandBuffer Failed!");
 #endif
 		}
-		commandBuffers.push_back(SecondaryBuffer);
+		secondaryCommandBuffers.push_back(commandBuffers[CurFrame]);
 	}
 	//
 	//	BUILD ANY SPECIAL/FIXED SECONDARY COMMAND BUFFERS
@@ -364,7 +359,7 @@ void SceneGraph::validate(uint32_t CurFrame, VkCommandPool CmdPool, VkCommandBuf
 	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD
 	// 
 	// Execute render commands from the secondary command buffers
-	vkCmdExecuteCommands(PriCmdBuffer, commandBuffers.size(), commandBuffers.data());
+	vkCmdExecuteCommands(PriCmdBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 	vkCmdEndRenderPass(PriCmdBuffer);
 	if (vkEndCommandBuffer(PriCmdBuffer) != VK_SUCCESS)
 	{
@@ -449,6 +444,19 @@ void SceneGraph::invalidate() {
 SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), FrameCount(0), isWorld(false)
 {
 	createUniformBuffers();
+
+	commandBuffers.resize(_Driver->frameBuffers.size());
+	for (int i = 0; i < _Driver->frameBuffers.size(); i++)
+	{
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+
+		if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]) != VK_SUCCESS)
+		{
+#ifdef _DEBUG
+			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
+#endif
+		}
+	}
 }
 
 SceneGraph::~SceneGraph() {
