@@ -56,19 +56,19 @@ namespace vks
 			return cmdBufferBeginInfo;
 		}
 
-		inline VkCommandBufferInheritanceInfo commandBufferInheritanceInfo()
-		{
-			VkCommandBufferInheritanceInfo cmdBufferInheritanceInfo{};
-			cmdBufferInheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-			return cmdBufferInheritanceInfo;
-		}
+		//inline VkCommandBufferInheritanceInfo commandBufferInheritanceInfo()
+		//{
+		//	VkCommandBufferInheritanceInfo cmdBufferInheritanceInfo{};
+		//	cmdBufferInheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+		//	return cmdBufferInheritanceInfo;
+		//}
 
-		inline VkRenderPassBeginInfo renderPassBeginInfo()
-		{
-			VkRenderPassBeginInfo renderPassBeginInfo{};
-			renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			return renderPassBeginInfo;
-		}
+		//inline VkRenderPassBeginInfo renderPassBeginInfo()
+		//{
+		//	VkRenderPassBeginInfo renderPassBeginInfo{};
+		//	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		//	return renderPassBeginInfo;
+		//}
 
 		//inline VkRenderPassCreateInfo renderPassCreateInfo()
 		//{

@@ -39,7 +39,7 @@ namespace Gwen
 			Pipeline::GUI* Pipe;
 
 			size_t currentBuffer = 0;
-			VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
+			std::vector<VkCommandBuffer> commandBuffers = {};
 
 			std::unordered_map<Vertex, const uint32_t> GUI_UniqueVertices = {};
 
@@ -83,8 +83,6 @@ namespace Gwen
 			Gwen::Rect clipNew;
 
 			Gwen::Color	m_Color;
-
-			std::deque<unsigned int> LastWrites = {};
 
 			std::vector<uint8_t> writeBuffer = {};
 			std::vector<uint8_t> drawBuffer = {};
@@ -160,18 +158,10 @@ namespace Gwen
 							//	x * 4			== Image Column Destination Bit
 							const unsigned int dstBit = (dstY * dst_Pitch) + (dstX * 4);
 
-							//writeBuffer[dstBit]		= m_Color.r;// +0 == R
-							//writeBuffer[dstBit +1]	= m_Color.g;// +1 == G
-							//writeBuffer[dstBit +2]	= m_Color.b;// +2 == B
-							//writeBuffer[dstBit +3]	= value;	// +3 == A
-							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit] = m_Color.r;
-							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+1] = m_Color.g;
-							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+2] = m_Color.b;
-							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+3] = value;
-							//
-							//	Store all the alpha locations for this frame
-							//	We will set them back to 0 before the next draw effectively clearing our canvas
-							LastWrites.push_back(dstBit + 3);
+							writeBuffer[dstBit]		= m_Color.r;// +0 == R
+							writeBuffer[dstBit +1]	= m_Color.g;// +1 == G
+							writeBuffer[dstBit +2]	= m_Color.b;// +2 == B
+							writeBuffer[dstBit +3]	= value;	// +3 == A
 						}
 					}
 					dst_Cursor_X += Bit->xadvance;
@@ -371,12 +361,12 @@ namespace Gwen
 			}
 		public:
 
-			void SetBuffer(const VkCommandBuffer& Buff) {
-				commandBuffer = Buff;
+			void SetBuffer(const size_t &BufferNumber) {
+				currentBuffer = BufferNumber;
 			}
-			/*const VkCommandBuffer& GetBuffer(const size_t &BufferNumber) {
-				return commandBuffer;
-			}*/
+			const VkCommandBuffer& GetBuffer(const size_t &BufferNumber) {
+				return commandBuffers[BufferNumber];
+			}
 			Vulkan(VulkanDriver* Driver) : _Driver(Driver), dst_Size((_Driver->WIDTH* _Driver->HEIGHT) * 4), dst_Pitch(_Driver->WIDTH * 4) {
 				Pipe = _Driver->_MaterialCache->GetPipe_GUI();
 			}
@@ -395,6 +385,10 @@ namespace Gwen
 				initFreeType();
 				const size_t SwapChainCount = _Driver->swapChain.images.size();
 				ClipScissors.resize(SwapChainCount);
+				for (size_t i = 0; i < SwapChainCount; i++) {
+					auto NewBuffer = _Driver->_SceneGraph->newCommandBuffer();
+					commandBuffers.insert(commandBuffers.end(), NewBuffer.begin(), NewBuffer.end());
+				}
 
 				createIndirectBuffer();
 				createGUIBuffers();
@@ -406,38 +400,26 @@ namespace Gwen
 			//	Begin Render
 			void Begin()
 			{
+				vkResetCommandBuffer(commandBuffers[currentBuffer], VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+				VkCommandBufferInheritanceInfo inheritanceInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
+				inheritanceInfo.renderPass = _Driver->renderPass;
+
+				VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+				beginInfo.pInheritanceInfo = &inheritanceInfo;
+
+				vkBeginCommandBuffer(commandBuffers[currentBuffer], &beginInfo);
+
 				VkRect2D scissor = {};
 				scissor.offset = { 0, 0 };
 				scissor.extent = _Driver->swapChainExtent;
-				vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &scissor);
 
-				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);
-
-				/*VkImageSubresourceRange ImageSubresourceRange;
-				ImageSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				ImageSubresourceRange.baseMipLevel = 0;
-				ImageSubresourceRange.levelCount = 1;
-				ImageSubresourceRange.baseArrayLayer = 0;
-				ImageSubresourceRange.layerCount = 1;
-
-				VkClearColorValue ClearColorValue = { 1.0, 0.0, 0.0, 0.0 };
-
-				vkCmdClearColorImage(commandBuffer, Font_TextureImage, VK_IMAGE_LAYOUT_GENERAL, &ClearColorValue, 1, &ImageSubresourceRange);*/
+				vkCmdBindPipeline(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);
 
 				VkDeviceSize offsets[1] = { 0 };
-				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &GUI_VertexBuffer, offsets);
-				vkCmdBindIndexBuffer(commandBuffer, GUI_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-				/*for (int i = 0; i < drawBuffer.size()/4; i++)
-				{
-					reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[3+(i*4)] = 0;
-				}*/
-				unsigned char* FTA = reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData());
-				for (int i = 0; i < LastWrites.size(); i++)
-				{
-					FTA[LastWrites[i]] = 0;
-				}
-				LastWrites.clear();
+				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, &GUI_VertexBuffer, offsets);
+				vkCmdBindIndexBuffer(commandBuffers[currentBuffer], GUI_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
 			}
 			//
 			//	Start Clip
@@ -470,13 +452,13 @@ namespace Gwen
 						}
 					}*/
 
-					vkCmdDrawIndexedIndirect(commandBuffer, indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+					vkCmdDrawIndexedIndirect(commandBuffers[currentBuffer], indirectBuffer, CurIndirectDraw * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
 					CurIndirectDraw++;
 					CurIndexCount = 0;
 				}
 				ClipScissors[currentBuffer].offset = { static_cast<int32_t>(clipNew.x), static_cast<int32_t>(clipNew.y) };
 				ClipScissors[currentBuffer].extent = { static_cast<uint32_t>(clipNew.w), static_cast<uint32_t>(clipNew.h) };
-				vkCmdSetScissor(commandBuffer, 0, 1, &ClipScissors[currentBuffer]);
+				vkCmdSetScissor(commandBuffers[currentBuffer], 0, 1, &ClipScissors[currentBuffer]);
 			};
 			//
 			//	End Render
@@ -491,7 +473,7 @@ namespace Gwen
 				//	Indirect Buffer CPU->GPU Copy
 				memcpy(indirectAllocation->GetMappedData(), indirectCommands.data(), sizeof(VkDrawIndexedIndirectCommand) * indirectCommands.size());
 
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
 
 				auto CB = _Driver->_SceneGraph->beginSingleTimeCommands();
 				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -517,10 +499,10 @@ namespace Gwen
 					0, nullptr,
 					1, &imgMemBarrier);
 
-				//drawBuffer.swap(writeBuffer);
-				//memcpy(Font_TextureAllocation->GetMappedData(), drawBuffer.data(), drawBuffer.size());
-				//writeBuffer.clear();
-				//writeBuffer.resize(dst_Size);
+				drawBuffer.swap(writeBuffer);
+				memcpy(Font_TextureAllocation->GetMappedData(), drawBuffer.data(), drawBuffer.size());
+				writeBuffer.clear();
+				writeBuffer.resize(dst_Size);
 
 				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
 				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -539,9 +521,9 @@ namespace Gwen
 				_Driver->_SceneGraph->endSingleTimeCommands(CB);
 
 				VkDeviceSize offsets2[] = { 0 };
-				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &Font_VertexBuffer, offsets2);
-				vkCmdDraw(commandBuffer, Font_VertexAllocation->GetSize(), 1, 0, 0);
-				//vkEndCommandBuffer(commandBuffer);
+				vkCmdBindVertexBuffers(commandBuffers[currentBuffer], 0, 1, &Font_VertexBuffer, offsets2);
+				vkCmdDraw(commandBuffers[currentBuffer], Font_VertexAllocation->GetSize(), 1, 0, 0);
+				vkEndCommandBuffer(commandBuffers[currentBuffer]);
 
 				CurIndirectDraw = 0;
 				TotalVertexCount = 0;
@@ -563,7 +545,7 @@ namespace Gwen
 			}
 			void DrawTexturedRect(Gwen::Texture* pTexture, Gwen::Rect pTargetRect, float u1 = 0.0f, float v1 = 0.0f, float u2 = 1.0f, float v2 = 1.0f)
 			{
-				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &(static_cast<GWENTex*>(pTexture->data)->Descriptor)->DescriptorSets[currentBuffer], 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffers[currentBuffer], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &(static_cast<GWENTex*>(pTexture->data)->Descriptor)->DescriptorSets[currentBuffer], 0, nullptr);
 				Translate(pTargetRect);
 
 				AddVert(pTargetRect.x, pTargetRect.y, u1, v1);

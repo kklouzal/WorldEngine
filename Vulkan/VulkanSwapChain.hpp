@@ -273,7 +273,6 @@ public:
 		{
 			desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
 		}
-		printf("SwapChain Image Count: %i\n", desiredNumberOfSwapchainImages);
 
 		// Find the transformation of the surface
 		VkSurfaceTransformFlagsKHR preTransform;
