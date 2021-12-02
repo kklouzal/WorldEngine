@@ -121,8 +121,6 @@ public:
 
 	VkExtent2D swapChainExtent;
 	VkRenderPass renderPass = VK_NULL_HANDLE;
-	const int MAX_FRAMES_IN_FLIGHT = 3;
-	std::vector<VkFence> inFlightFences = {};
 
 	// VMA
 	VmaAllocator allocator = VMA_NULL;
@@ -174,6 +172,31 @@ public:
 			DF += F;
 		}
 		return DF / Frames.size();
+	}
+
+	//
+	//	Return CommandBuffer for single immediate use
+	const VkCommandBuffer beginSingleTimeCommands()
+	{
+		VkCommandBuffer commandBuffer;
+		VkCommandBufferAllocateInfo allocInfo = vks::initializers::commandBufferAllocateInfo(commandPools[currentFrame], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+		vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &allocInfo, &commandBuffer);
+		VkCommandBufferBeginInfo beginInfo = vks::initializers::commandBufferBeginInfo();
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		vkBeginCommandBuffer(commandBuffer, &beginInfo);
+		return commandBuffer;
+	}
+	//
+	//	End and submit single immediate use CommandBuffer
+	void endSingleTimeCommands(const VkCommandBuffer& commandBuffer)
+	{
+		vkEndCommandBuffer(commandBuffer);
+		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer;
+		vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(graphicsQueue);
+		vkFreeCommandBuffers(_VulkanDevice->logicalDevice, commandPools[currentFrame], 1, &commandBuffer);
 	}
 
 	void Render();
@@ -253,8 +276,11 @@ void VulkanDriver::mainLoop() {
 			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
 		}
 		//
-		//	Handle Input
+		//	Handle Inputs
 		glfwPollEvents();
+		//
+		//	Perform Inputs
+		_EventReceiver->OnUpdate();
 		//
 		//	Simulate Physics
 		_SceneGraph->stepSimulation(deltaFrame/1000);

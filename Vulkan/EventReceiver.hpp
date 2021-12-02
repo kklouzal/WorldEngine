@@ -34,12 +34,8 @@ class EventReceiver : public Gwen::Event::Handler {
 	//
 
 	void drawGWEN(const VkCommandBuffer& Buff) {
-		OnUpdate();
 		pRenderer->SetBuffer(Buff);
 		pCanvas->RenderCanvas();
-		//
-		//	Draw GWEN
-		//vkCmdExecuteCommands(_Driver->primaryCommandBuffers[currentImage], 1, &pRenderer->GetBuffer(currentImage));
 	}
 
 	void OnPress(Gwen::Controls::Base* pControl);
