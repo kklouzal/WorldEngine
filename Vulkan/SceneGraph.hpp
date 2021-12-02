@@ -137,7 +137,15 @@ public:
 		cleanupWorld();
 	}
 
-	btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To);
+	//
+	//	Raytest
+	btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To)
+	{
+		btCollisionWorld::ClosestRayResultCallback closestResults(From, To);
+		closestResults.m_flags |= btTriangleRaycastCallback::kF_FilterBackfaces;
+		dynamicsWorld->rayTest(From, To, closestResults);
+		return closestResults;
+	}
 };
 
 #include "MaterialCache.hpp"
@@ -149,16 +157,6 @@ public:
 
 //
 //	Define SceneGraph Implementation
-
-btCollisionWorld::ClosestRayResultCallback SceneGraph::castRay(const btVector3& From, const btVector3& To) {
-
-	btCollisionWorld::ClosestRayResultCallback closestResults(From, To);
-	closestResults.m_flags |= btTriangleRaycastCallback::kF_FilterBackfaces;
-
-	dynamicsWorld->rayTest(From, To, closestResults);
-
-	return closestResults;
-}
 
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
@@ -264,30 +262,21 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 		throw std::runtime_error("failed to begin recording primary command buffer!");
 		#endif
 	}
-
-	// The primary command buffer does not contain any rendering commands
-	// These are stored (and retrieved) from the secondary command buffers
+	//
+	//	Begin render pass
 	vkCmdBeginRenderPass(PriCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-
-	// Inheritance info for the secondary command buffers
+	//
+	//	Secondary CommandBuffer Inheritance Info
 	VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
 	inheritanceInfo.renderPass = _Driver->renderPass;
-	// Secondary command buffer also use the currently active framebuffer
 	inheritanceInfo.framebuffer = FrmBuffer;
-
 	//
-	//
-	//	BUILD/UPDATE SECONDARY COMMAND BUFFERS
+	//	BEGIN BUILDING SECONDARY COMMAND BUFFERS
 	//	ACTUALLY PUSH DRAW COMMANDS HERE
 	if (!tryCleanupWorld) {
-
-		//
-		//	Create a secondary buffer for our object type
-		// 
-		// 
 		// 
 		//
-		//	Begin recording state
+		//	Begin recording
 		VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
 		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
@@ -298,19 +287,20 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 			#endif
 		}		
 		//
-		//	Submit SceneNode draw commands
+		//	Submit individual SceneNode draw commands
 		for (size_t i = 0; i < SceneNodes.size(); i++) {
 			SceneNodes[i]->drawFrame(commandBuffers[CurFrame], CurFrame);
 		}
 		//	test
 		_Driver->DrawExternal(commandBuffers[CurFrame]);
 		//
+		//
 		//	End recording state
 		if (vkEndCommandBuffer(commandBuffers[CurFrame]) != VK_SUCCESS)
 		{
-#ifdef _DEBUG
+			#ifdef _DEBUG
 			throw std::runtime_error("vkEndCommandBuffer Failed!");
-#endif
+			#endif
 		}
 		secondaryCommandBuffers.push_back(commandBuffers[CurFrame]);
 	}
@@ -402,9 +392,7 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
-	tinygltf::Model Mdl;
-	_ImportGLTF->loadModel(Mdl, FileFBX);
-	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
 
 	//	TODO:
 	//	Place this into Import_GLTF
@@ -443,8 +431,6 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	MeshNode->_CollisionShape = ColShape;
 	btTransform Transform;
 	Transform.setIdentity();
-	//Transform.setOrigin(btVector3(FBXMesh->translation[0], FBXMesh->translation[1], FBXMesh->translation[2]));
-	//Transform.setRotation(btQuaternion(glm::radians(FBXMesh->rotation[1]), glm::radians(FBXMesh->rotation[0]), glm::radians(FBXMesh->rotation[2])));
 
 	btScalar Mass(0.0f);
 	bool isDynamic = (Mass != 0.f);
@@ -471,9 +457,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
-	tinygltf::Model Mdl;
-	_ImportGLTF->loadModel(Mdl, FileFBX);
-	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
 
 	//	TODO:
 	//	Place this into Import_GLTF
@@ -512,7 +496,6 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	btTransform Transform;
 	Transform.setIdentity();
 	Transform.setOrigin(Position);
-	//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
 
 	bool isDynamic = (Mass != 0.f);
 
@@ -538,10 +521,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
 	Pipeline::Skinned* Pipe = _Driver->_MaterialCache->GetPipe_Skinned();
 
-
-	tinygltf::Model Mdl;
-	_ImportGLTF->loadModel(Mdl, FileFBX);
-	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
 
 	//	TODO:
 	//	Place this into Import_GLTF
@@ -580,7 +560,6 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	btTransform Transform;
 	Transform.setIdentity();
 	Transform.setOrigin(Position);
-	//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
 
 	bool isDynamic = (Mass != 0.f);
 
@@ -604,9 +583,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, btVector3 Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
-	tinygltf::Model Mdl;
-	_ImportGLTF->loadModel(Mdl, FileFBX);
-	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
 
 	//	TODO:
 	//	Place this into Import_GLTF
@@ -645,7 +622,6 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 	btTransform Transform;
 	Transform.setIdentity();
 	Transform.setOrigin(Position);
-	//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
 
 	btScalar Mass = 0.5f;
 	bool isDynamic = (Mass != 0.f);
