@@ -125,7 +125,7 @@ public:
 
 		//
 		//	CPU->GPU Copy
-		VkCommandBuffer commandBuffer = _Driver->_SceneGraph->beginSingleTimeCommands();
+		VkCommandBuffer commandBuffer = _Driver->beginSingleTimeCommands();
 
 		VkBufferCopy vertexCopyRegion = {};
 		vertexCopyRegion.size = vertexBufferSize;
@@ -135,7 +135,7 @@ public:
 		indexCopyRegion.size = indexBufferInfo.size;
 		vkCmdCopyBuffer(commandBuffer, stagingIndexBuffer, indexBuffer, 1, &indexCopyRegion);
 
-		_Driver->_SceneGraph->endSingleTimeCommands(commandBuffer);
+		_Driver->endSingleTimeCommands(commandBuffer);
 
 		//
 		//	Destroy Staging Buffers
