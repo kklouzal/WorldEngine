@@ -114,11 +114,13 @@ public:
 	std::vector<VkFramebuffer>frameBuffers;
 	uint32_t currentFrame = 0;
 	VkFormat depthFormat;
+	//
+	//	MAYBE only need a single pool and primary buffer..
+	std::vector <VkCommandPool> commandPools;
+	std::vector <VkCommandBuffer> primaryCommandBuffers;
 
 	VkExtent2D swapChainExtent;
 	VkRenderPass renderPass = VK_NULL_HANDLE;
-	const int MAX_FRAMES_IN_FLIGHT = 3;
-	std::vector<VkFence> inFlightFences = {};
 
 	// VMA
 	VmaAllocator allocator = VMA_NULL;
@@ -151,13 +153,13 @@ public:
 
 	void setEventReceiver(EventReceiver* _EventRcvr);
 
-	void DrawExternal(const uint32_t& currentImage);
+	void DrawGUI(const VkCommandBuffer& Buff);
 	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
 	float deltaFrame = 0;
 	std::deque<float> Frames;
 
-	void PushFrame(const float F) {
+	void PushFrameDelta(const float F) {
 		Frames.push_back(F);
 		if (Frames.size() > 30) {
 			Frames.pop_front();
@@ -184,6 +186,11 @@ public:
 #include "EventReceiver.hpp"
 
 
+void VulkanDriver::DrawGUI(const VkCommandBuffer& Buff)
+{
+	_EventReceiver->DrawGUI(Buff);
+}
+
 //
 //	Initialize
 VulkanDriver::VulkanDriver() {
@@ -200,11 +207,11 @@ VulkanDriver::VulkanDriver() {
 	//	Initialize Vulkan - Sub
 	swapChain.initSurface(_Window);				//	SwapChain init
 	swapChain.create(&WIDTH, &HEIGHT, VSYNC);	//	SwapChain setup
-	_SceneGraph = new SceneGraph(this);			//	CommandPool & CommandBuffer init
 	createDepthResources();						//	Depth Stencil setup
 	createRenderPass();
-	_MaterialCache = new MaterialCache(this);
 	createFrameBuffers();
+	_SceneGraph = new SceneGraph(this);			//	Primary CommandBuffer init
+	_MaterialCache = new MaterialCache(this);
 }
 
 //
@@ -215,6 +222,9 @@ VulkanDriver::~VulkanDriver() {
 	delete _EventReceiver;
 	//
 	delete _SceneGraph;
+	for (auto commandpool : commandPools) {
+		vkDestroyCommandPool(_VulkanDevice->logicalDevice, commandpool, nullptr);
+	}
 	for (auto framebuffer : frameBuffers) {
 		vkDestroyFramebuffer(_VulkanDevice->logicalDevice, framebuffer, nullptr);
 	}
@@ -237,11 +247,20 @@ VulkanDriver::~VulkanDriver() {
 void VulkanDriver::mainLoop() {
 	while (!glfwWindowShouldClose(_Window)) {
 		//
-		//	Calculate Start Frame Statistics
+		//	Mark Frame Start Time and Calculate Previous Frame Statistics
 		startFrame = std::chrono::high_resolution_clock::now();
+		float DF = GetDeltaFrames();
+		float FPS = (1.0f / DF) * 1000.0f;
+
+		if (_EventReceiver) {
+			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
+		}
 		//
 		//	Handle Input
 		glfwPollEvents();
+		//
+		//	Perform Input Actions
+		_EventReceiver->OnUpdate();
 		//
 		//	Simulate Physics
 		_SceneGraph->stepSimulation(deltaFrame/1000);
@@ -249,9 +268,10 @@ void VulkanDriver::mainLoop() {
 		//	Draw Frame
 		Render();
 		//
-		//	Calculate End Frame Statistics
+		//	Mark Frame End Time and Calculate Delta
 		endFrame = std::chrono::high_resolution_clock::now();
 		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count();
+		PushFrameDelta(deltaFrame);
 	}
 	//
 	//	Wait for idle before shutting down
@@ -260,13 +280,6 @@ void VulkanDriver::mainLoop() {
 
 void VulkanDriver::Render()
 {
-		PushFrame(deltaFrame);
-		float DF = GetDeltaFrames();
-		float FPS = (1.0f / DF) * 1000.0f;
-		
-		if (_EventReceiver) {
-			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
-		}
 	// 
 	// Acquire the next image from the swap chain
 	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentFrame);
@@ -288,15 +301,17 @@ void VulkanDriver::Render()
 
 	//
 	//	Update the entire scene
-	_SceneGraph->validate(currentFrame);
+	_SceneGraph->validate(currentFrame, commandPools[currentFrame], primaryCommandBuffers[currentFrame], frameBuffers[currentFrame]);
 	_SceneGraph->updateUniformBuffer(currentFrame);
 
 	
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &_SceneGraph->primaryCommandBuffers[currentFrame];
+	submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
 	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
 	{
-
+		#ifdef _DEBUG
+		throw std::runtime_error("vkQueueSubmit Failed!");
+		#endif
 	}
 
 
@@ -319,15 +334,6 @@ void VulkanDriver::Render()
 		}
 	}
 	vkQueueWaitIdle(graphicsQueue);
-}
-
-void VulkanDriver::DrawExternal(const uint32_t& currentImage) {
-	//
-	//	Update GWEN
-	if (_EventReceiver) {
-		_EventReceiver->drawGWEN(currentImage);
-	}
-	//
 }
 
 void VulkanDriver::initLua() {
@@ -627,10 +633,14 @@ void VulkanDriver::createFrameBuffers() {
 	frameBufferCreateInfo.height = HEIGHT;
 	frameBufferCreateInfo.layers = 1;
 
-	// Create frame buffers for every swap chain image
+	// Create per-frame resources
 	frameBuffers.resize(swapChain.imageCount);
-	for (uint32_t i = 0; i < frameBuffers.size(); i++)
+	commandPools.resize(swapChain.imageCount);
+	primaryCommandBuffers.resize(swapChain.imageCount);
+	for (uint32_t i = 0; i < swapChain.imageCount; i++)
 	{
+		//
+		//	FrameBuffers
 		attachments[0] = swapChain.buffers[i].view;
 		if (vkCreateFramebuffer(_VulkanDevice->logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers[i]) != VK_SUCCESS)
 		{
@@ -638,13 +648,29 @@ void VulkanDriver::createFrameBuffers() {
 			throw std::runtime_error("vkCreateFramebuffer Failed!");
 			#endif
 		}
+		//
+		//	CommandPools
+		VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+		poolInfo.queueFamilyIndex = _VulkanDevice->queueFamilyIndices.graphics;
+		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		//
+		if (vkCreateCommandPool(_VulkanDevice->logicalDevice, &poolInfo, nullptr, &commandPools[i]) != VK_SUCCESS)
+		{
+			#ifdef _DEBUG
+			throw std::runtime_error("vkCreateCommandPool Failed!");
+			#endif
+		}
+		//
+		//	Primary CommandBuffers
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+		if (vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &primaryCommandBuffers[i]) != VK_SUCCESS)
+		{
+			#ifdef _DEBUG
+			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
+			#endif
+		}
 	}
 }
-
-//
-//	Auxillary Functions
-//
-
 
 void VulkanDriver::createVmaAllocator() {
 	VmaAllocatorCreateInfo allocatorInfo = {};
@@ -653,7 +679,3 @@ void VulkanDriver::createVmaAllocator() {
 	allocatorInfo.instance = instance;
 	vmaCreateAllocator(&allocatorInfo, &allocator);
 }
-
-//
-//	Check Physical Device Support
-//
