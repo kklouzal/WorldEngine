@@ -84,6 +84,8 @@ namespace Gwen
 
 			Gwen::Color	m_Color;
 
+			std::deque<unsigned int> LastWrites = {};
+
 			std::vector<uint8_t> writeBuffer = {};
 			std::vector<uint8_t> drawBuffer = {};
 			const unsigned int dst_Size;
@@ -166,6 +168,7 @@ namespace Gwen
 							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+1] = m_Color.g;
 							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+2] = m_Color.b;
 							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+3] = value;
+							LastWrites.push_back(dstBit + 3);
 						}
 					}
 					dst_Cursor_X += Bit->xadvance;
@@ -400,7 +403,7 @@ namespace Gwen
 			//	Begin Render
 			void Begin()
 			{
-				vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
+				/*vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
 				VkCommandBufferInheritanceInfo inheritanceInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
 				inheritanceInfo.renderPass = _Driver->renderPass;
 
@@ -408,7 +411,7 @@ namespace Gwen
 				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 				beginInfo.pInheritanceInfo = &inheritanceInfo;
 
-				vkBeginCommandBuffer(commandBuffer, &beginInfo);
+				vkBeginCommandBuffer(commandBuffer, &beginInfo);*/
 
 				VkRect2D scissor = {};
 				scissor.offset = { 0, 0 };
@@ -426,11 +429,11 @@ namespace Gwen
 					reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[3+(i*4)] = 0;
 				}*/
 				unsigned char* FTA = reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData());
-				/*for (int i = 0; i < drawBuffer.size(); i++)
+				for (int i = 0; i < LastWrites.size(); i++)
 				{
-					FTA[i] = 0;
-				}*/
-				FTA = 0;
+					FTA[LastWrites[i]] = 0;
+				}
+				LastWrites.clear();
 			}
 			//
 			//	Start Clip
@@ -534,7 +537,7 @@ namespace Gwen
 				VkDeviceSize offsets2[] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &Font_VertexBuffer, offsets2);
 				vkCmdDraw(commandBuffer, Font_VertexAllocation->GetSize(), 1, 0, 0);
-				vkEndCommandBuffer(commandBuffer);
+				//vkEndCommandBuffer(commandBuffer);
 
 				CurIndirectDraw = 0;
 				TotalVertexCount = 0;

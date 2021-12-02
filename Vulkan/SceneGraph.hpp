@@ -335,7 +335,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 			SceneNodes[i]->drawFrame(commandBuffers[CurFrame], CurFrame);
 		}
 		//	test
-		//_Driver->DrawExternal(PriCmdBuffer);
+		_Driver->DrawExternal(commandBuffers[CurFrame]);
 		//
 		//	End recording state
 		if (vkEndCommandBuffer(commandBuffers[CurFrame]) != VK_SUCCESS)
