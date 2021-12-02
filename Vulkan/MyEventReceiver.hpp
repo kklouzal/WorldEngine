@@ -65,10 +65,7 @@ public:
 						_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, btVector3(0, 15, 0));
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
-							_Driver->_SceneGraph->createCharacterSceneNode("media/models/box.gltf", btVector3(0,5,0));
-						}
-					else {
-						//_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf");
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0, 5, 0));
 					}
 				}
 				if (NewEvent.Key == GLFW_KEY_W) {
@@ -100,7 +97,7 @@ public:
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
 				if (NewEvent.Key == GLFW_KEY_C) {
-					_Driver->_SceneGraph->createCharacterSceneNode("media/models/box.gltf", btVector3(0, 50, 0));
+					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0, 50, 0));
 				}
 			}
 		}

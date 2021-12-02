@@ -22,8 +22,6 @@ public:
 	VkBuffer indexBuffer = VK_NULL_HANDLE;
 	VmaAllocation indexAllocation = VMA_NULL;
 
-	std::vector<VkCommandBuffer> commandBuffers = {};
-
 	std::vector<VkBuffer> uniformBuffers = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
 
@@ -38,8 +36,6 @@ public:
 		createUniformBuffers();
 		Texture = Diffuse;
 		Descriptor = Pipe->createDescriptor(Texture, uniformBuffers);
-
-		draw();
 	}
 
 	~TriangleMesh() {
@@ -125,7 +121,7 @@ public:
 
 		//
 		//	CPU->GPU Copy
-		VkCommandBuffer commandBuffer = _Driver->_SceneGraph->beginSingleTimeCommands();
+		VkCommandBuffer commandBuffer = _Driver->beginSingleTimeCommands();
 
 		VkBufferCopy vertexCopyRegion = {};
 		vertexCopyRegion.size = vertexBufferSize;
@@ -135,7 +131,7 @@ public:
 		indexCopyRegion.size = indexBufferInfo.size;
 		vkCmdCopyBuffer(commandBuffer, stagingIndexBuffer, indexBuffer, 1, &indexCopyRegion);
 
-		_Driver->_SceneGraph->endSingleTimeCommands(commandBuffer);
+		_Driver->endSingleTimeCommands(commandBuffer);
 
 		//
 		//	Destroy Staging Buffers
@@ -143,25 +139,18 @@ public:
 		vmaDestroyBuffer(_Driver->allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
 	}
 
-	void draw() {
-		//	Command buffers are returned in the recording state
-		commandBuffers = _Driver->_SceneGraph->newCommandBuffer();
-		for (size_t i = 0; i < commandBuffers.size(); i++) {
-
-			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);
-			//	Bind Descriptor Sets
-			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[i], 0, nullptr);
+	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame)
+	{
+		vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);
+		//	Bind Descriptor Sets
+		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
 			
-			//	Draw Vertex Buffer
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, &vertexBuffer, offsets);
-			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+		//	Draw Vertex Buffer
+		VkDeviceSize offsets[] = { 0 };
+		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);
+		vkCmdBindIndexBuffer(CmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
-			//
-			//	End recording
-			vkEndCommandBuffer(commandBuffers[i]);
-		}
+		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
 	}
 
 	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo) {
@@ -173,10 +162,5 @@ public:
 		ubo.proj[1][1] *= -1;
 
 		memcpy(uniformAllocations[currentImage]->GetMappedData(), &ubo, sizeof(ubo));
-	}
-
-	void drawFrame(const VkCommandBuffer &primaryCommandBuffer) {
-		//std::cout << "TriangleMesh DrawFrame" << std::endl;
-		vkCmdExecuteCommands(primaryCommandBuffer, commandBuffers.size(), commandBuffers.data());
 	}
 };
