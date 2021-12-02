@@ -168,6 +168,9 @@ namespace Gwen
 							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+1] = m_Color.g;
 							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+2] = m_Color.b;
 							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+3] = value;
+							//
+							//	Store all the alpha locations for this frame
+							//	We will set them back to 0 before the next draw effectively clearing our canvas
 							LastWrites.push_back(dstBit + 3);
 						}
 					}
@@ -403,22 +406,23 @@ namespace Gwen
 			//	Begin Render
 			void Begin()
 			{
-				/*vkResetCommandBuffer(commandBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-				VkCommandBufferInheritanceInfo inheritanceInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO };
-				inheritanceInfo.renderPass = _Driver->renderPass;
-
-				VkCommandBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-				beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-				beginInfo.pInheritanceInfo = &inheritanceInfo;
-
-				vkBeginCommandBuffer(commandBuffer, &beginInfo);*/
-
 				VkRect2D scissor = {};
 				scissor.offset = { 0, 0 };
 				scissor.extent = _Driver->swapChainExtent;
 				vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 				vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);
+
+				/*VkImageSubresourceRange ImageSubresourceRange;
+				ImageSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				ImageSubresourceRange.baseMipLevel = 0;
+				ImageSubresourceRange.levelCount = 1;
+				ImageSubresourceRange.baseArrayLayer = 0;
+				ImageSubresourceRange.layerCount = 1;
+
+				VkClearColorValue ClearColorValue = { 1.0, 0.0, 0.0, 0.0 };
+
+				vkCmdClearColorImage(commandBuffer, Font_TextureImage, VK_IMAGE_LAYOUT_GENERAL, &ClearColorValue, 1, &ImageSubresourceRange);*/
 
 				VkDeviceSize offsets[1] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &GUI_VertexBuffer, offsets);
@@ -513,7 +517,7 @@ namespace Gwen
 					0, nullptr,
 					1, &imgMemBarrier);
 
-				drawBuffer.swap(writeBuffer);
+				//drawBuffer.swap(writeBuffer);
 				//memcpy(Font_TextureAllocation->GetMappedData(), drawBuffer.data(), drawBuffer.size());
 				//writeBuffer.clear();
 				//writeBuffer.resize(dst_Size);

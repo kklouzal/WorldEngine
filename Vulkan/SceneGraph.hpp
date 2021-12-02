@@ -20,12 +20,8 @@ class SkinnedMeshSceneNode;
 //
 //	Define SceneGraph Interface
 
-class SceneGraph {
-
-	//
-	//	One IsValid bool for each primary-command-buffer.
-	//	When false, each SceneNode Sub-Command-Buffer will be resubmitted.
-	std::vector<bool> IsValid = {};
+class SceneGraph
+{
 	Camera _Camera;
 	CharacterSceneNode* _Character;
 	UniformBufferObject_PointLights PointLights;
@@ -46,16 +42,60 @@ class SceneGraph {
 	//	Secondary Command Buffers
 	//	One buffer per frame per object type
 	std::vector<VkCommandBuffer> commandBuffers;
+	std::vector<VkCommandBuffer> commandBuffers_GUI;
 
 public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
+	Gwen::Renderer::Vulkan* pRenderer;
+	Gwen::Controls::Canvas* pCanvas;
 
 	std::deque<SceneNode*> SceneNodes = {};
 
 	ImportGLTF* _ImportGLTF;
 
-	SceneGraph(VulkanDriver* Driver);
-	~SceneGraph();
+	//
+	//	Constructor
+	SceneGraph(VulkanDriver* Driver)
+		: _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), FrameCount(0), isWorld(false)
+	{
+		createUniformBuffers();
+
+		commandBuffers.resize(_Driver->frameBuffers.size());
+		commandBuffers_GUI.resize(_Driver->frameBuffers.size());
+		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
+		{
+			//
+			//	Object Command Buffer (secondary)
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]) != VK_SUCCESS)
+			{
+				#ifdef _DEBUG
+				throw std::runtime_error("vkAllocateCommandBuffers Failed!");
+				#endif
+			}
+			//
+			//	GUI Command Buffer (primary)
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]) != VK_SUCCESS)
+			{
+				#ifdef _DEBUG
+				throw std::runtime_error("vkAllocateCommandBuffers Failed!");
+				#endif
+			}
+		}
+	}
+	//
+	//	Destructor
+	~SceneGraph()
+	{
+		forceCleanupWorld();
+		printf("Destroy SceneGraph\n");
+		for (size_t i = 0; i < UniformBuffers_Lighting.size(); i++) {
+			vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
+		}
+
+		delete _ImportGLTF;
+	}
 
 	Camera &GetCamera() {
 		return _Camera;
@@ -71,17 +111,7 @@ public:
 
 	void updateUniformBuffer(const uint32_t &currentImage);
 
-	void invalidate();
-
 	void stepSimulation(const btScalar& timeStep);
-
-	//
-	//	Create SceneNode Functions
-	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
-	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, btVector3 Position);
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
-	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
-	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
 
 	std::vector<VkBuffer> UniformBuffers_Lighting = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
@@ -119,12 +149,16 @@ public:
 		cleanupWorld();
 	}
 
+	//
+	//	Create SceneNode Functions
+	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
+	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, btVector3 Position);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
+	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
+	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
+	//
 	btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To);
 };
-
-#include "Pipe_Default.hpp"
-#include "Pipe_GUI.hpp"
-#include "Pipe_Skinned.hpp"
 
 #include "MaterialCache.hpp"
 
@@ -254,13 +288,8 @@ void SceneGraph::stepSimulation(const btScalar &timeStep) {
 	}
 }
 
-void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const VkCommandBuffer& PriCmdBuffer, const VkFramebuffer& FrmBuffer) {
-	//
-	//	SceneNode Vaidation
-	//if (!IsValid[currentImage]) {
-
-	//vkResetCommandBuffer(PriCmdBuffer, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-
+void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const VkCommandBuffer& PriCmdBuffer, const VkFramebuffer& FrmBuffer)
+{
 	std::vector<VkCommandBuffer> secondaryCommandBuffers;
 
 	if (tryCleanupWorld) {
@@ -299,6 +328,10 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	inheritanceInfo.renderPass = _Driver->renderPass;
 	// Secondary command buffer also use the currently active framebuffer
 	inheritanceInfo.framebuffer = FrmBuffer;
+	//
+	VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+	commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 
 	//
 	//
@@ -313,9 +346,6 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 		// 
 		//
 		//	Begin recording state
-		VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
-		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 		if (vkBeginCommandBuffer(commandBuffers[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
 		{
 			#ifdef _DEBUG
@@ -323,42 +353,54 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 			#endif
 		}
 		//
-		//	Set viewport??
-		//VkViewport viewport = vks::initializers::viewport((float)width, (float)height, 0.0f, 1.0f);
-		//VkRect2D scissor = vks::initializers::rect2D(width, height, 0, 0);
-		//vkCmdSetViewport(secondaryCommandBuffers.background, 0, 1, &viewport);
-		//vkCmdSetScissor(secondaryCommandBuffers.background, 0, 1, &scissor);
-		
-		//
 		//	Submit SceneNode draw commands
 		for (size_t i = 0; i < SceneNodes.size(); i++) {
 			SceneNodes[i]->drawFrame(commandBuffers[CurFrame], CurFrame);
 		}
-		//	test
-		_Driver->DrawExternal(commandBuffers[CurFrame]);
 		//
 		//	End recording state
 		if (vkEndCommandBuffer(commandBuffers[CurFrame]) != VK_SUCCESS)
 		{
-#ifdef _DEBUG
+			#ifdef _DEBUG
 			throw std::runtime_error("vkEndCommandBuffer Failed!");
-#endif
+			#endif
 		}
+		//
+		//	Push our finished CommandBuffer into the pool for rendering
 		secondaryCommandBuffers.push_back(commandBuffers[CurFrame]);
 	}
 	//
 	//	BUILD ANY SPECIAL/FIXED SECONDARY COMMAND BUFFERS
 	//	LIKE PUSH THE GUI DRAW COMMANDS HERE
-	//_Driver->DrawExternal(CurFrame);
+	if (vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkBeginCommandBuffer Failed!");
+		#endif
+	}
+	//
+	//	Render GUI
+	_Driver->DrawGUI(commandBuffers_GUI[CurFrame]);
+	//
+	//	Render Debugging
 	#ifdef _DEBUG
 	if (isWorld) {
 		//dynamicsWorld->debugDrawWorld();
 	}
 	#endif
+	if (vkEndCommandBuffer(commandBuffers_GUI[CurFrame]) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkEndCommandBuffer Failed!");
+		#endif
+	}
 	//
-	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD
+	//	Push our finished CommandBuffer into the pool for rendering
+	secondaryCommandBuffers.push_back(commandBuffers_GUI[CurFrame]);
+	//
+	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD(s)
 	// 
-	// Execute render commands from the secondary command buffers
+	// Execute render commands from our secondary command buffers
 	vkCmdExecuteCommands(PriCmdBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 	vkCmdEndRenderPass(PriCmdBuffer);
 	if (vkEndCommandBuffer(PriCmdBuffer) != VK_SUCCESS)
@@ -367,9 +409,6 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 		throw std::runtime_error("vkEndCommandBuffer Failed!");
 		#endif
 	}
-
-	//	IsValid[currentImage] = true;
-	//}
 }
 
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
@@ -432,42 +471,8 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 	}
 }
 
-void SceneGraph::invalidate() {
-	for (size_t i = 0; i < IsValid.size(); i++) {
-		IsValid[i] = false;
-	}
-}
-
 //
 //
-
-SceneGraph::SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), FrameCount(0), isWorld(false)
-{
-	createUniformBuffers();
-
-	commandBuffers.resize(_Driver->frameBuffers.size());
-	for (int i = 0; i < _Driver->frameBuffers.size(); i++)
-	{
-		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-
-		if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]) != VK_SUCCESS)
-		{
-#ifdef _DEBUG
-			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-#endif
-		}
-	}
-}
-
-SceneGraph::~SceneGraph() {
-	forceCleanupWorld();
-	printf("Destroy SceneGraph\n");
-	for (size_t i = 0; i < UniformBuffers_Lighting.size(); i++) {
-		vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
-	}
-
-	delete _ImportGLTF;
-}
 
 const VkCommandBuffer SceneGraph::beginSingleTimeCommands() {
 	VkCommandBufferAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -497,4 +502,275 @@ void SceneGraph::endSingleTimeCommands(const VkCommandBuffer commandBuffer) {
 	vkQueueWaitIdle(_Driver->graphicsQueue);
 
 	vkFreeCommandBuffers(_Driver->_VulkanDevice->logicalDevice, _Driver->commandPools[0], 1, &commandBuffer);
+}
+
+//
+//	SceneGraph Create Function
+WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
+	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
+
+	tinygltf::Model Mdl;
+	_ImportGLTF->loadModel(Mdl, FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+
+	//	TODO:
+	//	Place this into Import_GLTF
+	std::string DiffuseFile("media/");
+	DiffuseFile += Infos->TexDiffuse;
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
+	if (DiffuseTex == nullptr) {
+		return nullptr;
+	}
+	//	END TODO
+
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	btCollisionShape* ColShape;
+	//if (_CollisionShapes.count(FileFBX) == 0) {
+	btTriangleMesh* trimesh = new btTriangleMesh();
+	_TriangleMeshes.push_back(trimesh);
+	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
+		auto V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+		auto V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+		auto V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+
+		trimesh->addTriangle(btVector3(V1.x, V1.y, V1.z), btVector3(V2.x, V2.y, V2.z), btVector3(V3.x, V3.y, V3.z));
+	}
+	ColShape = new btBvhTriangleMeshShape(trimesh, true);
+	_CollisionShapes[FileFBX] = ColShape;
+	//}
+	//else {
+	//	ColShape = _CollisionShapes[FileFBX];
+	//}
+
+	WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
+	MeshNode->Name = "World";
+
+	//
+	//	Bullet Physics
+	MeshNode->_CollisionShape = ColShape;
+	btTransform Transform;
+	Transform.setIdentity();
+	//Transform.setOrigin(btVector3(FBXMesh->translation[0], FBXMesh->translation[1], FBXMesh->translation[2]));
+	//Transform.setRotation(btQuaternion(glm::radians(FBXMesh->rotation[1]), glm::radians(FBXMesh->rotation[0]), glm::radians(FBXMesh->rotation[2])));
+
+	btScalar Mass(0.0f);
+	bool isDynamic = (Mass != 0.f);
+
+	btVector3 localInertia(0, 0, 0);
+	if (isDynamic) {
+		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	}
+
+	SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+	MeshNode->_RigidBody = new btRigidBody(rbInfo);
+	MeshNode->_RigidBody->setUserPointer(MeshNode);
+	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+
+	//
+	//	Push new SceneNode into the SceneGraph
+	SceneNodes.push_back(MeshNode);
+	return nullptr;
+}
+
+//
+//	SceneGraph Create Function
+CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, btVector3 Position) {
+	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
+
+	tinygltf::Model Mdl;
+	_ImportGLTF->loadModel(Mdl, FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+
+	//	TODO:
+	//	Place this into Import_GLTF
+	std::string DiffuseFile("media/");
+	DiffuseFile += Infos->TexDiffuse;
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
+	if (DiffuseTex == nullptr) {
+		return nullptr;
+	}
+	//	END TODO
+
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	btCollisionShape* ColShape;
+	if (_CollisionShapes.count(FileFBX) == 0) {
+		DecompResults* Results = Decomp(Infos);
+		ColShape = Results->CompoundShape;
+		_CollisionShapes[FileFBX] = ColShape;
+		for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+			_ConvexShapes.push_back(Results->m_convexShapes[i]);
+		}
+		for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+		}
+		delete Results;
+	}
+	else {
+		ColShape = _CollisionShapes[FileFBX];
+	}
+
+	CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
+	MeshNode->Name = "Character Scene Node";
+
+	//
+	//	Bullet Physics
+	MeshNode->_CollisionShape = ColShape;
+	btTransform Transform;
+	Transform.setIdentity();
+	Transform.setOrigin(Position);
+	//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
+
+	btScalar Mass = 0.5f;
+	bool isDynamic = (Mass != 0.f);
+
+	btVector3 localInertia(0, 0, 0);
+	if (isDynamic) {
+		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	}
+
+	CharacterSceneNodeMotionState* MotionState = new CharacterSceneNodeMotionState(MeshNode, Transform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+	MeshNode->_RigidBody = new btRigidBody(rbInfo);
+	MeshNode->_RigidBody->setUserPointer(MeshNode);
+	MeshNode->_RigidBody->setAngularFactor(btVector3(0.0f, 0.0f, 0.0f));
+	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+
+	//
+	//	Push new SceneNode into the SceneGraph
+	SceneNodes.push_back(MeshNode);
+	return MeshNode;
+}
+
+//
+//	SceneGraph Create Function
+TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
+	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
+
+	tinygltf::Model Mdl;
+	_ImportGLTF->loadModel(Mdl, FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+
+	//	TODO:
+	//	Place this into Import_GLTF
+	std::string DiffuseFile("media/");
+	DiffuseFile += Infos->TexDiffuse;
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
+	if (DiffuseTex == nullptr) {
+		return nullptr;
+	}
+	//	END TODO
+
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	btCollisionShape* ColShape;
+	if (_CollisionShapes.count(FileFBX) == 0) {
+		DecompResults* Results = Decomp(Infos);
+		ColShape = Results->CompoundShape;
+		_CollisionShapes[FileFBX] = ColShape;
+		for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+			_ConvexShapes.push_back(Results->m_convexShapes[i]);
+		}
+		for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+		}
+		delete Results;
+	}
+	else {
+		ColShape = _CollisionShapes[FileFBX];
+	}
+
+	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
+	MeshNode->Name = "TriangleMeshSceneNode";
+
+	//
+	//	Bullet Physics
+	MeshNode->_CollisionShape = ColShape;
+	btTransform Transform;
+	Transform.setIdentity();
+	Transform.setOrigin(Position);
+	//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
+
+	bool isDynamic = (Mass != 0.f);
+
+	btVector3 localInertia(0, 0, 0);
+	if (isDynamic) {
+		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	}
+
+	SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+	MeshNode->_RigidBody = new btRigidBody(rbInfo);
+	MeshNode->_RigidBody->setUserPointer(MeshNode);
+	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+
+	//
+	//	Push new SceneNode into the SceneGraph
+	SceneNodes.push_back(MeshNode);
+	return MeshNode;
+}
+
+//
+//	SceneGraph Create Function
+SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
+	Pipeline::Skinned* Pipe = _Driver->_MaterialCache->GetPipe_Skinned();
+
+
+	tinygltf::Model Mdl;
+	_ImportGLTF->loadModel(Mdl, FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->ParseModel(Mdl);
+
+	//	TODO:
+	//	Place this into Import_GLTF
+	std::string DiffuseFile("media/");
+	DiffuseFile += Infos->TexDiffuse;
+	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
+	if (DiffuseTex == nullptr) {
+		return nullptr;
+	}
+	//	END TODO
+
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	btCollisionShape* ColShape;
+	if (_CollisionShapes.count(FileFBX) == 0) {
+		DecompResults* Results = Decomp(Infos);
+		ColShape = Results->CompoundShape;
+		_CollisionShapes[FileFBX] = ColShape;
+		for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+			_ConvexShapes.push_back(Results->m_convexShapes[i]);
+		}
+		for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+		}
+		delete Results;
+	}
+	else {
+		ColShape = _CollisionShapes[FileFBX];
+	}
+
+	SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh);
+	MeshNode->Name = "SkinnedMeshSceneNode";
+
+	//
+	//	Bullet Physics
+	MeshNode->_CollisionShape = ColShape;
+	btTransform Transform;
+	Transform.setIdentity();
+	Transform.setOrigin(Position);
+	//Transform.setRotation(btQuaternion(btVector3(1, 0, 0), glm::radians(-90.0f)));
+
+	bool isDynamic = (Mass != 0.f);
+
+	btVector3 localInertia(0, 0, 0);
+	if (isDynamic) {
+		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	}
+
+	SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
+	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+	MeshNode->_RigidBody = new btRigidBody(rbInfo);
+	MeshNode->_RigidBody->setUserPointer(MeshNode);
+	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+
+	SceneNodes.push_back(MeshNode);
+	return MeshNode;
 }

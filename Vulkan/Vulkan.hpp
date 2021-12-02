@@ -121,8 +121,6 @@ public:
 
 	VkExtent2D swapChainExtent;
 	VkRenderPass renderPass = VK_NULL_HANDLE;
-	const int MAX_FRAMES_IN_FLIGHT = 3;
-	std::vector<VkFence> inFlightFences = {};
 
 	// VMA
 	VmaAllocator allocator = VMA_NULL;
@@ -155,7 +153,7 @@ public:
 
 	void setEventReceiver(EventReceiver* _EventRcvr);
 
-	void DrawExternal(const VkCommandBuffer& Buff);
+	void DrawGUI(const VkCommandBuffer& Buff);
 	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
 	float deltaFrame = 0;
@@ -187,6 +185,11 @@ public:
 
 #include "EventReceiver.hpp"
 
+
+void VulkanDriver::DrawGUI(const VkCommandBuffer& Buff)
+{
+	_EventReceiver->DrawGUI(Buff);
+}
 
 //
 //	Initialize
@@ -255,6 +258,9 @@ void VulkanDriver::mainLoop() {
 		//
 		//	Handle Input
 		glfwPollEvents();
+		//
+		//	Perform Input Actions
+		_EventReceiver->OnUpdate();
 		//
 		//	Simulate Physics
 		_SceneGraph->stepSimulation(deltaFrame/1000);
@@ -328,15 +334,6 @@ void VulkanDriver::Render()
 		}
 	}
 	vkQueueWaitIdle(graphicsQueue);
-}
-
-void VulkanDriver::DrawExternal(const VkCommandBuffer& Buff) {
-	//
-	//	Update GWEN
-	if (_EventReceiver) {
-		_EventReceiver->drawGWEN(Buff);
-	}
-	//
 }
 
 void VulkanDriver::initLua() {

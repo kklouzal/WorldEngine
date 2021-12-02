@@ -33,13 +33,9 @@ class EventReceiver : public Gwen::Event::Handler {
 	SpawnMenu* _SpawnMenu = nullptr;
 	//
 
-	void drawGWEN(const VkCommandBuffer& Buff) {
-		OnUpdate();
+	void DrawGUI(const VkCommandBuffer& Buff) {
 		pRenderer->SetBuffer(Buff);
 		pCanvas->RenderCanvas();
-		//
-		//	Draw GWEN
-		//vkCmdExecuteCommands(_Driver->primaryCommandBuffers[currentImage], 1, &pRenderer->GetBuffer(currentImage));
 	}
 
 	void OnPress(Gwen::Controls::Base* pControl);

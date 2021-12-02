@@ -1,5 +1,9 @@
 #pragma once
 
+#include "Pipe_Default.hpp"
+#include "Pipe_GUI.hpp"
+#include "Pipe_Skinned.hpp"
+
 enum Pipelines {
 	Default,
 	GUI,
