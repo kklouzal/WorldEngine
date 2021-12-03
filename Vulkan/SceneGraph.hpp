@@ -192,15 +192,15 @@ void SceneGraph::initWorld() {
 	btSetTaskScheduler(btCreateDefaultTaskScheduler());
 	//
 	btDefaultCollisionConstructionInfo cci;
-	cci.m_defaultMaxPersistentManifoldPoolSize = 80000;
-	cci.m_defaultMaxCollisionAlgorithmPoolSize = 80000;
+	cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
+	cci.m_defaultMaxCollisionAlgorithmPoolSize = 102400;
 	collisionConfiguration = new btDefaultCollisionConfiguration(cci);
 	dispatcher = new btCollisionDispatcherMt(collisionConfiguration, 40);
 	broadphase = new btDbvtBroadphase();
 	//
 	//	Solver Pool
-	btConstraintSolver* solvers[BT_MAX_THREAD_COUNT/2];
-	int maxThreadCount = BT_MAX_THREAD_COUNT/2;
+	btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
+	int maxThreadCount = BT_MAX_THREAD_COUNT;
 	for (int i = 0; i < maxThreadCount; ++i)
 	{
 		solvers[i] = new btSequentialImpulseConstraintSolverMt();
@@ -213,13 +213,19 @@ void SceneGraph::initWorld() {
 	//
 	//	Set World Properties
 	dynamicsWorld->setGravity(btVector3(0, -10, 0));
+	dynamicsWorld->setForceUpdateAllAabbs(false);
 	dynamicsWorld->getSolverInfo().m_solverMode = SOLVER_SIMD |
 		//SOLVER_USE_WARMSTARTING |
-		// SOLVER_RANDMIZE_ORDER |
+		//SOLVER_RANDMIZE_ORDER |
 		// SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
 		// SOLVER_USE_2_FRICTION_DIRECTIONS |
 		SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
+		//SOLVER_CACHE_FRIENDLY |
+		SOLVER_DISABLE_IMPLICIT_CONE_FRICTION |
+		//SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION |
 		0;
+	
+
 	dynamicsWorld->getSolverInfo().m_numIterations = 30;
 	//
 	//	true - false
