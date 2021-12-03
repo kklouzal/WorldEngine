@@ -3,6 +3,13 @@
 #include "btBulletDynamicsCommon.h"
 #include "Bullet_DebugDraw.hpp"
 #include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
+#include "BulletCollision/CollisionDispatch/btCollisionDispatcherMt.h"
+#include "BulletDynamics/Dynamics/btSimulationIslandManagerMt.h"  // for setSplitIslands()
+#include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
+#include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
+
+#include "Bullet_TaskScheduler.hpp"
+
 #include "Import_GLTF.hpp"
 #include "ConvexDecomposition.hpp"
 
@@ -25,13 +32,19 @@ class SceneGraph
 	Camera _Camera;
 	CharacterSceneNode* _Character;
 	UniformBufferObject_PointLights PointLights;
+	//
+	//	Bullet Physics
+
+	btTaskSchedulerManager gTaskSchedulerMgr;
 
 	btDefaultCollisionConfiguration* collisionConfiguration;
 	btCollisionDispatcher* dispatcher;
-	btBroadphaseInterface* overlappingPairCache;
-	btSequentialImpulseConstraintSolver* solver;
+	btBroadphaseInterface* broadphase;
+	btConstraintSolverPoolMt* solverPool;
 	btDiscreteDynamicsWorld* dynamicsWorld;
 
+	//
+	//
 	std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
 	std::deque<btTriangleMesh*> _TriangleMeshes;
 	std::deque<btConvexShape*> _ConvexShapes;
@@ -176,15 +189,43 @@ public:
 
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
+	//
+	//	NEW
 
-	collisionConfiguration = new btDefaultCollisionConfiguration();
+	if (gTaskSchedulerMgr.getNumTaskSchedulers() == 0)
+	{
+		gTaskSchedulerMgr.init();
+	}
+	btDefaultCollisionConstructionInfo cci;
+	cci.m_defaultMaxPersistentManifoldPoolSize = 80000;
+	cci.m_defaultMaxCollisionAlgorithmPoolSize = 80000;
+	collisionConfiguration = new btDefaultCollisionConfiguration(cci);
 	dispatcher = new btCollisionDispatcher(collisionConfiguration);
-	overlappingPairCache = new btDbvtBroadphase();
-	solver = new btSequentialImpulseConstraintSolver;
-	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+	broadphase = new btDbvtBroadphase();
+	//
+	//	Solver Pool
+	btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
+	int maxThreadCount = BT_MAX_THREAD_COUNT;
+	for (int i = 0; i < maxThreadCount; ++i)
+	{
+		solvers[i] = new btSequentialImpulseConstraintSolverMt();
+	}
+	solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
+	btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
+	//
+	//	Create Dynamics World
+	dynamicsWorld = new btDiscreteDynamicsWorldMt(dispatcher, broadphase, solverPool, solver, collisionConfiguration);
+	//
+	//	Set World Properties
+	dynamicsWorld->setGravity(btVector3(0, -10, 0));
+	dynamicsWorld->getSolverInfo().m_solverMode = SOLVER_SIMD |
+		SOLVER_USE_WARMSTARTING |
+		// SOLVER_RANDMIZE_ORDER |
+		// SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
+		// SOLVER_USE_2_FRICTION_DIRECTIONS |
+		0;
 	dynamicsWorld->getSolverInfo().m_numIterations = 30;
 
-	dynamicsWorld->setGravity(btVector3(0, -10, 0));
 	#ifdef _DEBUG
 	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
 	#endif
@@ -232,9 +273,9 @@ void SceneGraph::cleanupWorld() {
 	//delete dynamics world
 	delete dynamicsWorld;
 	//delete solver
-	delete solver;
+	delete solverPool;
 	//delete broadphase
-	delete overlappingPairCache;
+	delete broadphase;
 	//delete dispatcher
 	delete dispatcher;
 	delete collisionConfiguration;

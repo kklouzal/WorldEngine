@@ -45,6 +45,9 @@
     <Filter Include="Header Files\Vulkan">
       <UniqueIdentifier>{57d7ea9b-c72f-4357-8675-1c52f408eeea}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Bullet">
+      <UniqueIdentifier>{76bdbda7-268a-4f5d-8d26-40865a6975d2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -197,6 +200,9 @@
     </ClInclude>
     <ClInclude Include="VulkanSwapChain.hpp">
       <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Bullet_TaskScheduler.hpp">
+      <Filter>Header Files\Bullet</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
