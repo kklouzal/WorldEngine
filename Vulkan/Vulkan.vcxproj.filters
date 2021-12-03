@@ -201,8 +201,5 @@
     <ClInclude Include="VulkanSwapChain.hpp">
       <Filter>Header Files\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Bullet_TaskScheduler.hpp">
-      <Filter>Header Files\Bullet</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

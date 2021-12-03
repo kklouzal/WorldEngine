@@ -8,8 +8,6 @@
 #include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
 #include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
 
-#include "Bullet_TaskScheduler.hpp"
-
 #include "Import_GLTF.hpp"
 #include "ConvexDecomposition.hpp"
 
@@ -35,10 +33,8 @@ class SceneGraph
 	//
 	//	Bullet Physics
 
-	btTaskSchedulerManager gTaskSchedulerMgr;
-
 	btDefaultCollisionConfiguration* collisionConfiguration;
-	btCollisionDispatcher* dispatcher;
+	btCollisionDispatcherMt* dispatcher;
 	btBroadphaseInterface* broadphase;
 	btConstraintSolverPoolMt* solverPool;
 	btDiscreteDynamicsWorld* dynamicsWorld;
@@ -189,23 +185,22 @@ public:
 
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
-	//
-	//	NEW
 
-	if (gTaskSchedulerMgr.getNumTaskSchedulers() == 0)
-	{
-		gTaskSchedulerMgr.init();
-	}
+	//btSetTaskScheduler(btGetOpenMPTaskScheduler());
+	//btSetTaskScheduler(btGetTBBTaskScheduler());
+	//btSetTaskScheduler(btGetPPLTaskScheduler());
+	btSetTaskScheduler(btCreateDefaultTaskScheduler());
+	//
 	btDefaultCollisionConstructionInfo cci;
 	cci.m_defaultMaxPersistentManifoldPoolSize = 80000;
 	cci.m_defaultMaxCollisionAlgorithmPoolSize = 80000;
 	collisionConfiguration = new btDefaultCollisionConfiguration(cci);
-	dispatcher = new btCollisionDispatcher(collisionConfiguration);
+	dispatcher = new btCollisionDispatcherMt(collisionConfiguration, 40);
 	broadphase = new btDbvtBroadphase();
 	//
 	//	Solver Pool
-	btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
-	int maxThreadCount = BT_MAX_THREAD_COUNT;
+	btConstraintSolver* solvers[BT_MAX_THREAD_COUNT/2];
+	int maxThreadCount = BT_MAX_THREAD_COUNT/2;
 	for (int i = 0; i < maxThreadCount; ++i)
 	{
 		solvers[i] = new btSequentialImpulseConstraintSolverMt();
@@ -219,12 +214,32 @@ void SceneGraph::initWorld() {
 	//	Set World Properties
 	dynamicsWorld->setGravity(btVector3(0, -10, 0));
 	dynamicsWorld->getSolverInfo().m_solverMode = SOLVER_SIMD |
-		SOLVER_USE_WARMSTARTING |
+		//SOLVER_USE_WARMSTARTING |
 		// SOLVER_RANDMIZE_ORDER |
 		// SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
 		// SOLVER_USE_2_FRICTION_DIRECTIONS |
+		SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
 		0;
 	dynamicsWorld->getSolverInfo().m_numIterations = 30;
+	//
+	//	true - false
+	btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
+	//
+	//	0.0f - 0.25f
+	printf("m_leastSquaresResidualThreshold %f\n", dynamicsWorld->getSolverInfo().m_leastSquaresResidualThreshold);
+	//
+	//	1.0f - 2000.0f
+	printf("s_minimumContactManifoldsForBatching %i\n", btSequentialImpulseConstraintSolverMt::s_minimumContactManifoldsForBatching);
+	//
+	//	1.0f - 1000.0f
+	printf("s_minBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_minBatchSize);
+	//
+	//	1.0f - 1000.0f
+	printf("s_maxBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_maxBatchSize);
+	//
+	//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_2D
+	//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_3D
+	printf("s_contactBatchingMethod %i\n", btSequentialImpulseConstraintSolverMt::s_contactBatchingMethod);
 
 	#ifdef _DEBUG
 	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
