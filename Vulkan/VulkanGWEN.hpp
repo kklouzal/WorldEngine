@@ -494,7 +494,7 @@ namespace Gwen
 				imgMemBarrier.image = Font_TextureImage;
 				imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
+				
 				vkCmdPipelineBarrier(
 					CB,
 					VK_PIPELINE_STAGE_TRANSFER_BIT,

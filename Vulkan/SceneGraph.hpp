@@ -42,6 +42,7 @@ class SceneGraph
 	//	Secondary Command Buffers
 	//	One buffer per frame per object type
 	std::vector<VkCommandBuffer> commandBuffers;
+	std::vector<VkCommandBuffer> commandBuffers_GUI;
 
 public:
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
@@ -55,12 +56,27 @@ public:
 	SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), FrameCount(0), isWorld(false)
 	{
 		createUniformBuffers();
-
+		//
+		//	Create Object CommandBuffers
 		commandBuffers.resize(_Driver->frameBuffers.size());
+		commandBuffers_GUI.resize(_Driver->frameBuffers.size());
 		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]) != VK_SUCCESS)
+			{
+				#ifdef _DEBUG
+				throw std::runtime_error("vkAllocateCommandBuffers Failed!");
+				#endif
+			}
+		}
+		//
+		//	Create GUI CommandBuffers
+		commandBuffers.resize(_Driver->frameBuffers.size());
+		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
+		{
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]) != VK_SUCCESS)
 			{
 				#ifdef _DEBUG
 				throw std::runtime_error("vkAllocateCommandBuffers Failed!");
@@ -242,6 +258,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	}
 
 	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+	//cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
 	VkClearValue clearValues[2];
 	clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -271,21 +288,23 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	inheritanceInfo.renderPass = _Driver->renderPass;
 	inheritanceInfo.framebuffer = FrmBuffer;
 	//
+	//	Secondary CommandBuffer Begin Info
+	VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+	commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+	//
 	//	BEGIN BUILDING SECONDARY COMMAND BUFFERS
 	//	ACTUALLY PUSH DRAW COMMANDS HERE
 	if (!tryCleanupWorld) {
 		// 
 		//
 		//	Begin recording
-		VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
-		commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-		commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 		if (vkBeginCommandBuffer(commandBuffers[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
 		{
 			#ifdef _DEBUG
 			throw std::runtime_error("vkBeginCommandBuffer Failed!");
 			#endif
-		}		
+		}
 		//
 		//	Submit individual SceneNode draw commands
 		for (size_t i = 0; i < SceneNodes.size(); i++) {
@@ -307,12 +326,32 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	//
 	//	BUILD ANY SPECIAL/FIXED SECONDARY COMMAND BUFFERS
 	//	LIKE PUSH THE GUI DRAW COMMANDS HERE
-	//_Driver->DrawExternal(CurFrame);
-	#ifdef _DEBUG
-	if (isWorld) {
-		//dynamicsWorld->debugDrawWorld();
-	}
-	#endif
+	//
+	//
+	//	Begin recording
+	//if (vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
+	//{
+	//	#ifdef _DEBUG
+	//	throw std::runtime_error("vkBeginCommandBuffer Failed!");
+	//	#endif
+	//}
+	////	test
+	//_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
+	//#ifdef _DEBUG
+	//if (isWorld) {
+	//	//dynamicsWorld->debugDrawWorld();
+	//}
+	//#endif
+	////
+	////
+	////	End recording state
+	//if (vkEndCommandBuffer(commandBuffers_GUI[CurFrame]) != VK_SUCCESS)
+	//{
+	//	#ifdef _DEBUG
+	//	throw std::runtime_error("vkEndCommandBuffer Failed!");
+	//	#endif
+	//}
+	//secondaryCommandBuffers.push_back(commandBuffers_GUI[CurFrame]);
 	//
 	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD
 	// 
