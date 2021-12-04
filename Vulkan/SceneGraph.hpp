@@ -3,6 +3,11 @@
 #include "btBulletDynamicsCommon.h"
 #include "Bullet_DebugDraw.hpp"
 #include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
+#include "BulletCollision/CollisionDispatch/btCollisionDispatcherMt.h"
+#include "BulletDynamics/Dynamics/btSimulationIslandManagerMt.h"  // for setSplitIslands()
+#include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
+#include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
+
 #include "Import_GLTF.hpp"
 #include "ConvexDecomposition.hpp"
 
@@ -25,13 +30,17 @@ class SceneGraph
 	Camera _Camera;
 	CharacterSceneNode* _Character;
 	UniformBufferObject_PointLights PointLights;
+	//
+	//	Bullet Physics
 
 	btDefaultCollisionConfiguration* collisionConfiguration;
-	btCollisionDispatcher* dispatcher;
-	btBroadphaseInterface* overlappingPairCache;
-	btSequentialImpulseConstraintSolver* solver;
+	btCollisionDispatcherMt* dispatcher;
+	btBroadphaseInterface* broadphase;
+	btConstraintSolverPoolMt* solverPool;
 	btDiscreteDynamicsWorld* dynamicsWorld;
 
+	//
+	//
 	std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
 	std::deque<btTriangleMesh*> _TriangleMeshes;
 	std::deque<btConvexShape*> _ConvexShapes;
@@ -177,14 +186,67 @@ public:
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
-	collisionConfiguration = new btDefaultCollisionConfiguration();
-	dispatcher = new btCollisionDispatcher(collisionConfiguration);
-	overlappingPairCache = new btDbvtBroadphase();
-	solver = new btSequentialImpulseConstraintSolver;
-	dynamicsWorld = new btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
-	dynamicsWorld->getSolverInfo().m_numIterations = 30;
-
+	//btSetTaskScheduler(btGetOpenMPTaskScheduler());
+	//btSetTaskScheduler(btGetTBBTaskScheduler());
+	//btSetTaskScheduler(btGetPPLTaskScheduler());
+	btSetTaskScheduler(btCreateDefaultTaskScheduler());
+	//
+	btDefaultCollisionConstructionInfo cci;
+	cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
+	cci.m_defaultMaxCollisionAlgorithmPoolSize = 102400;
+	collisionConfiguration = new btDefaultCollisionConfiguration(cci);
+	dispatcher = new btCollisionDispatcherMt(collisionConfiguration, 40);
+	broadphase = new btDbvtBroadphase();
+	//
+	//	Solver Pool
+	btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
+	int maxThreadCount = BT_MAX_THREAD_COUNT;
+	for (int i = 0; i < maxThreadCount; ++i)
+	{
+		solvers[i] = new btSequentialImpulseConstraintSolverMt();
+	}
+	solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
+	btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
+	//
+	//	Create Dynamics World
+	dynamicsWorld = new btDiscreteDynamicsWorldMt(dispatcher, broadphase, solverPool, solver, collisionConfiguration);
+	//
+	//	Set World Properties
 	dynamicsWorld->setGravity(btVector3(0, -10, 0));
+	dynamicsWorld->setForceUpdateAllAabbs(false);
+	dynamicsWorld->getSolverInfo().m_solverMode = SOLVER_SIMD |
+		//SOLVER_USE_WARMSTARTING |
+		//SOLVER_RANDMIZE_ORDER |
+		// SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
+		// SOLVER_USE_2_FRICTION_DIRECTIONS |
+		SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
+		//SOLVER_CACHE_FRIENDLY |
+		SOLVER_DISABLE_IMPLICIT_CONE_FRICTION |
+		//SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION |
+		0;
+	
+
+	dynamicsWorld->getSolverInfo().m_numIterations = 30;
+	//
+	//	true - false
+	btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
+	//
+	//	0.0f - 0.25f
+	printf("m_leastSquaresResidualThreshold %f\n", dynamicsWorld->getSolverInfo().m_leastSquaresResidualThreshold);
+	//
+	//	1.0f - 2000.0f
+	printf("s_minimumContactManifoldsForBatching %i\n", btSequentialImpulseConstraintSolverMt::s_minimumContactManifoldsForBatching);
+	//
+	//	1.0f - 1000.0f
+	printf("s_minBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_minBatchSize);
+	//
+	//	1.0f - 1000.0f
+	printf("s_maxBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_maxBatchSize);
+	//
+	//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_2D
+	//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_3D
+	printf("s_contactBatchingMethod %i\n", btSequentialImpulseConstraintSolverMt::s_contactBatchingMethod);
+
 	#ifdef _DEBUG
 	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
 	#endif
@@ -232,9 +294,9 @@ void SceneGraph::cleanupWorld() {
 	//delete dynamics world
 	delete dynamicsWorld;
 	//delete solver
-	delete solver;
+	delete solverPool;
 	//delete broadphase
-	delete overlappingPairCache;
+	delete broadphase;
 	//delete dispatcher
 	delete dispatcher;
 	delete collisionConfiguration;

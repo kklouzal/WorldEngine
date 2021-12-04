@@ -97,7 +97,10 @@ public:
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
 				if (NewEvent.Key == GLFW_KEY_C) {
-					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0, 50, 0));
+					int X = (rand() % 100) - 50;
+					int Z = (rand() % 100) - 50;
+					int Y = (rand() % 70) + 30;
+					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
 				}
 			}
 		}

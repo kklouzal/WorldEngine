@@ -31,14 +31,17 @@ class SceneNodeMotionState : public btMotionState {
 public:
 	SceneNodeMotionState(SceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos), ModelPtr(glm::value_ptr(_SceneNode->Model)) {}
 
+	//
+	//	Sets our initial spawn position
 	virtual void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
-		_btPos.getOpenGLMatrix(ModelPtr);
+		worldTrans.getOpenGLMatrix(ModelPtr);
 	}
 
+	//
+	//	Called whenever the physics representation of this SceneNode is finished moving
 	virtual void setWorldTransform(const btTransform& worldTrans) {
-		_btPos = worldTrans;
-		_btPos.getOpenGLMatrix(ModelPtr);
+		worldTrans.getOpenGLMatrix(ModelPtr);
 	}
 };
 

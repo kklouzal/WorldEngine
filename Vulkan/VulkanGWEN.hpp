@@ -166,12 +166,13 @@ namespace Gwen
 							//writeBuffer[dstBit +1]	= m_Color.g;// +1 == G
 							//writeBuffer[dstBit +2]	= m_Color.b;// +2 == B
 							//writeBuffer[dstBit +3]	= value;	// +3 == A
-							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit] = m_Color.r;
-							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+1] = m_Color.g;
-							reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit+2] = m_Color.b;
+							unsigned char* TextureData = reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData());
+							TextureData[dstBit] = m_Color.r;
+							TextureData[dstBit+1] = m_Color.g;
+							TextureData[dstBit+2] = m_Color.b;
 							//
 							//	Store the alpha position into our 'LastWrites' buffer before setting the value
-							LastWrites.push_back(&reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData())[dstBit + 3]);
+							LastWrites.push_back(&TextureData[dstBit + 3]);
 							*LastWrites.back() = value;
 						}
 					}
