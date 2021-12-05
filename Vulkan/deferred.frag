@@ -11,7 +11,7 @@ layout (location = 0) out vec4 outFragcolor;
 
 struct Light {
 	vec4 position;
-	vec3 color;
+	vec4 color;
 	float radius;
 };
 
@@ -79,13 +79,13 @@ void main()
 			// Diffuse part
 			vec3 N = normalize(normal);
 			float NdotL = max(0.0, dot(N, L));
-			vec3 diff = ubo.lights[i].color * albedo.rgb * NdotL * atten;
+			vec3 diff = ubo.lights[i].color.xyz * albedo.rgb * NdotL * atten;
 
 			// Specular part
 			// Specular map values are stored in alpha of albedo mrt
 			vec3 R = reflect(-L, N);
 			float NdotR = max(0.0, dot(R, V));
-			vec3 spec = ubo.lights[i].color * albedo.a * pow(NdotR, 16.0) * atten;
+			vec3 spec = ubo.lights[i].color.xyz * albedo.a * pow(NdotR, 16.0) * atten;
 
 			fragcolor += diff + spec;
 		}
