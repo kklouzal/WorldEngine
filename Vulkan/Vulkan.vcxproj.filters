@@ -76,6 +76,12 @@
     <None Include="Vertex_Default.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
+    <None Include="deferred.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="deferred.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Vulkan.hpp">

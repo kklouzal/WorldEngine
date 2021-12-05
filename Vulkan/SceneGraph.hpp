@@ -368,6 +368,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 		vkCmdSetScissor(commandBuffers[CurFrame], 0, 1, &_Driver->scissor_Main);
 		//
 		//	Submit individual SceneNode draw commands
+		vkCmdBindPipeline(commandBuffers[CurFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _Driver->_MaterialCache->GetPipe_Default()->graphicsPipeline);
 		for (size_t i = 0; i < SceneNodes.size(); i++) {
 			SceneNodes[i]->drawFrame(commandBuffers[CurFrame], CurFrame);
 		}

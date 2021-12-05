@@ -40,6 +40,43 @@
 #include "VulkanDevice.hpp"
 #include "VulkanSwapChain.hpp"
 
+// Texture properties
+#define TEX_DIM 2048
+#define TEX_FILTER VK_FILTER_LINEAR
+
+// Offscreen frame buffer properties
+#define FB_DIM TEX_DIM
+struct uboOS {
+	glm::mat4 projection;
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::vec4 instancePos[3];
+} uboOffscreenVS;
+struct Light {
+	glm::vec4 position;
+	glm::vec3 color;
+	float radius;
+};
+struct uboC {
+	Light lights[6];
+	glm::vec4 viewPos;
+	int debugDisplayTarget = 0;
+} uboComposition;
+// Framebuffer for offscreen rendering
+struct FrameBufferAttachment {
+	VkImage image;
+	VmaAllocation imageAlloc;
+	VkImageView view;
+	VkFormat format;
+};
+struct FrameBuffer {
+	int32_t width, height;
+	VkFramebuffer frameBuffer;
+	FrameBufferAttachment position, normal, albedo;
+	FrameBufferAttachment depth;
+	VkRenderPass renderPass;
+} offScreenFrameBuf;
+
 class EventReceiver;
 class MaterialCache;
 class SceneGraph;
@@ -89,6 +126,8 @@ public:
 		VkSemaphore presentComplete;
 		// Command buffer submission and execution
 		VkSemaphore renderComplete;
+		// Offscreen synchronization
+		VkSemaphore offscreenSync;
 	} semaphores;
 	//
 	//	DepthStencil Data
@@ -118,10 +157,10 @@ public:
 	//	MAYBE only need a single pool and primary buffer..
 	std::vector <VkCommandPool> commandPools;
 	std::vector <VkCommandBuffer> primaryCommandBuffers;
+	std::vector <VkCommandBuffer> offscreenCommandBuffers;
 
 	VkExtent2D swapChainExtent;
 	VkRenderPass renderPass = VK_NULL_HANDLE;
-
 
 	VkViewport viewport_Main = {};
 	VkRect2D scissor_Main = {};
@@ -132,6 +171,57 @@ public:
 
 	MaterialCache* _MaterialCache;
 	SceneGraph* _SceneGraph;
+
+
+	std::vector<VkBuffer> uboCompositionBuff = {};				//CLEAN ME UP
+	std::vector<VmaAllocation> uboCompositionAlloc = {};	//CLEAN ME UP
+	std::vector<VkBuffer> uboOffscreenVSBuff = {};				//CLEAN ME UP
+	std::vector<VmaAllocation> uboOffscreenVSAlloc = {};	//CLEAN ME UP
+
+	void createUniformBuffersDeferred()
+	{
+		VkDeviceSize bufferSize1 = sizeof(uboC);
+		VkDeviceSize bufferSize2 = sizeof(uboOS);
+
+		uboCompositionBuff.resize(swapChain.images.size());
+		uboCompositionAlloc.resize(swapChain.images.size());
+
+		for (size_t i = 0; i < swapChain.images.size(); i++) {
+
+			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			uniformBufferInfo.size = bufferSize1;
+			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			VmaAllocationCreateInfo uniformAllocInfo = {};
+			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+			VmaAllocationInfo uniformBufferAllocInfo = {};
+
+			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], &uniformBufferAllocInfo);
+		}
+		uboOffscreenVSBuff.resize(swapChain.images.size());
+		uboOffscreenVSAlloc.resize(swapChain.images.size());
+		for (size_t i = 0; i < swapChain.images.size(); i++) {
+
+			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			uniformBufferInfo.size = bufferSize2;
+			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			VmaAllocationCreateInfo uniformAllocInfo = {};
+			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+			VmaAllocationInfo uniformBufferAllocInfo = {};
+
+			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboOffscreenVSBuff[i], &uboOffscreenVSAlloc[i], &uniformBufferAllocInfo);
+		}
+	}
+
+	void updateUniformBufferOffscreen(size_t CurFrame);
+	void updateUniformBufferComposition(size_t CurFrame);
 
 	//
 	//	Lua
@@ -154,6 +244,9 @@ public:
 	//
 	//	Check Physical Device Support
 	//
+
+	void createAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment* attachment);
+	void prepareOffscreenFrameBuffer();
 
 	void setEventReceiver(EventReceiver* _EventRcvr);
 
@@ -214,6 +307,48 @@ public:
 
 #include "EventReceiver.hpp"
 
+// Update matrices used for the offscreen rendering of the scene
+void VulkanDriver::updateUniformBufferOffscreen(size_t CurFrame)
+{
+	uboOffscreenVS.projection = glm::perspective(glm::radians(90.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1024.0f);
+	uboOffscreenVS.view = _SceneGraph->GetCamera().View;
+	uboOffscreenVS.model = glm::mat4(1.0f);
+	memcpy(uboOffscreenVSAlloc[CurFrame]->GetMappedData(), &uboOffscreenVS, sizeof(uboOffscreenVS));
+}
+
+// Update lights and parameters passed to the composition shaders
+void VulkanDriver::updateUniformBufferComposition(size_t CurFrame)
+{
+	// White
+	uboComposition.lights[0].position = glm::vec4(0.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[0].color = glm::vec3(1.5f);
+	uboComposition.lights[0].radius = 15.0f * 0.25f;
+	// Red
+	uboComposition.lights[1].position = glm::vec4(-10.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[1].color = glm::vec3(1.0f, 0.0f, 0.0f);
+	uboComposition.lights[1].radius = 15.0f;
+	// Blue
+	uboComposition.lights[2].position = glm::vec4(10.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[2].color = glm::vec3(0.0f, 0.0f, 2.5f);
+	uboComposition.lights[2].radius = 5.0f;
+	// Yellow
+	uboComposition.lights[3].position = glm::vec4(0.0f, 10.0f, 10.0f, 0.0f);
+	uboComposition.lights[3].color = glm::vec3(1.0f, 1.0f, 0.0f);
+	uboComposition.lights[3].radius = 2.0f;
+	// Green
+	uboComposition.lights[4].position = glm::vec4(0.0f, 10.0f, -10.0f, 0.0f);
+	uboComposition.lights[4].color = glm::vec3(0.0f, 1.0f, 0.2f);
+	uboComposition.lights[4].radius = 5.0f;
+	// Yellow
+	uboComposition.lights[5].position = glm::vec4(10.0f, 10.0f, 10.0f, 0.0f);
+	uboComposition.lights[5].color = glm::vec3(1.0f, 0.7f, 0.3f);
+	uboComposition.lights[5].radius = 25.0f;
+
+	// Current view position
+	uboComposition.viewPos = glm::vec4(_SceneGraph->GetCamera().Pos, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+
+	memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
+}
 
 //
 //	Initialize
@@ -234,6 +369,8 @@ VulkanDriver::VulkanDriver() {
 	createDepthResources();						//	Depth Stencil setup
 	createRenderPass();
 	createFrameBuffers();
+	createUniformBuffersDeferred();
+	prepareOffscreenFrameBuffer();
 	_SceneGraph = new SceneGraph(this);			//	Primary CommandBuffer init
 	_MaterialCache = new MaterialCache(this);
 
@@ -299,6 +436,10 @@ void VulkanDriver::mainLoop() {
 		//	Simulate Physics
 		_SceneGraph->stepSimulation(deltaFrame/1000);
 		//
+		//	Update Shaders
+		updateUniformBufferOffscreen(currentFrame);
+		updateUniformBufferComposition(currentFrame);
+		//
 		//	Draw Frame
 		Render();
 		//
@@ -329,18 +470,91 @@ void VulkanDriver::Render()
 			#endif
 		}
 	}
-
 	//
-	//	START DRAWING
+	//		START DRAWING OFFSCREEN
+	//
+	//	Wait for SwapChain presentation to finish
+	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+	//
+	//	Signal ready for offscreen work
+	submitInfo.pSignalSemaphores = &semaphores.offscreenSync;
+	//
+	//	Submit work
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
+
+
+
+
+
+
+
+	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+
+	// Clear values for all attachments written in the fragment shader
+	std::array<VkClearValue, 4> clearValues;
+	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues[3].depthStencil = { 1.0f, 0 };
+
+	VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
+	renderPassBeginInfo.renderPass = offScreenFrameBuf.renderPass;
+	renderPassBeginInfo.framebuffer = offScreenFrameBuf.frameBuffer;
+	renderPassBeginInfo.renderArea.extent.width = offScreenFrameBuf.width;
+	renderPassBeginInfo.renderArea.extent.height = offScreenFrameBuf.height;
+	renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+	renderPassBeginInfo.pClearValues = clearValues.data();
+
+	if (vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo) != VK_SUCCESS) { printf("FAIL2!\n"); }
+
+	vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	VkViewport viewport = vks::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
+	vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport);
+
+	VkRect2D scissor = vks::initializers::rect2D(offScreenFrameBuf.width, offScreenFrameBuf.height, 0, 0);
+	vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
+
+	vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline);
+
+	for (size_t i = 0; i < _SceneGraph->SceneNodes.size(); i++) {
+		_SceneGraph->SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
+	}
+
+	vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
+	if (vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]) != VK_SUCCESS) { printf("FAIL2!\n"); }
+
+
+
+
+
+
+
+
+	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkQueueSubmit Failed!");
+		#endif
+	}
+	//
+	//		START DRAWING ONSCREEN
+	// 
+	//	Wait for offscreen semaphore
+	submitInfo.pWaitSemaphores = &semaphores.offscreenSync;
+	//
+	//	Signal ready with render complete
+	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+	//
+	//	Submit work
+	submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
 
 	//
 	//	Update the entire scene
 	_SceneGraph->validate(currentFrame, commandPools[currentFrame], primaryCommandBuffers[currentFrame], frameBuffers[currentFrame]);
 	_SceneGraph->updateUniformBuffer(currentFrame);
 
-	
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
 	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
 	{
 		#ifdef _DEBUG
@@ -348,8 +562,8 @@ void VulkanDriver::Render()
 		#endif
 	}
 
-
-	//	END DRAWING
+	//
+	//		END DRAWING AND PRESENT
 	//
 	result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores.renderComplete);
 	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
@@ -528,6 +742,14 @@ void VulkanDriver::createLogicalDevice()
 		throw std::runtime_error("vkCreateSemaphore Failed!");
 		#endif
 	}
+	// Create a semaphore used to synchronize deferred rendering
+	// Ensures that drawing happens at the appropriate times
+	if (vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.offscreenSync) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkCreateSemaphore Failed!");
+		#endif
+	}
 	//
 	//	Submit Information
 	submitInfo = vks::initializers::submitInfo();
@@ -680,6 +902,7 @@ void VulkanDriver::createFrameBuffers() {
 	frameBuffers.resize(swapChain.imageCount);
 	commandPools.resize(swapChain.imageCount);
 	primaryCommandBuffers.resize(swapChain.imageCount);
+	offscreenCommandBuffers.resize(swapChain.imageCount);
 	for (uint32_t i = 0; i < swapChain.imageCount; i++)
 	{
 		//
@@ -712,7 +935,222 @@ void VulkanDriver::createFrameBuffers() {
 			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
 			#endif
 		}
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo2 = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+		if (vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo2, &offscreenCommandBuffers[i]) != VK_SUCCESS)
+		{
+			#ifdef _DEBUG
+			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
+			#endif
+		}
 	}
+}
+
+// Create a frame buffer attachment
+void VulkanDriver::createAttachment(
+	VkFormat format,
+	VkImageUsageFlagBits usage,
+	FrameBufferAttachment* attachment)
+{
+	VkImageAspectFlags aspectMask = 0;
+	VkImageLayout imageLayout;
+
+	attachment->format = format;
+
+	if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+	{
+		aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	}
+	if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+	{
+		aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	}
+
+	assert(aspectMask > 0);
+
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	VkImageCreateInfo image = vks::initializers::imageCreateInfo();
+	image.imageType = VK_IMAGE_TYPE_2D;
+	image.format = format;
+	image.extent.width = offScreenFrameBuf.width;
+	image.extent.height = offScreenFrameBuf.height;
+	image.extent.depth = 1;
+	image.mipLevels = 1;
+	image.arrayLayers = 1;
+	image.samples = VK_SAMPLE_COUNT_1_BIT;
+	image.tiling = VK_IMAGE_TILING_OPTIMAL;
+	image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	VmaAllocationInfo imageBufferAllocInfo = {};
+	vmaCreateImage(allocator, &image, &allocInfo, &attachment->image, &attachment->imageAlloc, nullptr);
+
+	VkImageViewCreateInfo imageView = vks::initializers::imageViewCreateInfo();
+	imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	imageView.format = format;
+	imageView.subresourceRange = {};
+	imageView.subresourceRange.aspectMask = aspectMask;
+	imageView.subresourceRange.baseMipLevel = 0;
+	imageView.subresourceRange.levelCount = 1;
+	imageView.subresourceRange.baseArrayLayer = 0;
+	imageView.subresourceRange.layerCount = 1;
+	imageView.image = attachment->image;
+	if (vkCreateImageView(_VulkanDevice->logicalDevice, &imageView, nullptr, &attachment->view) != VK_SUCCESS)
+	{
+		printf("FAIL!\n");
+	}
+}
+
+// Prepare a new framebuffer and attachments for offscreen rendering (G-Buffer)
+void VulkanDriver::prepareOffscreenFrameBuffer()
+{
+	offScreenFrameBuf.width = FB_DIM;
+	offScreenFrameBuf.height = FB_DIM;
+
+	// Color attachments
+
+	// (World space) Positions
+	createAttachment(
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		&offScreenFrameBuf.position);
+
+	// (World space) Normals
+	createAttachment(
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		&offScreenFrameBuf.normal);
+
+	// Albedo (color)
+	createAttachment(
+		VK_FORMAT_R8G8B8A8_UNORM,
+		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+		&offScreenFrameBuf.albedo);
+
+	// Depth attachment
+
+	// Find a suitable depth format
+	VkFormat attDepthFormat = _VulkanDevice->getSupportedDepthFormat(true);
+	assert(attDepthFormat);
+
+	createAttachment(
+		attDepthFormat,
+		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		&offScreenFrameBuf.depth);
+
+	// Set up separate renderpass with references to the color and depth attachments
+	std::array<VkAttachmentDescription, 4> attachmentDescs = {};
+
+	// Init attachment properties
+	for (uint32_t i = 0; i < 4; ++i)
+	{
+		attachmentDescs[i].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachmentDescs[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		attachmentDescs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachmentDescs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachmentDescs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		if (i == 3)
+		{
+			attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		}
+		else
+		{
+			attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		}
+	}
+
+	// Formats
+	attachmentDescs[0].format = offScreenFrameBuf.position.format;
+	attachmentDescs[1].format = offScreenFrameBuf.normal.format;
+	attachmentDescs[2].format = offScreenFrameBuf.albedo.format;
+	attachmentDescs[3].format = offScreenFrameBuf.depth.format;
+
+	std::vector<VkAttachmentReference> colorReferences;
+	colorReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+	colorReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+	colorReferences.push_back({ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+
+	VkAttachmentReference depthReference = {};
+	depthReference.attachment = 3;
+	depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass = {};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.pColorAttachments = colorReferences.data();
+	subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
+	subpass.pDepthStencilAttachment = &depthReference;
+
+	// Use subpass dependencies for attachment layout transitions
+	std::array<VkSubpassDependency, 2> dependencies;
+
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	VkRenderPassCreateInfo renderPassInfo = {};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.pAttachments = attachmentDescs.data();
+	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescs.size());
+	renderPassInfo.subpassCount = 1;
+	renderPassInfo.pSubpasses = &subpass;
+	renderPassInfo.dependencyCount = 2;
+	renderPassInfo.pDependencies = dependencies.data();
+
+	if (vkCreateRenderPass(_VulkanDevice->logicalDevice, &renderPassInfo, nullptr, &offScreenFrameBuf.renderPass) != VK_SUCCESS)
+	{
+		printf("FAIL!\n");
+	}
+
+	std::array<VkImageView, 4> attachments;
+	attachments[0] = offScreenFrameBuf.position.view;
+	attachments[1] = offScreenFrameBuf.normal.view;
+	attachments[2] = offScreenFrameBuf.albedo.view;
+	attachments[3] = offScreenFrameBuf.depth.view;
+
+	VkFramebufferCreateInfo fbufCreateInfo = {};
+	fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	fbufCreateInfo.pNext = NULL;
+	fbufCreateInfo.renderPass = offScreenFrameBuf.renderPass;
+	fbufCreateInfo.pAttachments = attachments.data();
+	fbufCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+	fbufCreateInfo.width = offScreenFrameBuf.width;
+	fbufCreateInfo.height = offScreenFrameBuf.height;
+	fbufCreateInfo.layers = 1;
+	if (vkCreateFramebuffer(_VulkanDevice->logicalDevice, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer) != VK_SUCCESS)
+	{
+		printf("FAIL!\n");
+	}
+
+	// Create sampler to sample from the color attachments
+	/*VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
+	sampler.magFilter = VK_FILTER_NEAREST;
+	sampler.minFilter = VK_FILTER_NEAREST;
+	sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	sampler.addressModeV = sampler.addressModeU;
+	sampler.addressModeW = sampler.addressModeU;
+	sampler.mipLodBias = 0.0f;
+	sampler.maxAnisotropy = 1.0f;
+	sampler.minLod = 0.0f;
+	sampler.maxLod = 1.0f;
+	sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+	VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &colorSampler));*/
 }
 
 void VulkanDriver::createVmaAllocator() {
