@@ -47,7 +47,7 @@ public:
 	//	Create Default Pipe
 	void CreateDefault() {
 		printf("Create Default Pipe\n");
-		Pipes.emplace_back(new Pipeline::Default(_Driver));
+		Pipes.emplace_back(new Pipeline::Default(_Driver, pipelineCache));
 
 	}
 
@@ -55,6 +55,6 @@ public:
 	//	Create GUI Pipe
 	void CreateGUI() {
 		printf("Create GUI Pipe\n");
-		Pipes.emplace_back(new Pipeline::GUI(_Driver));
+		Pipes.emplace_back(new Pipeline::GUI(_Driver, pipelineCache));
 	}
 };

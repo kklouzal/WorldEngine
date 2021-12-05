@@ -102,6 +102,15 @@ public:
 					int Y = (rand() % 70) + 30;
 					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
 				}
+				else if (NewEvent.Key == GLFW_KEY_X) {
+					for (int i = 0; i < 25; i++)
+					{
+						int X = (rand() % 100) - 50;
+						int Z = (rand() % 100) - 50;
+						int Y = (rand() % 70) + 30;
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
+					}
+				}
 			}
 		}
 		else if (NewEvent.Type == EventTypes::Mouse) {

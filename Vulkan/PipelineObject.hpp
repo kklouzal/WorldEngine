@@ -39,55 +39,49 @@ protected:
 
 	//
 	//	Create Descriptor Set Layout
-	void createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo &LayoutInfo) {
-		if (vkCreateDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, &LayoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
-#ifdef _DEBUG
+	void createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo &LayoutInfo)
+	{
+		//
+		//	Descriptor Set Layout
+		if (vkCreateDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, &LayoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+		{
+			#ifdef _DEBUG
 			throw std::runtime_error("failed to create descriptor set layout!");
-#endif
+			#endif
 		}
-	}
-
-	//
-	//	Create Pipeline Layout & Graphics Pipeline
-	void createPipeline(
-		const VkPipelineShaderStageCreateInfo shaderStages[],
-		const VkPipelineVertexInputStateCreateInfo &vertexInputInfo,
-		const VkPipelineInputAssemblyStateCreateInfo &inputAssembly,
-		const VkPipelineViewportStateCreateInfo &viewportState,
-		const VkPipelineRasterizationStateCreateInfo &rasterizer,
-		const VkPipelineMultisampleStateCreateInfo &multisampling,
-		const VkPipelineDepthStencilStateCreateInfo &depthStencil,
-		const VkPipelineColorBlendStateCreateInfo &colorBlending,
-		const VkPipelineDynamicStateCreateInfo &dynamicState) {
+		//
+		//	Pipeline Layout
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
 		pipelineLayoutInfo.setLayoutCount = 1;
 		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-
-		if (vkCreatePipelineLayout(_Driver->_VulkanDevice->logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-#ifdef _DEBUG
+		if (vkCreatePipelineLayout(_Driver->_VulkanDevice->logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+		{
+			#ifdef _DEBUG
 			throw std::runtime_error("failed to create pipeline layout!");
-#endif
+			#endif
 		}
-
-		VkGraphicsPipelineCreateInfo pipelineInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-		pipelineInfo.stageCount = 2;
-		pipelineInfo.pStages = shaderStages;
-		pipelineInfo.pVertexInputState = &vertexInputInfo;
-		pipelineInfo.pInputAssemblyState = &inputAssembly;
-		pipelineInfo.pViewportState = &viewportState;
-		pipelineInfo.pRasterizationState = &rasterizer;
-		pipelineInfo.pMultisampleState = &multisampling;
-		pipelineInfo.pDepthStencilState = &depthStencil;
-		pipelineInfo.pColorBlendState = &colorBlending;
-		pipelineInfo.pDynamicState = &dynamicState;
-		pipelineInfo.layout = pipelineLayout;
-		pipelineInfo.renderPass = _Driver->renderPass;
-		pipelineInfo.subpass = 0;
-
-		if (vkCreateGraphicsPipelines(_Driver->_VulkanDevice->logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
-#ifdef _DEBUG
-			throw std::runtime_error("failed to create graphics pipeline!");
-#endif
+		//
+		//	Image Sampler For Entire Pipeline
+		VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = 16;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.mipLodBias = 0.0f;
+		samplerInfo.minLod = 0.0f;
+		samplerInfo.maxLod = 0.0f;
+		if (vkCreateSampler(_Driver->_VulkanDevice->logicalDevice, &samplerInfo, nullptr, &Sampler) != VK_SUCCESS) {
+			#ifdef _DEBUG
+			throw std::runtime_error("failed to create texture sampler!");
+			#endif
 		}
 	}
 

@@ -364,6 +364,8 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 			throw std::runtime_error("vkBeginCommandBuffer Failed!");
 			#endif
 		}
+		vkCmdSetViewport(commandBuffers[CurFrame], 0, 1, &_Driver->viewport_Main);
+		vkCmdSetScissor(commandBuffers[CurFrame], 0, 1, &_Driver->scissor_Main);
 		//
 		//	Submit individual SceneNode draw commands
 		for (size_t i = 0; i < SceneNodes.size(); i++) {

@@ -122,6 +122,10 @@ public:
 	VkExtent2D swapChainExtent;
 	VkRenderPass renderPass = VK_NULL_HANDLE;
 
+
+	VkViewport viewport_Main = {};
+	VkRect2D scissor_Main = {};
+
 	// VMA
 	VmaAllocator allocator = VMA_NULL;
 	//
@@ -232,6 +236,16 @@ VulkanDriver::VulkanDriver() {
 	createFrameBuffers();
 	_SceneGraph = new SceneGraph(this);			//	Primary CommandBuffer init
 	_MaterialCache = new MaterialCache(this);
+
+	viewport_Main.x = 0.0f;
+	viewport_Main.y = 0.0f;
+	viewport_Main.width = (float)WIDTH;
+	viewport_Main.height = (float)HEIGHT;
+	viewport_Main.minDepth = 0.0f;
+	viewport_Main.maxDepth = 1.0f;
+
+	scissor_Main.offset = { 0, 0 };
+	scissor_Main.extent = swapChainExtent;
 }
 
 //
