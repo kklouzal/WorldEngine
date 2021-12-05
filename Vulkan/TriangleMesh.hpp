@@ -152,19 +152,6 @@ public:
 		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
 	}
 
-	void draw2(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame)
-	{
-		//	Bind Descriptor Sets
-		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
-
-		//	Draw Vertex Buffer
-		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);
-		vkCmdBindIndexBuffer(CmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
-	}
-
 	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo) {
 
 		Camera Cam = _Driver->_SceneGraph->GetCamera();

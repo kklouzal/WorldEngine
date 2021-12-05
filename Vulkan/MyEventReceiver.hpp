@@ -80,6 +80,26 @@ public:
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = true;
 				}
+				else if (NewEvent.Key == GLFW_KEY_F1) {
+					printf("Change Debug View\n");
+					_Driver->uboComposition.debugDisplayTarget = 0;
+				}
+				else if (NewEvent.Key == GLFW_KEY_F2) {
+					printf("Change Debug View\n");
+					_Driver->uboComposition.debugDisplayTarget = 1;
+				}
+				else if (NewEvent.Key == GLFW_KEY_F3) {
+					printf("Change Debug View\n");
+					_Driver->uboComposition.debugDisplayTarget = 2;
+				}
+				else if (NewEvent.Key == GLFW_KEY_F4) {
+					printf("Change Debug View\n");
+					_Driver->uboComposition.debugDisplayTarget = 3;
+				}
+				else if (NewEvent.Key == GLFW_KEY_F5) {
+					printf("Change Debug View\n");
+					_Driver->uboComposition.debugDisplayTarget = 4;
+				}
 			}
 			else if (NewEvent.Action == EventActions::Release) {
 				if (NewEvent.Key == GLFW_KEY_W) {

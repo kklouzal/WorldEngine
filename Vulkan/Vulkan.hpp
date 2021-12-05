@@ -46,36 +46,6 @@
 
 // Offscreen frame buffer properties
 #define FB_DIM TEX_DIM
-struct uboOS {
-	glm::mat4 projection;
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::vec4 instancePos[3];
-} uboOffscreenVS;
-struct Light {
-	glm::vec4 position;
-	glm::vec3 color;
-	float radius;
-};
-struct uboC {
-	Light lights[6];
-	glm::vec4 viewPos;
-	int debugDisplayTarget = 0;
-} uboComposition;
-// Framebuffer for offscreen rendering
-struct FrameBufferAttachment {
-	VkImage image;
-	VmaAllocation imageAlloc;
-	VkImageView view;
-	VkFormat format;
-};
-struct FrameBuffer {
-	int32_t width, height;
-	VkFramebuffer frameBuffer;
-	FrameBufferAttachment position, normal, albedo;
-	FrameBufferAttachment depth;
-	VkRenderPass renderPass;
-} offScreenFrameBuf;
 
 class EventReceiver;
 class MaterialCache;
@@ -104,6 +74,36 @@ public:
 	VulkanDriver();
 	~VulkanDriver();
 	void mainLoop();
+
+	struct uboOS {
+		glm::mat4 projection;
+		glm::mat4 model;
+		glm::mat4 view;
+	} uboOffscreenVS;
+	struct Light {
+		glm::vec4 position;
+		glm::vec3 color;
+		float radius;
+	};
+	struct uboC {
+		Light lights[6];
+		glm::vec4 viewPos;
+		int debugDisplayTarget = 0;
+	} uboComposition;
+	// Framebuffer for offscreen rendering
+	struct FrameBufferAttachment {
+		VkImage image;
+		VmaAllocation imageAlloc;
+		VkImageView view;
+		VkFormat format;
+	};
+	struct FrameBuffer {
+		int32_t width, height;
+		VkFramebuffer frameBuffer;
+		FrameBufferAttachment position, normal, albedo;
+		FrameBufferAttachment depth;
+		VkRenderPass renderPass;
+	} offScreenFrameBuf;
 
 public:
 	EventReceiver* _EventReceiver;
@@ -177,8 +177,10 @@ public:
 
 	std::vector<VkBuffer> uboCompositionBuff = {};				//CLEAN ME UP
 	std::vector<VmaAllocation> uboCompositionAlloc = {};	//CLEAN ME UP
+	std::vector<VmaAllocationInfo> uboCompositionAllocInfo = {};	//CLEAN ME UP
 	std::vector<VkBuffer> uboOffscreenVSBuff = {};				//CLEAN ME UP
 	std::vector<VmaAllocation> uboOffscreenVSAlloc = {};	//CLEAN ME UP
+	std::vector<VmaAllocationInfo> uboOffscreenVSAllocInfo = {};	//CLEAN ME UP
 
 	void createUniformBuffersDeferred()
 	{
@@ -187,6 +189,7 @@ public:
 
 		uboCompositionBuff.resize(swapChain.images.size());
 		uboCompositionAlloc.resize(swapChain.images.size());
+		uboCompositionAllocInfo.resize(swapChain.images.size());
 
 		for (size_t i = 0; i < swapChain.images.size(); i++) {
 
@@ -199,12 +202,11 @@ public:
 			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			VmaAllocationInfo uniformBufferAllocInfo = {};
-
-			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], &uniformBufferAllocInfo);
+			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], &uboCompositionAllocInfo[i]);
 		}
 		uboOffscreenVSBuff.resize(swapChain.images.size());
 		uboOffscreenVSAlloc.resize(swapChain.images.size());
+		uboOffscreenVSAllocInfo.resize(swapChain.images.size());
 		for (size_t i = 0; i < swapChain.images.size(); i++) {
 
 			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -216,9 +218,7 @@ public:
 			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			VmaAllocationInfo uniformBufferAllocInfo = {};
-
-			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboOffscreenVSBuff[i], &uboOffscreenVSAlloc[i], &uniformBufferAllocInfo);
+			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboOffscreenVSBuff[i], &uboOffscreenVSAlloc[i], &uboOffscreenVSAllocInfo[i]);
 		}
 	}
 
@@ -315,7 +315,7 @@ void VulkanDriver::updateUniformBufferOffscreen(size_t CurFrame)
 	uboOffscreenVS.projection = glm::perspective(glm::radians(90.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1024.0f);
 	uboOffscreenVS.view = _SceneGraph->GetCamera().View;
 	uboOffscreenVS.model = glm::mat4(1.0f);
-	memcpy(uboOffscreenVSAlloc[CurFrame]->GetMappedData(), &uboOffscreenVS, sizeof(uboOffscreenVS));
+	memcpy(uboOffscreenVSAllocInfo[CurFrame].pMappedData, &uboOffscreenVS, sizeof(uboOffscreenVS));
 }
 
 // Update lights and parameters passed to the composition shaders
@@ -328,28 +328,28 @@ void VulkanDriver::updateUniformBufferComposition(size_t CurFrame)
 	// Red
 	uboComposition.lights[1].position = glm::vec4(-10.0f, 10.0f, 0.0f, 0.0f);
 	uboComposition.lights[1].color = glm::vec3(1.0f, 0.0f, 0.0f);
-	uboComposition.lights[1].radius = 15.0f;
+	uboComposition.lights[1].radius = 150.0f;
 	// Blue
 	uboComposition.lights[2].position = glm::vec4(10.0f, 10.0f, 0.0f, 0.0f);
 	uboComposition.lights[2].color = glm::vec3(0.0f, 0.0f, 2.5f);
-	uboComposition.lights[2].radius = 5.0f;
+	uboComposition.lights[2].radius = 50.0f;
 	// Yellow
 	uboComposition.lights[3].position = glm::vec4(0.0f, 10.0f, 10.0f, 0.0f);
 	uboComposition.lights[3].color = glm::vec3(1.0f, 1.0f, 0.0f);
-	uboComposition.lights[3].radius = 2.0f;
+	uboComposition.lights[3].radius = 20.0f;
 	// Green
 	uboComposition.lights[4].position = glm::vec4(0.0f, 10.0f, -10.0f, 0.0f);
 	uboComposition.lights[4].color = glm::vec3(0.0f, 1.0f, 0.2f);
-	uboComposition.lights[4].radius = 5.0f;
+	uboComposition.lights[4].radius = 50.0f;
 	// Yellow
 	uboComposition.lights[5].position = glm::vec4(10.0f, 10.0f, 10.0f, 0.0f);
 	uboComposition.lights[5].color = glm::vec3(1.0f, 0.7f, 0.3f);
-	uboComposition.lights[5].radius = 25.0f;
+	uboComposition.lights[5].radius = 250.0f;
 
 	// Current view position
 	uboComposition.viewPos = glm::vec4(_SceneGraph->GetCamera().Pos, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
 
-	memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
+	memcpy(uboCompositionAllocInfo[CurFrame].pMappedData, &uboComposition, sizeof(uboComposition));
 }
 
 //
@@ -463,10 +463,6 @@ void VulkanDriver::mainLoop() {
 		//
 		//	Simulate Physics
 		_SceneGraph->stepSimulation(deltaFrame/1000);
-		//
-		//	Update Shaders
-		updateUniformBufferOffscreen(currentFrame);
-		updateUniformBufferComposition(currentFrame);
 		//
 		//	Draw Frame
 		Render();
@@ -610,8 +606,42 @@ void VulkanDriver::Render()
 	//
 	//	Submit individual SceneNode draw commands
 	vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline_Composition);
-	vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->pipelineLayout, 0, 1, &_MaterialCache->GetPipe_Default()->DescriptorSets_Composition[0], 0, nullptr);
+	vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->pipelineLayout, 0, 1, &_MaterialCache->GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 	vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
+	//
+	//	Update Shaders
+	updateUniformBufferOffscreen(currentFrame);
+	//updateUniformBufferComposition(currentFrame);
+
+	// White
+	uboComposition.lights[0].position = glm::vec4(0.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[0].color = glm::vec3(1.5f);
+	uboComposition.lights[0].radius = 15.0f * 0.25f;
+	// Red
+	uboComposition.lights[1].position = glm::vec4(-10.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[1].color = glm::vec3(1.0f, 0.0f, 0.0f);
+	uboComposition.lights[1].radius = 150.0f;
+	// Blue
+	uboComposition.lights[2].position = glm::vec4(10.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[2].color = glm::vec3(0.0f, 0.0f, 2.5f);
+	uboComposition.lights[2].radius = 50.0f;
+	// Yellow
+	uboComposition.lights[3].position = glm::vec4(0.0f, 10.0f, 10.0f, 0.0f);
+	uboComposition.lights[3].color = glm::vec3(1.0f, 1.0f, 0.0f);
+	uboComposition.lights[3].radius = 20.0f;
+	// Green
+	uboComposition.lights[4].position = glm::vec4(0.0f, 10.0f, -10.0f, 0.0f);
+	uboComposition.lights[4].color = glm::vec3(0.0f, 1.0f, 0.2f);
+	uboComposition.lights[4].radius = 50.0f;
+	// Yellow
+	uboComposition.lights[5].position = glm::vec4(10.0f, 10.0f, 10.0f, 0.0f);
+	uboComposition.lights[5].color = glm::vec3(1.0f, 0.7f, 0.3f);
+	uboComposition.lights[5].radius = 250.0f;
+
+	// Current view position
+	uboComposition.viewPos = glm::vec4(_SceneGraph->GetCamera().Pos, 0.0f) * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f);
+
+	memcpy(uboCompositionAllocInfo[currentFrame].pMappedData, &uboComposition, sizeof(uboComposition));
 	//
 	//
 	//	End recording state

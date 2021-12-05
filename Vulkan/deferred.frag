@@ -1,4 +1,5 @@
 #version 450
+#extension GL_ARB_separate_shader_objects : enable
 
 layout (binding = 1) uniform sampler2D samplerposition;
 layout (binding = 2) uniform sampler2D samplerNormal;
@@ -14,14 +15,14 @@ struct Light {
 	float radius;
 };
 
-layout (binding = 4) uniform UBO 
+layout (binding = 4) uniform uboC
 {
 	Light lights[6];
 	vec4 viewPos;
 	int displayDebugTarget;
 } ubo;
 
-void main() 
+void main()
 {
 	// Get G-Buffer values
 	vec3 fragPos = texture(samplerposition, inUV).rgb;
@@ -31,19 +32,19 @@ void main()
 	// Debug display
 	if (ubo.displayDebugTarget > 0) {
 		switch (ubo.displayDebugTarget) {
-			case 1: 
+			case 1:
 				outFragcolor.rgb = fragPos;
 				break;
-			case 2: 
+			case 2:
 				outFragcolor.rgb = normal;
 				break;
-			case 3: 
+			case 3:
 				outFragcolor.rgb = albedo.rgb;
 				break;
-			case 4: 
+			case 4:
 				outFragcolor.rgb = albedo.aaa;
 				break;
-		}		
+		}
 		outFragcolor.a = 1.0;
 		return;
 	}
@@ -51,7 +52,7 @@ void main()
 	// Render-target composition
 
 	#define lightCount 6
-	#define ambient 0.0
+	#define ambient 0.3
 	
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * ambient;
@@ -86,9 +87,8 @@ void main()
 			float NdotR = max(0.0, dot(R, V));
 			vec3 spec = ubo.lights[i].color * albedo.a * pow(NdotR, 16.0) * atten;
 
-			fragcolor += diff + spec;	
-		}	
-	}    	
-   
-  outFragcolor = vec4(fragcolor, 1.0);	
+			fragcolor += diff + spec;
+		}
+	}
+	outFragcolor = vec4(fragcolor, 1.0);	
 }

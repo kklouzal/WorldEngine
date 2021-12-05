@@ -121,7 +121,7 @@ namespace Pipeline {
 			vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			//	Separate render pass
-			pipelineCI.renderPass = offScreenFrameBuf.renderPass;
+			pipelineCI.renderPass = _Driver->offScreenFrameBuf.renderPass;
 			//	Blend attachment states required for all color attachments
 			std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
@@ -144,10 +144,10 @@ namespace Pipeline {
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size())
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()*10),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()*10),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()*10),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size()*10)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size());
 			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &DescriptorPool_Composition) != VK_SUCCESS) {
@@ -158,7 +158,7 @@ namespace Pipeline {
 			//
 			//	Create and Update individual Descriptor sets
 			DescriptorSets_Composition.resize(_Driver->swapChain.images.size());
-			for (size_t i = 0; i < _Driver->swapChain.images.size()-1; i++)
+			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool_Composition, &descriptorSetLayout, 1);
 				if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &DescriptorSets_Composition[i]) != VK_SUCCESS) {
@@ -171,25 +171,25 @@ namespace Pipeline {
 				VkDescriptorImageInfo texDescriptorPosition =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						offScreenFrameBuf.position.view,
+						_Driver->offScreenFrameBuf.position.view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorNormal =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						offScreenFrameBuf.normal.view,
+						_Driver->offScreenFrameBuf.normal.view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorAlbedo =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						offScreenFrameBuf.albedo.view,
+						_Driver->offScreenFrameBuf.albedo.view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorBufferInfo bufferInfo_composition = {};
 				bufferInfo_composition.buffer = _Driver->uboCompositionBuff[i];
 				bufferInfo_composition.offset = 0;
-				bufferInfo_composition.range = sizeof(uboC);
+				bufferInfo_composition.range = sizeof(_Driver->uboComposition);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
