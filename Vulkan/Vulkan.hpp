@@ -172,6 +172,8 @@ public:
 	MaterialCache* _MaterialCache;
 	SceneGraph* _SceneGraph;
 
+	std::vector<VkCommandBuffer> commandBuffers;
+	std::vector<VkCommandBuffer> commandBuffers_GUI;
 
 	std::vector<VkBuffer> uboCompositionBuff = {};				//CLEAN ME UP
 	std::vector<VmaAllocation> uboCompositionAlloc = {};	//CLEAN ME UP
@@ -383,6 +385,32 @@ VulkanDriver::VulkanDriver() {
 
 	scissor_Main.offset = { 0, 0 };
 	scissor_Main.extent = swapChainExtent;
+
+	commandBuffers.resize(frameBuffers.size());
+	commandBuffers_GUI.resize(frameBuffers.size());
+	for (int i = 0; i < frameBuffers.size(); i++)
+	{
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+		if (vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]) != VK_SUCCESS)
+		{
+			#ifdef _DEBUG
+			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
+			#endif
+		}
+	}
+	//
+	//	Create GUI CommandBuffers
+	commandBuffers.resize(frameBuffers.size());
+	for (int i = 0; i < frameBuffers.size(); i++)
+	{
+		VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+		if (vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]) != VK_SUCCESS)
+		{
+			#ifdef _DEBUG
+			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
+			#endif
+		}
+	}
 }
 
 //
@@ -473,6 +501,7 @@ void VulkanDriver::Render()
 	//
 	//		START DRAWING OFFSCREEN
 	//
+	// 
 	//	Wait for SwapChain presentation to finish
 	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
 	//
@@ -483,55 +512,38 @@ void VulkanDriver::Render()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
 
-
-
-
-
-
-
-	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-
+	VkCommandBufferBeginInfo cmdBufInfo1 = vks::initializers::commandBufferBeginInfo();
 	// Clear values for all attachments written in the fragment shader
 	std::array<VkClearValue, 4> clearValues;
 	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues[3].depthStencil = { 1.0f, 0 };
+	VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
+	renderPassBeginInfo1.renderPass = offScreenFrameBuf.renderPass;
+	renderPassBeginInfo1.framebuffer = offScreenFrameBuf.frameBuffer;
+	renderPassBeginInfo1.renderArea.extent.width = offScreenFrameBuf.width;
+	renderPassBeginInfo1.renderArea.extent.height = offScreenFrameBuf.height;
+	renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues.size());
+	renderPassBeginInfo1.pClearValues = clearValues.data();
 
-	VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-	renderPassBeginInfo.renderPass = offScreenFrameBuf.renderPass;
-	renderPassBeginInfo.framebuffer = offScreenFrameBuf.frameBuffer;
-	renderPassBeginInfo.renderArea.extent.width = offScreenFrameBuf.width;
-	renderPassBeginInfo.renderArea.extent.height = offScreenFrameBuf.height;
-	renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-	renderPassBeginInfo.pClearValues = clearValues.data();
-
-	if (vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo) != VK_SUCCESS) { printf("FAIL2!\n"); }
-
-	vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+	if (vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1) != VK_SUCCESS) { printf("FAIL2!\n"); }
+	vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 
 	VkViewport viewport = vks::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
 	vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport);
-
 	VkRect2D scissor = vks::initializers::rect2D(offScreenFrameBuf.width, offScreenFrameBuf.height, 0, 0);
 	vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
 
 	vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline);
-
 	for (size_t i = 0; i < _SceneGraph->SceneNodes.size(); i++) {
 		_SceneGraph->SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 	}
+	//	Do this somewhere else?
+	_SceneGraph->updateUniformBuffer(currentFrame);
 
 	vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 	if (vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]) != VK_SUCCESS) { printf("FAIL2!\n"); }
-
-
-
-
-
-
-
-
 	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
 	{
 		#ifdef _DEBUG
@@ -540,6 +552,7 @@ void VulkanDriver::Render()
 	}
 	//
 	//		START DRAWING ONSCREEN
+	// 
 	// 
 	//	Wait for offscreen semaphore
 	submitInfo.pWaitSemaphores = &semaphores.offscreenSync;
@@ -550,10 +563,107 @@ void VulkanDriver::Render()
 	//	Submit work
 	submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
 
+	std::vector<VkCommandBuffer> secondaryCommandBuffers;
+	VkCommandBufferBeginInfo cmdBufInfo2 = vks::initializers::commandBufferBeginInfo();
+	//cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	VkClearValue clearValues2[2];
+	clearValues2[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	clearValues2[1].depthStencil = { 1.0f, 0 };
 	//
-	//	Update the entire scene
-	_SceneGraph->validate(currentFrame, commandPools[currentFrame], primaryCommandBuffers[currentFrame], frameBuffers[currentFrame]);
-	_SceneGraph->updateUniformBuffer(currentFrame);
+	VkRenderPassBeginInfo renderPassBeginInfo2 = vks::initializers::renderPassBeginInfo();
+	renderPassBeginInfo2.renderPass = renderPass;
+	renderPassBeginInfo2.renderArea.offset = { 0, 0 };
+	renderPassBeginInfo2.renderArea.extent = swapChainExtent;
+	renderPassBeginInfo2.clearValueCount = 2;
+	renderPassBeginInfo2.pClearValues = clearValues2;
+	renderPassBeginInfo2.framebuffer = frameBuffers[currentFrame];
+	//
+	//	Set target Primary Command Buffer
+	if (vkBeginCommandBuffer(primaryCommandBuffers[currentFrame], &cmdBufInfo2) != VK_SUCCESS) {
+		#ifdef _DEBUG
+		throw std::runtime_error("failed to begin recording primary command buffer!");
+		#endif
+	}
+	//
+	//	Begin render pass
+	vkCmdBeginRenderPass(primaryCommandBuffers[currentFrame], &renderPassBeginInfo2, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+	//
+	//	Secondary CommandBuffer Inheritance Info
+	VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
+	inheritanceInfo.renderPass = renderPass;
+	inheritanceInfo.framebuffer = frameBuffers[currentFrame];
+	//
+	//	Secondary CommandBuffer Begin Info
+	VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+	commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+	//
+	//	Begin recording
+	if (vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkBeginCommandBuffer Failed!");
+		#endif
+	}
+	vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport_Main);
+	vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
+	//
+	//	Submit individual SceneNode draw commands
+	vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline_Composition);
+	vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->pipelineLayout, 0, 1, &_MaterialCache->GetPipe_Default()->DescriptorSets_Composition[0], 0, nullptr);
+	vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
+	//
+	//
+	//	End recording state
+	if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkEndCommandBuffer Failed!");
+		#endif
+	}
+	secondaryCommandBuffers.push_back(commandBuffers[currentFrame]);
+
+	//
+	//		START DRAWING GUI
+	// 
+	//
+	//	Begin recording
+	if (vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkBeginCommandBuffer Failed!");
+		#endif
+	}
+	//	test
+	DrawExternal(commandBuffers_GUI[currentFrame]);
+	#ifdef _DEBUG
+	//if (isWorld) {
+		//dynamicsWorld->debugDrawWorld();
+	//}
+	#endif
+	//
+	//
+	//	End recording state
+	if (vkEndCommandBuffer(commandBuffers_GUI[currentFrame]) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkEndCommandBuffer Failed!");
+		#endif
+	}
+	secondaryCommandBuffers.push_back(commandBuffers_GUI[currentFrame]);
+
+	//
+	//		END ONSCREEN DRAWING
+	// 
+	//	Execute render commands from the secondary command buffers
+	vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
+	vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
+	if (vkEndCommandBuffer(primaryCommandBuffers[currentFrame]) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkEndCommandBuffer Failed!");
+		#endif
+	}
 
 	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
 	{
@@ -563,7 +673,7 @@ void VulkanDriver::Render()
 	}
 
 	//
-	//		END DRAWING AND PRESENT
+	//		PRESENT TO SCREEN
 	//
 	result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores.renderComplete);
 	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {

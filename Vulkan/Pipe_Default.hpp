@@ -6,6 +6,9 @@ namespace Pipeline {
 		VulkanDriver* _Driver;
 
 		VkPipeline graphicsPipeline_Composition = VK_NULL_HANDLE;
+		std::vector<VkDescriptorSet> DescriptorSets_Composition = {};
+		VkDescriptorSetLayout descriptorSetLayout_Composition;
+		VkDescriptorPool DescriptorPool_Composition;
 
 		Default(VulkanDriver* Driver, VkPipelineCache PipelineCache)
 			: PipelineObject(Driver), _Driver(Driver)
@@ -13,9 +16,16 @@ namespace Pipeline {
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+				//	Binding 0 : Vertex UBO
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+				//	Binding 1 : Color texture target
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 2)
+				//	Binding 2 : Normal texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+				//	Binding 3 : Albedo texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+				//	Binding 4 : Fragment UBO
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			if (vkCreateDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout) != VK_SUCCESS)
@@ -125,6 +135,76 @@ namespace Pipeline {
 			//	Cleanup Shader Modules
 			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, vertShaderStageInfo2.module, nullptr);
 			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, fragShaderStageInfo2.module, nullptr);
+
+
+
+			//
+			//
+			//	Deferred Descriptor
+			//
+			//	Create Descriptor Pool
+			std::vector<VkDescriptorPoolSize> poolSizes = {
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size())
+			};
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size());
+			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &DescriptorPool_Composition) != VK_SUCCESS) {
+				#ifdef _DEBUG
+				throw std::runtime_error("failed to create descriptor pool 1!");
+				#endif
+			}
+			//
+			//	Create and Update individual Descriptor sets
+			DescriptorSets_Composition.resize(_Driver->swapChain.images.size());
+			for (size_t i = 0; i < _Driver->swapChain.images.size()-1; i++)
+			{
+				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool_Composition, &descriptorSetLayout, 1);
+				if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &DescriptorSets_Composition[i]) != VK_SUCCESS) {
+					#ifdef _DEBUG
+					printf("%i\n", i);
+					throw std::runtime_error("[createDescriptor] failed to allocate descriptor sets!\n");
+					#endif
+				}
+				// Image descriptors for the offscreen color attachments
+				VkDescriptorImageInfo texDescriptorPosition =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						offScreenFrameBuf.position.view,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorImageInfo texDescriptorNormal =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						offScreenFrameBuf.normal.view,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorImageInfo texDescriptorAlbedo =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						offScreenFrameBuf.albedo.view,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorBufferInfo bufferInfo_composition = {};
+				bufferInfo_composition.buffer = _Driver->uboCompositionBuff[i];
+				bufferInfo_composition.offset = 0;
+				bufferInfo_composition.range = sizeof(uboC);
+
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+
+				writeDescriptorSets = {
+					// Binding 1 : Position texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texDescriptorPosition),
+					// Binding 2 : Normals texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &texDescriptorNormal),
+					// Binding 3 : Albedo texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texDescriptorAlbedo),
+					// Binding 4 : Fragment shader uniform buffer
+					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &bufferInfo_composition)
+				};
+				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+			}
 		}
 		//
 		//
@@ -136,29 +216,27 @@ namespace Pipeline {
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size()),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size())
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size()*10),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()*10),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()*10)
 			};
-			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size());
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size()*10);
 			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
 				#ifdef _DEBUG
-				throw std::runtime_error("failed to create descriptor pool!");
+				throw std::runtime_error("[createDescriptor] failed to create descriptor pool!");
 				#endif
 			}
 			//
-			//	Create Descriptor Sets
-			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChain.images.size(), descriptorSetLayout);
-			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, layouts.data(), _Driver->swapChain.images.size());
+			//	Create and Update individual Descriptor sets
 			NewDescriptor->DescriptorSets.resize(_Driver->swapChain.images.size());
-			if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
-				#ifdef _DEBUG
-				throw std::runtime_error("failed to allocate descriptor sets!");
-				#endif
-			}
-			//
-			//	Update individual sets
 			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
+				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, &descriptorSetLayout, 1);
+				if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]) != VK_SUCCESS) {
+					#ifdef _DEBUG
+					printf("%i\n", i);
+					throw std::runtime_error("[createDescriptor] failed to allocate descriptor sets!\n");
+					#endif
+				}
 				VkDescriptorBufferInfo bufferInfo = {};
 				bufferInfo.buffer = UniformBuffers[i];
 				bufferInfo.offset = 0;
@@ -170,11 +248,6 @@ namespace Pipeline {
 						Texture->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-				VkDescriptorBufferInfo bufferInfo_Lighting = {};
-				bufferInfo_Lighting.buffer = _Driver->_SceneGraph->UniformBuffers_Lighting[i];
-				bufferInfo_Lighting.offset = 0;
-				bufferInfo_Lighting.range = sizeof(UniformBufferObject_PointLights);
-
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
 				writeDescriptorSets = {
@@ -182,8 +255,8 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo),
 					// Binding 1 : texture
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImage),
-					// Binding 2 : lighting info
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &bufferInfo_Lighting)
+					// Binding 2 : texture
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImage)
 				};
 
 				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
