@@ -84,7 +84,7 @@ public:
 		commandBuffers.resize(_Driver->frameBuffers.size());
 		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
 		{
-			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]) != VK_SUCCESS)
 			{
 				#ifdef _DEBUG
@@ -123,7 +123,6 @@ public:
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
 	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, btVector3 Position);
 	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
-	//TriangleMeshSceneNode* createTriangleMeshSceneNode(const std::vector<Vertex> vertices, const std::vector<uint32_t> indices);
 	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
 
 	std::vector<VkBuffer> UniformBuffers_Lighting = {};
@@ -187,8 +186,6 @@ void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
 	//btSetTaskScheduler(btGetOpenMPTaskScheduler());
-	//btSetTaskScheduler(btGetTBBTaskScheduler());
-	//btSetTaskScheduler(btGetPPLTaskScheduler());
 	btSetTaskScheduler(btCreateDefaultTaskScheduler());
 	//
 	btDefaultCollisionConstructionInfo cci;
@@ -226,7 +223,7 @@ void SceneGraph::initWorld() {
 		0;
 	
 
-	dynamicsWorld->getSolverInfo().m_numIterations = 30;
+	dynamicsWorld->getSolverInfo().m_numIterations = 10;
 	//
 	//	true - false
 	btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
@@ -372,8 +369,6 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 		for (size_t i = 0; i < SceneNodes.size(); i++) {
 			SceneNodes[i]->drawFrame(commandBuffers[CurFrame], CurFrame);
 		}
-		//	test
-		_Driver->DrawExternal(commandBuffers[CurFrame]);
 		//
 		//
 		//	End recording state
@@ -391,29 +386,29 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	//
 	//
 	//	Begin recording
-	//if (vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
-	//{
-	//	#ifdef _DEBUG
-	//	throw std::runtime_error("vkBeginCommandBuffer Failed!");
-	//	#endif
-	//}
-	////	test
-	//_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
-	//#ifdef _DEBUG
-	//if (isWorld) {
-	//	//dynamicsWorld->debugDrawWorld();
-	//}
-	//#endif
-	////
-	////
-	////	End recording state
-	//if (vkEndCommandBuffer(commandBuffers_GUI[CurFrame]) != VK_SUCCESS)
-	//{
-	//	#ifdef _DEBUG
-	//	throw std::runtime_error("vkEndCommandBuffer Failed!");
-	//	#endif
-	//}
-	//secondaryCommandBuffers.push_back(commandBuffers_GUI[CurFrame]);
+	if (vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkBeginCommandBuffer Failed!");
+		#endif
+	}
+	//	test
+	_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
+	#ifdef _DEBUG
+	if (isWorld) {
+		//dynamicsWorld->debugDrawWorld();
+	}
+	#endif
+	//
+	//
+	//	End recording state
+	if (vkEndCommandBuffer(commandBuffers_GUI[CurFrame]) != VK_SUCCESS)
+	{
+		#ifdef _DEBUG
+		throw std::runtime_error("vkEndCommandBuffer Failed!");
+		#endif
+	}
+	secondaryCommandBuffers.push_back(commandBuffers_GUI[CurFrame]);
 	//
 	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD
 	// 
@@ -620,7 +615,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 //
 //	SkinnedMesh Create Function
 SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
-	Pipeline::Skinned* Pipe = _Driver->_MaterialCache->GetPipe_Skinned();
+	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
 

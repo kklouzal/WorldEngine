@@ -2,12 +2,10 @@
 
 #include "Pipe_Default.hpp"
 #include "Pipe_GUI.hpp"
-#include "Pipe_Skinned.hpp"
 
 enum Pipelines {
 	Default,
-	GUI,
-	Skinned
+	GUI
 };
 
 class MaterialCache {
@@ -21,7 +19,6 @@ public:
 	MaterialCache(VulkanDriver* Driver) : _Driver(Driver) {
 		CreateDefault();
 		CreateGUI();
-		CreateSkinned();
 		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 		if (vkCreatePipelineCache(Driver->_VulkanDevice->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) != VK_SUCCESS)
@@ -45,9 +42,6 @@ public:
 	Pipeline::GUI* GetPipe_GUI() {
 		return static_cast<Pipeline::GUI*>(Pipes[GUI]);
 	}
-	Pipeline::Skinned* GetPipe_Skinned() {
-		return static_cast<Pipeline::Skinned*>(Pipes[Skinned]);
-	}
 
 	//
 	//	Create Default Pipe
@@ -62,12 +56,5 @@ public:
 	void CreateGUI() {
 		printf("Create GUI Pipe\n");
 		Pipes.emplace_back(new Pipeline::GUI(_Driver));
-	}
-
-	//
-	//	Create Skinned Pipe
-	void CreateSkinned() {
-		printf("Create Skinned Pipe\n");
-		Pipes.emplace_back(new Pipeline::Skinned(_Driver));
 	}
 };

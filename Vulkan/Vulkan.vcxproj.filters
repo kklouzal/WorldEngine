@@ -70,13 +70,7 @@
     <None Include="Fragment_Default.frag">
       <Filter>Source Files\Shaders\Frag</Filter>
     </None>
-    <None Include="Fragment_Skinned.frag">
-      <Filter>Source Files\Shaders\Frag</Filter>
-    </None>
     <None Include="Vertex_GUI.vert">
-      <Filter>Source Files\Shaders\Vert</Filter>
-    </None>
-    <None Include="Vertex_Skinned.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
     <None Include="Vertex_Default.vert">
@@ -108,9 +102,6 @@
     <ClInclude Include="TriangleMeshSceneNode.hpp">
       <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
-    <ClInclude Include="PlaybackController.hpp">
-      <Filter>Header Files\SceneNodes</Filter>
-    </ClInclude>
     <ClInclude Include="VulkanGWEN.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -124,12 +115,6 @@
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
     <ClInclude Include="Pipe_Default.hpp">
-      <Filter>Header Files\Pipelines</Filter>
-    </ClInclude>
-    <ClInclude Include="Import_FBX.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Pipe_Skinned.hpp">
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
     <ClInclude Include="Bullet_DebugDraw.hpp">
@@ -200,6 +185,9 @@
     </ClInclude>
     <ClInclude Include="VulkanSwapChain.hpp">
       <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="PlaybackController.hpp">
+      <Filter>Header Files\OZZ</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

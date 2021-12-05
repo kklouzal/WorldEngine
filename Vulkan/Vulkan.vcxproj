@@ -160,10 +160,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Fragment_Default.frag" />
-    <None Include="Fragment_Skinned.frag" />
     <None Include="Fragment_GUI.frag" />
     <None Include="Vertex_Default.vert" />
-    <None Include="Vertex_Skinned.vert" />
     <None Include="Vertex_GUI.vert" />
   </ItemGroup>
   <ItemGroup>
@@ -177,7 +175,6 @@
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="TinyGLTF.hpp" />
-    <ClInclude Include="Import_FBX.hpp" />
     <ClInclude Include="Import_GLTF.hpp" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="lodepng.h" />
@@ -190,7 +187,6 @@
     <ClInclude Include="MaterialCache.hpp" />
     <ClInclude Include="PipelineObject.hpp" />
     <ClInclude Include="Pipe_GUI.hpp" />
-    <ClInclude Include="Pipe_Skinned.hpp" />
     <ClInclude Include="PlaybackController.hpp" />
     <ClInclude Include="SceneGraph.hpp" />
     <ClInclude Include="SceneNode.h" />

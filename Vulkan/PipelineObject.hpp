@@ -130,5 +130,4 @@ protected:
 namespace Pipeline {
 	struct Default;
 	struct GUI;
-	struct Skinned;
 }
