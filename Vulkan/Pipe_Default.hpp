@@ -93,82 +93,60 @@ namespace Pipeline {
 		//
 		DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
-
-			std::array<VkDescriptorPoolSize, 3> poolSizes = {};
-			poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
-			poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSizes[1].descriptorCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
-			poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			poolSizes[2].descriptorCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
-
-			VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-			poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-			poolInfo.pPoolSizes = poolSizes.data();
-			poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChain.images.size());
-
-			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
-#ifdef _DEBUG
+			//
+			//	Create Descriptor Pool
+			std::vector<VkDescriptorPoolSize> poolSizes = {
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size()),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size())
+			};
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size());
+			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
+				#ifdef _DEBUG
 				throw std::runtime_error("failed to create descriptor pool!");
-#endif
+				#endif
 			}
-
+			//
+			//	Create Descriptor Sets
 			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChain.images.size(), descriptorSetLayout);
-			VkDescriptorSetAllocateInfo allocInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-			allocInfo.descriptorPool = NewDescriptor->DescriptorPool;
-			allocInfo.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
-			allocInfo.pSetLayouts = layouts.data();
-
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, layouts.data(), _Driver->swapChain.images.size());
 			NewDescriptor->DescriptorSets.resize(_Driver->swapChain.images.size());
 			if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
-#ifdef _DEBUG
+				#ifdef _DEBUG
 				throw std::runtime_error("failed to allocate descriptor sets!");
-#endif
+				#endif
 			}
-
+			//
+			//	Update individual sets
 			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
 				VkDescriptorBufferInfo bufferInfo = {};
 				bufferInfo.buffer = UniformBuffers[i];
 				bufferInfo.offset = 0;
 				bufferInfo.range = sizeof(UniformBufferObject);
 
-				VkDescriptorImageInfo imageInfo = {};
-				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imageInfo.imageView = Texture->ImageView;
-				imageInfo.sampler = Sampler;
+				VkDescriptorImageInfo textureImage =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						Texture->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorBufferInfo bufferInfo_Lighting = {};
 				bufferInfo_Lighting.buffer = _Driver->_SceneGraph->UniformBuffers_Lighting[i];
 				bufferInfo_Lighting.offset = 0;
 				bufferInfo_Lighting.range = sizeof(UniformBufferObject_PointLights);
 
-				std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
-				descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrites[0].dstSet = NewDescriptor->DescriptorSets[i];
-				descriptorWrites[0].dstBinding = 0;
-				descriptorWrites[0].dstArrayElement = 0;
-				descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				descriptorWrites[0].descriptorCount = 1;
-				descriptorWrites[0].pBufferInfo = &bufferInfo;
+				writeDescriptorSets = {
+					// Binding 0 : vertex data
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo),
+					// Binding 1 : texture
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImage),
+					// Binding 2 : lighting info
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2, &bufferInfo_Lighting)
+				};
 
-				descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrites[1].dstSet = NewDescriptor->DescriptorSets[i];
-				descriptorWrites[1].dstBinding = 1;
-				descriptorWrites[1].dstArrayElement = 0;
-				descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				descriptorWrites[1].descriptorCount = 1;
-				descriptorWrites[1].pImageInfo = &imageInfo;
-
-				descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-				descriptorWrites[2].dstSet = NewDescriptor->DescriptorSets[i];
-				descriptorWrites[2].dstBinding = 2;
-				descriptorWrites[2].dstArrayElement = 0;
-				descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				descriptorWrites[2].descriptorCount = 1;
-				descriptorWrites[2].pBufferInfo = &bufferInfo_Lighting;
-
-				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 			}
 
 			return NewDescriptor;

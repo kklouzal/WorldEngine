@@ -116,52 +116,43 @@ namespace Pipeline {
 		//
 		DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers = std::vector<VkBuffer>()) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
-
-			std::array<VkDescriptorPoolSize, 1> poolSizes = {};
-			poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
-
-			VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-			poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-			poolInfo.pPoolSizes = poolSizes.data();
-			poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChain.images.size());
-
-			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
-#ifdef _DEBUG
+			//
+			//	Create Descriptor Pool
+			std::vector<VkDescriptorPoolSize> poolSizes = {
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size())
+			};
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size());
+			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
+				#ifdef _DEBUG
 				throw std::runtime_error("failed to create descriptor pool!");
-#endif
+				#endif
 			}
-
+			//
+			//	Create Descriptor Sets
 			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChain.images.size(), descriptorSetLayout);
-			VkDescriptorSetAllocateInfo allocInfoDS = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-			allocInfoDS.descriptorPool = NewDescriptor->DescriptorPool;
-			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChain.images.size());
-			allocInfoDS.pSetLayouts = layouts.data();
-
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, layouts.data(), _Driver->swapChain.images.size());
 			NewDescriptor->DescriptorSets.resize(_Driver->swapChain.images.size());
-			if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfoDS, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
-#ifdef _DEBUG
+			if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
+				#ifdef _DEBUG
 				throw std::runtime_error("failed to allocate descriptor sets!");
-#endif
+				#endif
 			}
+			//
+			//	Update individual sets
+			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++)
+			{
+				VkDescriptorImageInfo textureImage =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						Texture->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
-
-				VkDescriptorImageInfo imageInfo = {};
-				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imageInfo.imageView = Texture->ImageView;
-				imageInfo.sampler = Sampler;
-
-				std::array<VkWriteDescriptorSet, 1> descriptorWrites = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-
-				descriptorWrites[0].dstSet = NewDescriptor->DescriptorSets[i];
-				descriptorWrites[0].dstBinding = 0;
-				descriptorWrites[0].dstArrayElement = 0;
-				descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				descriptorWrites[0].descriptorCount = 1;
-				descriptorWrites[0].pImageInfo = &imageInfo;
-
-				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+				writeDescriptorSets = {
+					// Binding 1 : texture
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureImage)
+				};
+				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 			}
 
 			return NewDescriptor;
