@@ -35,31 +35,8 @@ protected:
 
 	std::unordered_map<std::string, TextureObject*> _Textures;
 
-	PipelineObject(VulkanDriver* Driver) : _Driver(Driver) {}
-
-	//
-	//	Create Descriptor Set Layout
-	void createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo &LayoutInfo)
+	PipelineObject(VulkanDriver* Driver) : _Driver(Driver)
 	{
-		//
-		//	Descriptor Set Layout
-		if (vkCreateDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, &LayoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("failed to create descriptor set layout!");
-			#endif
-		}
-		//
-		//	Pipeline Layout
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
-		if (vkCreatePipelineLayout(_Driver->_VulkanDevice->logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("failed to create pipeline layout!");
-			#endif
-		}
 		//
 		//	Image Sampler For Entire Pipeline
 		VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };

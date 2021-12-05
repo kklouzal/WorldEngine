@@ -268,15 +268,15 @@ namespace vks
 		//	return descriptorSetLayoutCreateInfo;
 		//}
 
-		//inline VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo(
-		//	const std::vector<VkDescriptorSetLayoutBinding>& bindings)
-		//{
-		//	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
-		//	descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		//	descriptorSetLayoutCreateInfo.pBindings = bindings.data();
-		//	descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-		//	return descriptorSetLayoutCreateInfo;
-		//}
+		inline VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo(
+			const std::vector<VkDescriptorSetLayoutBinding>& bindings)
+		{
+			VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
+			descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+			descriptorSetLayoutCreateInfo.pBindings = bindings.data();
+			descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+			return descriptorSetLayoutCreateInfo;
+		}
 
 		inline VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
 			const VkDescriptorSetLayout* pSetLayouts,
