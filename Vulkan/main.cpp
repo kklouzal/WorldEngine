@@ -4,7 +4,7 @@
 
 #include "Vulkan.hpp"
 //
-//	Client Implementations
+//	Client Implementation
 #include "MyEventReceiver.hpp"
 //
 
