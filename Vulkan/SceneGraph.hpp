@@ -173,7 +173,7 @@ void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
 	//btSetTaskScheduler(btGetOpenMPTaskScheduler());
-	btSetTaskScheduler(btCreateDefaultTaskScheduler());
+	//btSetTaskScheduler(btCreateDefaultTaskScheduler());
 	//
 	btDefaultCollisionConstructionInfo cci;
 	cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
@@ -191,6 +191,7 @@ void SceneGraph::initWorld() {
 	}
 	solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
 	btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
+	btSetTaskScheduler(btGetOpenMPTaskScheduler());
 	//
 	//	Create Dynamics World
 	dynamicsWorld = new btDiscreteDynamicsWorldMt(dispatcher, broadphase, solverPool, solver, collisionConfiguration);

@@ -45,6 +45,9 @@
 // Texture properties
 #define TEX_DIM 2048
 #define TEX_FILTER VK_FILTER_LINEAR
+#define SHADOWMAP_DIM 2048
+#define SHADOWMAP_FORMAT VK_FORMAT_D32_SFLOAT_S8_UINT
+#define LIGHT_COUNT 6
 
 // Offscreen frame buffer properties
 #define FB_DIM TEX_DIM
@@ -954,6 +957,35 @@ void VulkanDriver::createFrameBuffers()
 // Prepare a new framebuffer and attachments for offscreen rendering (G-Buffer)
 void VulkanDriver::prepareOffscreenFrameBuffer()
 {
+	//
+	//
+	// Shadow
+	frameBuffers.shadow = new Framebuffer(_VulkanDevice, allocator);
+
+	frameBuffers.shadow->width = SHADOWMAP_DIM;
+	frameBuffers.shadow->height = SHADOWMAP_DIM;
+
+	// Create a layered depth attachment for rendering the depth maps from the lights' point of view
+	// Each layer corresponds to one of the lights
+	// The actual output to the separate layers is done in the geometry shader using shader instancing
+	// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
+	AttachmentCreateInfo attachmentInfo = {};
+	attachmentInfo.format = SHADOWMAP_FORMAT;
+	attachmentInfo.width = SHADOWMAP_DIM;
+	attachmentInfo.height = SHADOWMAP_DIM;
+	attachmentInfo.layerCount = LIGHT_COUNT;
+	attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	frameBuffers.shadow->addAttachment(attachmentInfo);
+
+	// Create sampler to sample from to depth attachment
+	// Used to sample in the fragment shader for shadowed rendering
+	VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+
+	// Create default renderpass for the framebuffer
+	VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
+	//
+	//
+	//	Deferred
 	frameBuffers.deferred = new Framebuffer(_VulkanDevice, allocator);
 	frameBuffers.deferred->width = FB_DIM;
 	frameBuffers.deferred->height = FB_DIM;
