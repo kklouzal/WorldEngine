@@ -172,7 +172,8 @@ public:
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
-	btSetTaskScheduler(btCreateDefaultTaskScheduler());
+	//btSetTaskScheduler(btCreateDefaultTaskScheduler());
+	btSetTaskScheduler(btGetSequentialTaskScheduler());
 	//
 	btDefaultCollisionConstructionInfo cci;
 	cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
@@ -189,7 +190,7 @@ void SceneGraph::initWorld() {
 		solvers[i] = new btSequentialImpulseConstraintSolverMt();
 	}
 	solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
-	btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
+	btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolverMt();
 	//btSetTaskScheduler(btGetOpenMPTaskScheduler());
 	//
 	//	Create Dynamics World
@@ -364,7 +365,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	//	Begin recording
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo));
 	//	test
-	_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
+	//_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
 	#ifdef _DEBUG
 	if (isWorld) {
 		//dynamicsWorld->debugDrawWorld();

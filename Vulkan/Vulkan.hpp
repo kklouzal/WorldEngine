@@ -52,6 +52,8 @@
 // Offscreen frame buffer properties
 #define FB_DIM TEX_DIM
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 class EventReceiver;
 class MaterialCache;
 class SceneGraph;
@@ -127,7 +129,7 @@ public:
 		VkSemaphore renderComplete;
 		// Offscreen synchronization
 		VkSemaphore offscreenSync;
-	} semaphores;
+	} semaphores[2];
 	//
 	//	DepthStencil Data
 	struct {
@@ -150,7 +152,13 @@ public:
 	VkSubmitInfo submitInfo;
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	std::vector<VkFramebuffer>frameBuffers_Main;
+	//
+	//	Frames-In-Flight
+	std::vector<VkFence> inFlightFences;
+	std::vector<VkFence> imagesInFlight;
+	uint32_t currentImage = 0;
 	uint32_t currentFrame = 0;
+	//
 	VkFormat depthFormat;
 	//
 	//	MAYBE only need a single pool and primary buffer..
@@ -251,7 +259,6 @@ public:
 
 	void setEventReceiver(EventReceiver* _EventRcvr);
 
-	void DrawExternal(const VkCommandBuffer& Buff);
 	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
 	float deltaFrame = 0;
@@ -289,10 +296,10 @@ public:
 	void endSingleTimeCommands(const VkCommandBuffer& commandBuffer)
 	{
 		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
-		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &commandBuffer;
-		vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+		VkSubmitInfo STCsubmitInfo = vks::initializers::submitInfo();
+		STCsubmitInfo.commandBufferCount = 1;
+		STCsubmitInfo.pCommandBuffers = &commandBuffer;
+		vkQueueSubmit(graphicsQueue, 1, &STCsubmitInfo, VK_NULL_HANDLE);
 		vkQueueWaitIdle(graphicsQueue);
 		vkFreeCommandBuffers(_VulkanDevice->logicalDevice, commandPools[currentFrame], 1, &commandBuffer);
 	}
@@ -481,8 +488,19 @@ void VulkanDriver::mainLoop() {
 void VulkanDriver::Render()
 {
 	// 
+	//	Synchronize with in-flight-frames
+	vkWaitForFences(_VulkanDevice->logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+	// 
 	// Acquire the next image from the swap chain
-	VkResult result = swapChain.acquireNextImage(semaphores.presentComplete, &currentFrame);
+	VkResult result = swapChain.acquireNextImage(semaphores[currentFrame].presentComplete, &currentImage);
+	//
+	// Wait on this image if it's still in use
+	if (imagesInFlight[currentImage] != VK_NULL_HANDLE) {
+		vkWaitForFences(_VulkanDevice->logicalDevice, 1, &imagesInFlight[currentImage], VK_TRUE, UINT64_MAX);
+	}
+	// Mark the image as now being in use by this frame
+	imagesInFlight[currentImage] = inFlightFences[currentFrame];
+	//
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
 		//windowResize();
@@ -495,10 +513,10 @@ void VulkanDriver::Render()
 	//
 	// 
 	//	Wait for SwapChain presentation to finish
-	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+	submitInfo.pWaitSemaphores = &semaphores[currentFrame].presentComplete;
 	//
 	//	Signal ready for offscreen work
-	submitInfo.pSignalSemaphores = &semaphores.offscreenSync;
+	submitInfo.pSignalSemaphores = &semaphores[currentFrame].offscreenSync;
 	//
 	//	Submit work
 	submitInfo.commandBufferCount = 1;
@@ -536,10 +554,10 @@ void VulkanDriver::Render()
 	// 
 	// 
 	//	Wait for offscreen semaphore
-	submitInfo.pWaitSemaphores = &semaphores.offscreenSync;
+	submitInfo.pWaitSemaphores = &semaphores[currentFrame].offscreenSync;
 	//
 	//	Signal ready with render complete
-	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+	submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
 	//
 	//	Submit work
 	submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
@@ -598,7 +616,9 @@ void VulkanDriver::Render()
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo));
 	//
 	//	Issue draw commands
-	DrawExternal(commandBuffers_GUI[currentFrame]);
+	if (_EventReceiver) {
+		_EventReceiver->drawGWEN(commandBuffers_GUI[currentFrame]);
+	}
 	#ifdef _DEBUG
 	//if (isWorld) {
 		//dynamicsWorld->debugDrawWorld();
@@ -618,12 +638,13 @@ void VulkanDriver::Render()
 	vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
 	VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentFrame]));
 
-	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+	vkResetFences(_VulkanDevice->logicalDevice, 1, &inFlightFences[currentFrame]);
+	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]));
 
 	//
 	//		PRESENT TO SCREEN
 	//
-	result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores.renderComplete);
+	result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores[currentFrame].renderComplete);
 	if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			// Swap chain is no longer compatible with the surface and needs to be recreated
@@ -634,16 +655,8 @@ void VulkanDriver::Render()
 			VK_CHECK_RESULT(result);
 		}
 	}
-	vkQueueWaitIdle(graphicsQueue);
-}
-
-void VulkanDriver::DrawExternal(const VkCommandBuffer& Buff) {
-	//
-	//	Update GWEN
-	if (_EventReceiver) {
-		_EventReceiver->drawGWEN(Buff);
-	}
-	//
+	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	//vkQueueWaitIdle(graphicsQueue);
 }
 
 void VulkanDriver::initLua() {
@@ -779,23 +792,33 @@ void VulkanDriver::createLogicalDevice()
 	//
 	//	Create synchronization objects
 	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-	// Create a semaphore used to synchronize image presentation
-	// Ensures that the image is displayed before we start submitting new commands to the queue
-	VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete));
-	// Create a semaphore used to synchronize command submission
-	// Ensures that the image is not presented until all commands have been submitted and executed
-	VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
-	// Create a semaphore used to synchronize deferred rendering
-	// Ensures that drawing happens at the appropriate times
-	VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.offscreenSync));
+	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+	printf("SWAPCHAIN IMAGE COUNT %i\n", swapChain.imageCount);
+	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+	imagesInFlight.resize(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
+	for (uint32_t i = 0; i < 2; i++)
+	{
+		// Create a semaphore used to synchronize image presentation
+		// Ensures that the image is displayed before we start submitting new commands to the queue
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete));
+		// Create a semaphore used to synchronize command submission
+		// Ensures that the image is not presented until all commands have been submitted and executed
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].renderComplete));
+		// Create a semaphore used to synchronize deferred rendering
+		// Ensures that drawing happens at the appropriate times
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].offscreenSync));
+		//
+		//
+		VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]));
+	}
 	//
 	//	Submit Information
 	submitInfo = vks::initializers::submitInfo();
 	submitInfo.pWaitDstStageMask = &submitPipelineStages;
 	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &semaphores.presentComplete;
+	submitInfo.pWaitSemaphores = &semaphores[0].presentComplete;
 	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = &semaphores.renderComplete;
+	submitInfo.pSignalSemaphores = &semaphores[0].renderComplete;
 }
 
 //
