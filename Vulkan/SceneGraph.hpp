@@ -183,8 +183,8 @@ void SceneGraph::initWorld() {
 	broadphase = new btDbvtBroadphase();
 	//
 	//	Solver Pool
-	btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
-	int maxThreadCount = BT_MAX_THREAD_COUNT;
+	btConstraintSolver* solvers[8];
+	int maxThreadCount = 8;
 	for (int i = 0; i < maxThreadCount; ++i)
 	{
 		solvers[i] = new btSequentialImpulseConstraintSolverMt();
@@ -409,7 +409,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	}
 	//	END TODO
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 	btCollisionShape* ColShape;
 	//if (_CollisionShapes.count(FileFBX) == 0) {
 	btTriangleMesh* trimesh = new btTriangleMesh();
@@ -474,7 +474,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	}
 	//	END TODO
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 	btCollisionShape* ColShape;
 	if (_CollisionShapes.count(FileFBX) == 0) {
 		DecompResults* Results = Decomp(Infos);
@@ -538,7 +538,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	}
 	//	END TODO
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 	btCollisionShape* ColShape;
 	if (_CollisionShapes.count(FileFBX) == 0) {
 		DecompResults* Results = Decomp(Infos);
@@ -600,7 +600,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	}
 	//	END TODO
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 	btCollisionShape* ColShape;
 	if (_CollisionShapes.count(FileFBX) == 0) {
 		DecompResults* Results = Decomp(Infos);

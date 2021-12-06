@@ -25,17 +25,19 @@ public:
 	std::vector<VkBuffer> uniformBuffers = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
 
-	TextureObject* Texture;
+	TextureObject* Texture_Albedo;
+	TextureObject* Texture_Normal;
 	DescriptorObject* Descriptor;
 
 public:
 	
-	TriangleMesh(VulkanDriver* Driver, Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Diffuse)
+	TriangleMesh(VulkanDriver* Driver, Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
 		: _Driver(Driver), Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
 		createUniformBuffers();
-		Texture = Diffuse;
-		Descriptor = Pipe->createDescriptor(Texture, uniformBuffers);
+		Texture_Albedo = Albedo;
+		Texture_Normal = Normal;
+		Descriptor = Pipe->createDescriptor(Albedo, Normal, uniformBuffers);
 	}
 
 	~TriangleMesh() {

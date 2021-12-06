@@ -21,7 +21,6 @@ struct PipelineObject {
 		vkDestroySampler(_Driver->_VulkanDevice->logicalDevice, Sampler, nullptr);
 	}
 
-	virtual DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) = 0;
 	virtual TextureObject* createTextureImage(const std::string& File) = 0;
 
 	void EmptyCache() {

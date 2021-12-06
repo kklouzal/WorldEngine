@@ -192,7 +192,7 @@ namespace Pipeline {
 		//	Create Descriptor
 		//
 		//
-		DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) {
+		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& UniformBuffers) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
 			//
 			//	Create Descriptor Pool
@@ -214,10 +214,16 @@ namespace Pipeline {
 				bufferInfo.offset = 0;
 				bufferInfo.range = sizeof(UniformBufferObject);
 
-				VkDescriptorImageInfo textureImage =
+				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						Texture->ImageView,
+						TextureColor->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorImageInfo textureImageNormal =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						TextureNormal->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
@@ -226,9 +232,9 @@ namespace Pipeline {
 					// Binding 0 : vertex data
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo),
 					// Binding 1 : texture
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImage),
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImageColor),
 					// Binding 2 : texture
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImage)
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageNormal)
 				};
 
 				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
