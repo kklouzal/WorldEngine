@@ -111,7 +111,7 @@ namespace Pipeline {
 			vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			//	Separate render pass
-			pipelineCI.renderPass = _Driver->offScreenFrameBuf.renderPass;
+			pipelineCI.renderPass = _Driver->frameBuffers.deferred->renderPass;
 			//	Blend attachment states required for all color attachments
 			std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
@@ -152,19 +152,19 @@ namespace Pipeline {
 				VkDescriptorImageInfo texDescriptorPosition =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						_Driver->offScreenFrameBuf.position.view,
+						_Driver->frameBuffers.deferred->attachments[0].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorNormal =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						_Driver->offScreenFrameBuf.normal.view,
+						_Driver->frameBuffers.deferred->attachments[1].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorAlbedo =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						_Driver->offScreenFrameBuf.albedo.view,
+						_Driver->frameBuffers.deferred->attachments[2].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorBufferInfo bufferInfo_composition = {};

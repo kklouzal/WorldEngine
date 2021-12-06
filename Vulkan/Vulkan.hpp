@@ -92,20 +92,14 @@ public:
 		glm::vec4 viewPos;
 		glm::i32 debugDisplayTarget = 0;
 	} uboComposition;
-	// Framebuffer for offscreen rendering
-	struct FrameBufferAttachment {
-		VkImage image;
-		VmaAllocation imageAlloc;
-		VkImageView view;
-		VkFormat format;
-	};
-	struct FrameBuffer {
-		int32_t width, height;
-		VkFramebuffer frameBuffer;
-		FrameBufferAttachment position, normal, albedo;
-		FrameBufferAttachment depth;
-		VkRenderPass renderPass;
-	} offScreenFrameBuf;
+
+	struct
+	{
+		// Framebuffer resources for the deferred pass
+		Framebuffer* deferred;
+		// Framebuffer resources for the shadow pass
+		Framebuffer* shadow;
+	} frameBuffers;
 
 public:
 	EventReceiver* _EventReceiver;
@@ -152,7 +146,7 @@ public:
 	VulkanSwapChain swapChain;
 	VkSubmitInfo submitInfo;
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	std::vector<VkFramebuffer>frameBuffers;
+	std::vector<VkFramebuffer>frameBuffers_Main;
 	uint32_t currentFrame = 0;
 	VkFormat depthFormat;
 	//
@@ -250,7 +244,6 @@ public:
 	//	Check Physical Device Support
 	//
 
-	void createAttachment(VkFormat format, VkImageUsageFlagBits usage, FrameBufferAttachment* attachment);
 	void prepareOffscreenFrameBuffer();
 
 	void setEventReceiver(EventReceiver* _EventRcvr);
@@ -390,17 +383,17 @@ VulkanDriver::VulkanDriver() {
 	scissor_Main.offset = { 0, 0 };
 	scissor_Main.extent = swapChainExtent;
 
-	commandBuffers.resize(frameBuffers.size());
-	commandBuffers_GUI.resize(frameBuffers.size());
-	for (int i = 0; i < frameBuffers.size(); i++)
+	commandBuffers.resize(frameBuffers_Main.size());
+	commandBuffers_GUI.resize(frameBuffers_Main.size());
+	for (int i = 0; i < frameBuffers_Main.size(); i++)
 	{
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
 	}
 	//
 	//	Create GUI CommandBuffers
-	commandBuffers.resize(frameBuffers.size());
-	for (int i = 0; i < frameBuffers.size(); i++)
+	commandBuffers.resize(frameBuffers_Main.size());
+	for (int i = 0; i < frameBuffers_Main.size(); i++)
 	{
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
@@ -423,7 +416,7 @@ VulkanDriver::~VulkanDriver() {
 	for (auto commandpool : commandPools) {
 		vkDestroyCommandPool(_VulkanDevice->logicalDevice, commandpool, nullptr);
 	}
-	for (auto framebuffer : frameBuffers) {
+	for (auto framebuffer : frameBuffers_Main) {
 		vkDestroyFramebuffer(_VulkanDevice->logicalDevice, framebuffer, nullptr);
 	}
 	//	Destroy Depth Buffer
@@ -511,10 +504,10 @@ void VulkanDriver::Render()
 	// Clear values for all attachments written in the fragment shader
 	
 	VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
-	renderPassBeginInfo1.renderPass = offScreenFrameBuf.renderPass;
-	renderPassBeginInfo1.framebuffer = offScreenFrameBuf.frameBuffer;
-	renderPassBeginInfo1.renderArea.extent.width = offScreenFrameBuf.width;
-	renderPassBeginInfo1.renderArea.extent.height = offScreenFrameBuf.height;
+	renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
+	renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffer;
+	renderPassBeginInfo1.renderArea.extent.width = frameBuffers.deferred->width;
+	renderPassBeginInfo1.renderArea.extent.height = frameBuffers.deferred->height;
 	renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassBeginInfo1.pClearValues = clearValues.data();
 
@@ -522,9 +515,9 @@ void VulkanDriver::Render()
 	VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1));
 	vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 
-	VkViewport viewport = vks::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
+	VkViewport viewport = vks::initializers::viewport((float)frameBuffers.deferred->width, (float)frameBuffers.deferred->height, 0.0f, 1.0f);
 	vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport);
-	VkRect2D scissor = vks::initializers::rect2D(offScreenFrameBuf.width, offScreenFrameBuf.height, 0, 0);
+	VkRect2D scissor = vks::initializers::rect2D(frameBuffers.deferred->width, frameBuffers.deferred->height, 0, 0);
 	vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
 
 	vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline);
@@ -560,7 +553,7 @@ void VulkanDriver::Render()
 	renderPassBeginInfo2.renderArea.extent = swapChainExtent;
 	renderPassBeginInfo2.clearValueCount = 2;
 	renderPassBeginInfo2.pClearValues = clearValues2;
-	renderPassBeginInfo2.framebuffer = frameBuffers[currentFrame];
+	renderPassBeginInfo2.framebuffer = frameBuffers_Main[currentFrame];
 	//
 	//	Set target Primary Command Buffer
 	VkCommandBufferBeginInfo cmdBufInfo2 = vks::initializers::commandBufferBeginInfo();
@@ -572,7 +565,7 @@ void VulkanDriver::Render()
 	//	Secondary CommandBuffer Inheritance Info
 	VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
 	inheritanceInfo.renderPass = renderPass;
-	inheritanceInfo.framebuffer = frameBuffers[currentFrame];
+	inheritanceInfo.framebuffer = frameBuffers_Main[currentFrame];
 	//
 	//	Secondary CommandBuffer Begin Info
 	VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
@@ -756,7 +749,16 @@ void VulkanDriver::createLogicalDevice()
 	//	Set enabled features
 	if (deviceFeatures.samplerAnisotropy) {
 		enabledFeatures.samplerAnisotropy = VK_TRUE;
-	};
+	}
+	else {
+		printf("[VULKAN][WARNING] - Sampler Anisotrophy unavailable!\n");
+	}
+	if (deviceFeatures.geometryShader) {
+		enabledFeatures.geometryShader = VK_TRUE;
+	}
+	else {
+		printf("[VULKAN][WARNING] - Geometry Shader unavailable!\n");
+	}
 	//
 	//	Create logical device
 	_VulkanDevice = new VulkanDevice(physicalDevice);
@@ -833,8 +835,8 @@ void VulkanDriver::createDepthResources() {
 	VK_CHECK_RESULT(vkCreateImageView(_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &depthStencil.view));
 }
 
-void VulkanDriver::createRenderPass() {
-	
+void VulkanDriver::createRenderPass()
+{
 	std::array<VkAttachmentDescription, 2> attachments = {};
 	// Color attachment
 	attachments[0].format = swapChain.colorFormat;
@@ -905,7 +907,8 @@ void VulkanDriver::createRenderPass() {
 	VK_CHECK_RESULT(vkCreateRenderPass(_VulkanDevice->logicalDevice, &renderPassInfo, nullptr, &renderPass));
 }
 
-void VulkanDriver::createFrameBuffers() {
+void VulkanDriver::createFrameBuffers() 
+{
 	VkImageView attachments[2];
 
 	// Depth/Stencil attachment is the same for all frame buffers
@@ -922,7 +925,7 @@ void VulkanDriver::createFrameBuffers() {
 	frameBufferCreateInfo.layers = 1;
 
 	// Create per-frame resources
-	frameBuffers.resize(swapChain.imageCount);
+	frameBuffers_Main.resize(swapChain.imageCount);
 	commandPools.resize(swapChain.imageCount);
 	primaryCommandBuffers.resize(swapChain.imageCount);
 	offscreenCommandBuffers.resize(swapChain.imageCount);
@@ -931,7 +934,7 @@ void VulkanDriver::createFrameBuffers() {
 		//
 		//	FrameBuffers
 		attachments[0] = swapChain.buffers[i].view;
-		VK_CHECK_RESULT(vkCreateFramebuffer(_VulkanDevice->logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
+		VK_CHECK_RESULT(vkCreateFramebuffer(_VulkanDevice->logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers_Main[i]));
 		//
 		//	CommandPools
 		VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
@@ -948,188 +951,45 @@ void VulkanDriver::createFrameBuffers() {
 	}
 }
 
-// Create a frame buffer attachment
-void VulkanDriver::createAttachment(
-	VkFormat format,
-	VkImageUsageFlagBits usage,
-	FrameBufferAttachment* attachment)
-{
-	VkImageAspectFlags aspectMask = 0;
-	VkImageLayout imageLayout;
-
-	attachment->format = format;
-	
-	if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-	{
-		aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	}
-	if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-	{
-		aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	}
-
-	assert(aspectMask > 0);
-
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-	VkImageCreateInfo image = vks::initializers::imageCreateInfo();
-	image.imageType = VK_IMAGE_TYPE_2D;
-	image.format = format;
-	image.extent.width = offScreenFrameBuf.width;
-	image.extent.height = offScreenFrameBuf.height;
-	image.extent.depth = 1;
-	image.mipLevels = 1;
-	image.arrayLayers = 1;
-	image.samples = VK_SAMPLE_COUNT_1_BIT;
-	image.tiling = VK_IMAGE_TILING_OPTIMAL;
-	image.usage = usage | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-	VmaAllocationInfo imageBufferAllocInfo = {};
-	vmaCreateImage(allocator, &image, &allocInfo, &attachment->image, &attachment->imageAlloc, nullptr);
-
-	VkImageViewCreateInfo imageView = vks::initializers::imageViewCreateInfo();
-	imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	imageView.format = format;
-	imageView.subresourceRange = {};
-	imageView.subresourceRange.aspectMask = aspectMask;
-	imageView.subresourceRange.baseMipLevel = 0;
-	imageView.subresourceRange.levelCount = 1;
-	imageView.subresourceRange.baseArrayLayer = 0;
-	imageView.subresourceRange.layerCount = 1;
-	imageView.image = attachment->image;
-	VK_CHECK_RESULT(vkCreateImageView(_VulkanDevice->logicalDevice, &imageView, nullptr, &attachment->view));
-}
-
 // Prepare a new framebuffer and attachments for offscreen rendering (G-Buffer)
 void VulkanDriver::prepareOffscreenFrameBuffer()
 {
-	offScreenFrameBuf.width = FB_DIM;
-	offScreenFrameBuf.height = FB_DIM;
+	frameBuffers.deferred = new Framebuffer(_VulkanDevice, allocator);
+	frameBuffers.deferred->width = FB_DIM;
+	frameBuffers.deferred->height = FB_DIM;
+
+	AttachmentCreateInfo attachmentInfo = {};
+	attachmentInfo.width = FB_DIM;
+	attachmentInfo.height = FB_DIM;
+	attachmentInfo.layerCount = 1;
+	attachmentInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
 	// Color attachments
+	// Attachment 0: (World space) Positions
+	attachmentInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	frameBuffers.deferred->addAttachment(attachmentInfo);
 
-	// (World space) Positions
-	createAttachment(
-		VK_FORMAT_R16G16B16A16_SFLOAT,
-		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-		&offScreenFrameBuf.position);
+	// Attachment 1: (World space) Normals
+	attachmentInfo.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+	frameBuffers.deferred->addAttachment(attachmentInfo);
 
-	// (World space) Normals
-	createAttachment(
-		VK_FORMAT_R16G16B16A16_SFLOAT,
-		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-		&offScreenFrameBuf.normal);
-
-	// Albedo (color)
-	createAttachment(
-		VK_FORMAT_R8G8B8A8_UNORM,
-		VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-		&offScreenFrameBuf.albedo);
+	// Attachment 2: Albedo (color)
+	attachmentInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+	frameBuffers.deferred->addAttachment(attachmentInfo);
 
 	// Depth attachment
-
 	// Find a suitable depth format
 	VkFormat attDepthFormat = _VulkanDevice->getSupportedDepthFormat(true);
-	assert(attDepthFormat);
 
-	createAttachment(
-		attDepthFormat,
-		VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-		&offScreenFrameBuf.depth);
+	attachmentInfo.format = attDepthFormat;
+	attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	frameBuffers.deferred->addAttachment(attachmentInfo);
 
-	// Set up separate renderpass with references to the color and depth attachments
-	std::array<VkAttachmentDescription, 4> attachmentDescs = {};
+	// Create sampler to sample from the color attachments
+	VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
-	// Init attachment properties
-	for (uint32_t i = 0; i < 4; ++i)
-	{
-		attachmentDescs[i].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachmentDescs[i].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		attachmentDescs[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachmentDescs[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachmentDescs[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		if (i == 3)
-		{
-			attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		}
-		else
-		{
-			attachmentDescs[i].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachmentDescs[i].finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		}
-	}
-
-	// Formats
-	attachmentDescs[0].format = offScreenFrameBuf.position.format;
-	attachmentDescs[1].format = offScreenFrameBuf.normal.format;
-	attachmentDescs[2].format = offScreenFrameBuf.albedo.format;
-	attachmentDescs[3].format = offScreenFrameBuf.depth.format;
-
-	std::vector<VkAttachmentReference> colorReferences;
-	colorReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-	colorReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-	colorReferences.push_back({ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-
-	VkAttachmentReference depthReference = {};
-	depthReference.attachment = 3;
-	depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass = {};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.pColorAttachments = colorReferences.data();
-	subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
-	subpass.pDepthStencilAttachment = &depthReference;
-
-	// Use subpass dependencies for attachment layout transitions
-	std::array<VkSubpassDependency, 2> dependencies;
-
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-	dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-	VkRenderPassCreateInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.pAttachments = attachmentDescs.data();
-	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescs.size());
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
-	renderPassInfo.dependencyCount = 2;
-	renderPassInfo.pDependencies = dependencies.data();
-
-	VK_CHECK_RESULT(vkCreateRenderPass(_VulkanDevice->logicalDevice, &renderPassInfo, nullptr, &offScreenFrameBuf.renderPass));
-
-	std::array<VkImageView, 4> attachments;
-	attachments[0] = offScreenFrameBuf.position.view;
-	attachments[1] = offScreenFrameBuf.normal.view;
-	attachments[2] = offScreenFrameBuf.albedo.view;
-	attachments[3] = offScreenFrameBuf.depth.view;
-
-	VkFramebufferCreateInfo fbufCreateInfo = {};
-	fbufCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-	fbufCreateInfo.pNext = NULL;
-	fbufCreateInfo.renderPass = offScreenFrameBuf.renderPass;
-	fbufCreateInfo.pAttachments = attachments.data();
-	fbufCreateInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-	fbufCreateInfo.width = offScreenFrameBuf.width;
-	fbufCreateInfo.height = offScreenFrameBuf.height;
-	fbufCreateInfo.layers = 1;
-	VK_CHECK_RESULT(vkCreateFramebuffer(_VulkanDevice->logicalDevice, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer));
+	// Create default renderpass for the framebuffer
+	VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass());
 }
 
 void VulkanDriver::createVmaAllocator() {

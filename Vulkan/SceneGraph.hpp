@@ -66,17 +66,17 @@ public:
 		createUniformBuffers();
 		//
 		//	Create Object CommandBuffers
-		commandBuffers.resize(_Driver->frameBuffers.size());
-		commandBuffers_GUI.resize(_Driver->frameBuffers.size());
-		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
+		commandBuffers.resize(_Driver->frameBuffers_Main.size());
+		commandBuffers_GUI.resize(_Driver->frameBuffers_Main.size());
+		for (int i = 0; i < _Driver->frameBuffers_Main.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
 		}
 		//
 		//	Create GUI CommandBuffers
-		commandBuffers.resize(_Driver->frameBuffers.size());
-		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
+		commandBuffers.resize(_Driver->frameBuffers_Main.size());
+		for (int i = 0; i < _Driver->frameBuffers_Main.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
@@ -213,7 +213,7 @@ void SceneGraph::initWorld() {
 	dynamicsWorld->getSolverInfo().m_numIterations = 10;
 	//
 	//	true - false
-	btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
+	btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = false;
 	//
 	//	0.0f - 0.25f
 	printf("m_leastSquaresResidualThreshold %f\n", dynamicsWorld->getSolverInfo().m_leastSquaresResidualThreshold);
