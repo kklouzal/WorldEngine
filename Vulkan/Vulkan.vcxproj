@@ -159,6 +159,8 @@
     <ClCompile Include="ozz_utils.cc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="deferred.frag" />
+    <None Include="deferred.vert" />
     <None Include="Fragment_Default.frag" />
     <None Include="Fragment_GUI.frag" />
     <None Include="Vertex_Default.vert" />
@@ -197,6 +199,7 @@
     <ClInclude Include="vk_mem_alloc.h" />
     <ClInclude Include="Vulkan.hpp" />
     <ClInclude Include="VulkanDevice.hpp" />
+    <ClInclude Include="VulkanFrameBuffer.hpp" />
     <ClInclude Include="VulkanGWEN.hpp" />
     <ClInclude Include="VulkanInitializers.hpp" />
     <ClInclude Include="VulkanSwapChain.hpp" />

@@ -29,7 +29,6 @@ class SceneGraph
 {
 	Camera _Camera;
 	CharacterSceneNode* _Character;
-	UniformBufferObject_PointLights PointLights;
 	//
 	//	Bullet Physics
 
@@ -72,12 +71,7 @@ public:
 		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]) != VK_SUCCESS)
-			{
-				#ifdef _DEBUG
-				throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-				#endif
-			}
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
 		}
 		//
 		//	Create GUI CommandBuffers
@@ -85,12 +79,7 @@ public:
 		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]) != VK_SUCCESS)
-			{
-				#ifdef _DEBUG
-				throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-				#endif
-			}
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
 		}
 	}
 	//
@@ -146,7 +135,7 @@ public:
 
 			VmaAllocationInfo uniformBufferAllocInfo = {};
 
-			vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], &uniformBufferAllocInfo);
+			VK_CHECK_RESULT(vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], &uniformBufferAllocInfo));
 		}
 	}
 
@@ -333,11 +322,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 
 	//
 	//	Set target Primary Command Buffer
-	if (vkBeginCommandBuffer(PriCmdBuffer, &cmdBufInfo) != VK_SUCCESS) {
-		#ifdef _DEBUG
-		throw std::runtime_error("failed to begin recording primary command buffer!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkBeginCommandBuffer(PriCmdBuffer, &cmdBufInfo));
 	//
 	//	Begin render pass
 	vkCmdBeginRenderPass(PriCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
@@ -358,28 +343,19 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 		// 
 		//
 		//	Begin recording
-		if (vkBeginCommandBuffer(commandBuffers[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkBeginCommandBuffer Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[CurFrame], &commandBufferBeginInfo));
 		vkCmdSetViewport(commandBuffers[CurFrame], 0, 1, &_Driver->viewport_Main);
 		vkCmdSetScissor(commandBuffers[CurFrame], 0, 1, &_Driver->scissor_Main);
 		//
 		//	Submit individual SceneNode draw commands
+		vkCmdBindPipeline(commandBuffers[CurFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _Driver->_MaterialCache->GetPipe_Default()->graphicsPipeline);
 		for (size_t i = 0; i < SceneNodes.size(); i++) {
 			SceneNodes[i]->drawFrame(commandBuffers[CurFrame], CurFrame);
 		}
 		//
 		//
 		//	End recording state
-		if (vkEndCommandBuffer(commandBuffers[CurFrame]) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkEndCommandBuffer Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[CurFrame]));
 		secondaryCommandBuffers.push_back(commandBuffers[CurFrame]);
 	}
 	//
@@ -388,12 +364,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	//
 	//
 	//	Begin recording
-	if (vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkBeginCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo));
 	//	test
 	_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
 	#ifdef _DEBUG
@@ -404,12 +375,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	//
 	//
 	//	End recording state
-	if (vkEndCommandBuffer(commandBuffers_GUI[CurFrame]) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkEndCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[CurFrame]));
 	secondaryCommandBuffers.push_back(commandBuffers_GUI[CurFrame]);
 	//
 	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD
@@ -417,67 +383,10 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	// Execute render commands from the secondary command buffers
 	vkCmdExecuteCommands(PriCmdBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 	vkCmdEndRenderPass(PriCmdBuffer);
-	if (vkEndCommandBuffer(PriCmdBuffer) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkEndCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(PriCmdBuffer));
 }
 
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
-	//	Point Light 1
-	PointLights.position[0] = glm::vec3(0.0f, 10.0f, 0.0f);
-	PointLights.ambient[0] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.diffuse[0] = glm::vec3(0.4, 0.4, 0.4);
-	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.CLQ[0].x = glm::f32(1.0f);
-	PointLights.CLQ[0].y = glm::f32(0.09f);
-	PointLights.CLQ[0].z = glm::f32(0.032f);
-	//	Point Light 2
-	PointLights.position[1] = glm::vec3(50.0f, 10.0f, 50.0f);
-	PointLights.ambient[1] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.diffuse[1] = glm::vec3(0.4, 0.4, 0.4);
-	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.CLQ[1].x = glm::f32(1.0f);
-	PointLights.CLQ[1].y = glm::f32(0.09f);
-	PointLights.CLQ[1].z = glm::f32(0.032f);
-	//	Point Light 3
-	PointLights.position[2] = glm::vec3(50.0f, 10.0f, -50.0f);
-	PointLights.ambient[2] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.diffuse[2] = glm::vec3(0.4, 0.4, 0.4);
-	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.CLQ[2].x = glm::f32(1.0f);
-	PointLights.CLQ[2].y = glm::f32(0.09f);
-	PointLights.CLQ[2].z = glm::f32(0.032f);
-	//	Point Light 4
-	PointLights.position[3] = glm::vec3(-50.0f, 10.0f, 50.0f);
-	PointLights.ambient[3] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.diffuse[3] = glm::vec3(0.4, 0.4, 0.4);
-	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.CLQ[3].x = glm::f32(1.0f);
-	PointLights.CLQ[3].y = glm::f32(0.09f);
-	PointLights.CLQ[3].z = glm::f32(0.032f);
-	//	Point Light 5
-	PointLights.position[4] = glm::vec3(-50.0f, 10.0f, -50.0f);
-	PointLights.ambient[4] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.diffuse[4] = glm::vec3(0.4, 0.4, 0.4);
-	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.CLQ[4].x = glm::f32(1.0f);
-	PointLights.CLQ[4].y = glm::f32(0.09f);
-	PointLights.CLQ[4].z = glm::f32(0.032f);
-	//	Point Light 6 (Camera Light)
-	PointLights.position[5] = _Camera.Pos+_Camera.Ang;
-	PointLights.ambient[5] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.diffuse[5] = glm::vec3(0.4, 0.4, 0.4);
-	//PointLights.specular[0] = glm::vec3(0.5, 0.5, 0.5);
-	PointLights.CLQ[5].x = glm::f32(1.0f);
-	PointLights.CLQ[5].y = glm::f32(0.09f);
-	PointLights.CLQ[5].z = glm::f32(0.032f);
-
-	PointLights.count = glm::uint32(6);
-
-	memcpy(uniformAllocations[currentImage]->GetMappedData(), &PointLights, sizeof(PointLights));
 	//
 	//	Update SceneNode Uniform Buffers
 	for (size_t i = 0; i < SceneNodes.size(); i++) {

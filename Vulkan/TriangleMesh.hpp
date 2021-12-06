@@ -9,7 +9,7 @@ class TriangleMesh {
 public:
 
 	VulkanDriver* _Driver = VK_NULL_HANDLE;
-	PipelineObject* Pipe;
+	Pipeline::Default* Pipe;
 
 	GLTFInfo* _GLTF;
 	size_t vertexBufferSize;
@@ -30,7 +30,7 @@ public:
 
 public:
 	
-	TriangleMesh(VulkanDriver* Driver, PipelineObject* Pipeline, GLTFInfo* GLTF, TextureObject* Diffuse)
+	TriangleMesh(VulkanDriver* Driver, Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Diffuse)
 		: _Driver(Driver), Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
 		createUniformBuffers();
@@ -141,7 +141,6 @@ public:
 
 	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame)
 	{
-		vkCmdBindPipeline(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->graphicsPipeline);
 		//	Bind Descriptor Sets
 		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
 			
