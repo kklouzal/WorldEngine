@@ -39,6 +39,7 @@
 #include <vector>
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
+#include "VulkanFrameBuffer.hpp"
 #include "VulkanSwapChain.hpp"
 
 // Texture properties
@@ -176,12 +177,12 @@ public:
 	std::vector<VkCommandBuffer> commandBuffers;
 	std::vector<VkCommandBuffer> commandBuffers_GUI;
 
-	std::vector<VkBuffer> uboCompositionBuff = {};				//CLEAN ME UP
+	std::vector<VkBuffer> uboCompositionBuff = {};
 	std::vector<VmaAllocation> uboCompositionAlloc = {};	//CLEAN ME UP
-	std::vector<VmaAllocationInfo> uboCompositionAllocInfo = {};	//CLEAN ME UP
-	std::vector<VkBuffer> uboOffscreenVSBuff = {};				//CLEAN ME UP
+	std::vector<VmaAllocationInfo> uboCompositionAllocInfo = {};
+	std::vector<VkBuffer> uboOffscreenVSBuff = {};
 	std::vector<VmaAllocation> uboOffscreenVSAlloc = {};	//CLEAN ME UP
-	std::vector<VmaAllocationInfo> uboOffscreenVSAllocInfo = {};	//CLEAN ME UP
+	std::vector<VmaAllocationInfo> uboOffscreenVSAllocInfo = {};
 
 	void createUniformBuffersDeferred()
 	{
@@ -192,8 +193,8 @@ public:
 		uboCompositionAlloc.resize(swapChain.images.size());
 		uboCompositionAllocInfo.resize(swapChain.images.size());
 
-		for (size_t i = 0; i < swapChain.images.size(); i++) {
-
+		for (size_t i = 0; i < swapChain.images.size(); i++)
+		{
 			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 			uniformBufferInfo.size = bufferSize1;
 			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -208,8 +209,8 @@ public:
 		uboOffscreenVSBuff.resize(swapChain.images.size());
 		uboOffscreenVSAlloc.resize(swapChain.images.size());
 		uboOffscreenVSAllocInfo.resize(swapChain.images.size());
-		for (size_t i = 0; i < swapChain.images.size(); i++) {
-
+		for (size_t i = 0; i < swapChain.images.size(); i++)
+		{
 			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 			uniformBufferInfo.size = bufferSize2;
 			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -375,7 +376,7 @@ VulkanDriver::VulkanDriver() {
 	createFrameBuffers();
 	createUniformBuffersDeferred();
 	prepareOffscreenFrameBuffer();
-	_SceneGraph = new SceneGraph(this);			//	Primary CommandBuffer init
+	_SceneGraph = new SceneGraph(this);
 	_MaterialCache = new MaterialCache(this);
 
 	viewport_Main.x = 0.0f;
@@ -425,6 +426,7 @@ VulkanDriver::~VulkanDriver() {
 	//
 	vkDestroyRenderPass(_VulkanDevice->logicalDevice, renderPass, nullptr);
 	delete _MaterialCache;
+
 	//	Destroy VMA Allocator
 	vmaDestroyAllocator(allocator);
 	//

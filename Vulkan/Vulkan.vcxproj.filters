@@ -195,5 +195,8 @@
     <ClInclude Include="PlaybackController.hpp">
       <Filter>Header Files\OZZ</Filter>
     </ClInclude>
+    <ClInclude Include="VulkanFrameBuffer.hpp">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
