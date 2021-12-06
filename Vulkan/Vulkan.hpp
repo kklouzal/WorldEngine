@@ -499,7 +499,6 @@ void VulkanDriver::Render()
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
 
-	VkCommandBufferBeginInfo cmdBufInfo1 = vks::initializers::commandBufferBeginInfo();
 	// Clear values for all attachments written in the fragment shader
 	std::array<VkClearValue, 4> clearValues;
 	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -514,6 +513,7 @@ void VulkanDriver::Render()
 	renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassBeginInfo1.pClearValues = clearValues.data();
 
+	VkCommandBufferBeginInfo cmdBufInfo1 = vks::initializers::commandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1));
 	vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -546,8 +546,7 @@ void VulkanDriver::Render()
 	submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
 
 	std::vector<VkCommandBuffer> secondaryCommandBuffers;
-	VkCommandBufferBeginInfo cmdBufInfo2 = vks::initializers::commandBufferBeginInfo();
-	//cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
 	VkClearValue clearValues2[2];
 	clearValues2[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
 	clearValues2[1].depthStencil = { 1.0f, 0 };
@@ -561,6 +560,7 @@ void VulkanDriver::Render()
 	renderPassBeginInfo2.framebuffer = frameBuffers[currentFrame];
 	//
 	//	Set target Primary Command Buffer
+	VkCommandBufferBeginInfo cmdBufInfo2 = vks::initializers::commandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers[currentFrame], &cmdBufInfo2));
 	//
 	//	Begin render pass
@@ -597,7 +597,8 @@ void VulkanDriver::Render()
 	//
 	//	Begin recording
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo));
-	//	test
+	//
+	//	Issue draw commands
 	DrawExternal(commandBuffers_GUI[currentFrame]);
 	#ifdef _DEBUG
 	//if (isWorld) {

@@ -71,12 +71,7 @@ public:
 		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]) != VK_SUCCESS)
-			{
-				#ifdef _DEBUG
-				throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-				#endif
-			}
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
 		}
 		//
 		//	Create GUI CommandBuffers
@@ -84,12 +79,7 @@ public:
 		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-			if (vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]) != VK_SUCCESS)
-			{
-				#ifdef _DEBUG
-				throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-				#endif
-			}
+			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
 		}
 	}
 	//
@@ -145,7 +135,7 @@ public:
 
 			VmaAllocationInfo uniformBufferAllocInfo = {};
 
-			vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], &uniformBufferAllocInfo);
+			VK_CHECK_RESULT(vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], &uniformBufferAllocInfo));
 		}
 	}
 
@@ -332,11 +322,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 
 	//
 	//	Set target Primary Command Buffer
-	if (vkBeginCommandBuffer(PriCmdBuffer, &cmdBufInfo) != VK_SUCCESS) {
-		#ifdef _DEBUG
-		throw std::runtime_error("failed to begin recording primary command buffer!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkBeginCommandBuffer(PriCmdBuffer, &cmdBufInfo));
 	//
 	//	Begin render pass
 	vkCmdBeginRenderPass(PriCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
@@ -357,12 +343,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 		// 
 		//
 		//	Begin recording
-		if (vkBeginCommandBuffer(commandBuffers[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkBeginCommandBuffer Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[CurFrame], &commandBufferBeginInfo));
 		vkCmdSetViewport(commandBuffers[CurFrame], 0, 1, &_Driver->viewport_Main);
 		vkCmdSetScissor(commandBuffers[CurFrame], 0, 1, &_Driver->scissor_Main);
 		//
@@ -374,12 +355,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 		//
 		//
 		//	End recording state
-		if (vkEndCommandBuffer(commandBuffers[CurFrame]) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkEndCommandBuffer Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[CurFrame]));
 		secondaryCommandBuffers.push_back(commandBuffers[CurFrame]);
 	}
 	//
@@ -388,12 +364,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	//
 	//
 	//	Begin recording
-	if (vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkBeginCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo));
 	//	test
 	_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
 	#ifdef _DEBUG
@@ -404,12 +375,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	//
 	//
 	//	End recording state
-	if (vkEndCommandBuffer(commandBuffers_GUI[CurFrame]) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkEndCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[CurFrame]));
 	secondaryCommandBuffers.push_back(commandBuffers_GUI[CurFrame]);
 	//
 	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD
@@ -417,12 +383,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	// Execute render commands from the secondary command buffers
 	vkCmdExecuteCommands(PriCmdBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 	vkCmdEndRenderPass(PriCmdBuffer);
-	if (vkEndCommandBuffer(PriCmdBuffer) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkEndCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(PriCmdBuffer));
 }
 
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {

@@ -28,22 +28,12 @@ namespace Pipeline {
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-			if (vkCreateDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout) != VK_SUCCESS)
-			{
-				#ifdef _DEBUG
-				throw std::runtime_error("failed to create descriptor set layout!");
-				#endif
-			}
+			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
 
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			if (vkCreatePipelineLayout(_Driver->_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
-			{
-				#ifdef _DEBUG
-				throw std::runtime_error("failed to create pipeline layout!");
-				#endif
-			}
+			VK_CHECK_RESULT(vkCreatePipelineLayout(_Driver->_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			//
 			//	Graphics Pipeline
@@ -90,7 +80,7 @@ namespace Pipeline {
 			VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 			pipelineCI.pVertexInputState = &emptyInputState;
 			//	Create composite graphics pipeline
-			vkCreateGraphicsPipelines(_Driver->_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline_Composition);
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(_Driver->_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline_Composition));
 			//	Cleanup Shader Modules
 			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, vertShaderStageInfo1.module, nullptr);
 			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, fragShaderStageInfo1.module, nullptr);
@@ -131,7 +121,7 @@ namespace Pipeline {
 			colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
 			colorBlendState.pAttachments = blendAttachmentStates.data();
 			//	Create offscreen graphics pipeline
-			vkCreateGraphicsPipelines(_Driver->_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline);
+			VK_CHECK_RESULT(vkCreateGraphicsPipelines(_Driver->_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline));
 			//	Cleanup Shader Modules
 			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, vertShaderStageInfo2.module, nullptr);
 			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, fragShaderStageInfo2.module, nullptr);
@@ -150,23 +140,14 @@ namespace Pipeline {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size()*10)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size());
-			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &DescriptorPool_Composition) != VK_SUCCESS) {
-				#ifdef _DEBUG
-				throw std::runtime_error("failed to create descriptor pool 1!");
-				#endif
-			}
+			VK_CHECK_RESULT(vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &DescriptorPool_Composition));
 			//
 			//	Create and Update individual Descriptor sets
 			DescriptorSets_Composition.resize(_Driver->swapChain.images.size());
 			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool_Composition, &descriptorSetLayout, 1);
-				if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &DescriptorSets_Composition[i]) != VK_SUCCESS) {
-					#ifdef _DEBUG
-					printf("%i\n", i);
-					throw std::runtime_error("[createDescriptor] failed to allocate descriptor sets!\n");
-					#endif
-				}
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &DescriptorSets_Composition[i]));
 				// Image descriptors for the offscreen color attachments
 				VkDescriptorImageInfo texDescriptorPosition =
 					vks::initializers::descriptorImageInfo(
@@ -221,22 +202,13 @@ namespace Pipeline {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()*10)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size()*10);
-			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
-				#ifdef _DEBUG
-				throw std::runtime_error("[createDescriptor] failed to create descriptor pool!");
-				#endif
-			}
+			VK_CHECK_RESULT(vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool));
 			//
 			//	Create and Update individual Descriptor sets
 			NewDescriptor->DescriptorSets.resize(_Driver->swapChain.images.size());
 			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, &descriptorSetLayout, 1);
-				if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]) != VK_SUCCESS) {
-					#ifdef _DEBUG
-					printf("%i\n", i);
-					throw std::runtime_error("[createDescriptor] failed to allocate descriptor sets!\n");
-					#endif
-				}
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]));
 				VkDescriptorBufferInfo bufferInfo = {};
 				bufferInfo.buffer = UniformBuffers[i];
 				bufferInfo.offset = 0;
