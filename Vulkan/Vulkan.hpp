@@ -957,7 +957,7 @@ void VulkanDriver::createAttachment(
 	VkImageLayout imageLayout;
 
 	attachment->format = format;
-
+	
 	if (usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
 	{
 		aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
