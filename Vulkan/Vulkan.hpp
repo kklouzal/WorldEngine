@@ -166,6 +166,7 @@ public:
 
 	VkViewport viewport_Main = {};
 	VkRect2D scissor_Main = {};
+	std::array<VkClearValue, 4> clearValues;
 
 	// VMA
 	VmaAllocator allocator = VMA_NULL;
@@ -224,8 +225,8 @@ public:
 		}
 	}
 
-	void updateUniformBufferOffscreen(size_t CurFrame);
-	void updateUniformBufferComposition(size_t CurFrame);
+	void updateUniformBufferOffscreen(const size_t &CurFrame);
+	void updateUniformBufferComposition(const size_t &CurFrame);
 
 	//
 	//	Lua
@@ -312,7 +313,7 @@ public:
 #include "EventReceiver.hpp"
 
 // Update matrices used for the offscreen rendering of the scene
-void VulkanDriver::updateUniformBufferOffscreen(size_t CurFrame)
+void VulkanDriver::updateUniformBufferOffscreen(const size_t &CurFrame)
 {
 	uboOffscreenVS.projection = glm::perspective(glm::radians(90.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1024.0f);
 	uboOffscreenVS.projection[1][1] *= -1;
@@ -322,7 +323,7 @@ void VulkanDriver::updateUniformBufferOffscreen(size_t CurFrame)
 }
 
 // Update lights and parameters passed to the composition shaders
-void VulkanDriver::updateUniformBufferComposition(size_t CurFrame)
+void VulkanDriver::updateUniformBufferComposition(const size_t &CurFrame)
 {
 	// White
 	uboComposition.lights[0].position = glm::vec4(-50.0f, 10.0f, -50.0f, 0.0f);
@@ -404,6 +405,11 @@ VulkanDriver::VulkanDriver() {
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
 	}
+
+	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues[3].depthStencil = { 1.0f, 0 };
 }
 
 //
@@ -503,11 +509,7 @@ void VulkanDriver::Render()
 	submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
 
 	// Clear values for all attachments written in the fragment shader
-	std::array<VkClearValue, 4> clearValues;
-	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues[3].depthStencil = { 1.0f, 0 };
+	
 	VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
 	renderPassBeginInfo1.renderPass = offScreenFrameBuf.renderPass;
 	renderPassBeginInfo1.framebuffer = offScreenFrameBuf.frameBuffer;

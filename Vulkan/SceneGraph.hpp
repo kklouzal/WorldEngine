@@ -110,9 +110,9 @@ public:
 	//
 	//	Create SceneNode Functions
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
-	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, btVector3 Position);
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
-	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
+	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const btVector3& Position);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position);
+	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position);
 
 	std::vector<VkBuffer> UniformBuffers_Lighting = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
@@ -417,9 +417,9 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	btTriangleMesh* trimesh = new btTriangleMesh();
 	_TriangleMeshes.push_back(trimesh);
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-		auto V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
-		auto V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-		auto V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+		auto &V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+		auto &V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+		auto &V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
 
 		trimesh->addTriangle(btVector3(V1.x, V1.y, V1.z), btVector3(V2.x, V2.y, V2.z), btVector3(V3.x, V3.y, V3.z));
 	}
@@ -461,7 +461,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 //
 //	TriangleMesh Create Function
-TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
+TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
@@ -525,7 +525,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 //
 //	SkinnedMesh Create Function
-SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
+SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
@@ -587,7 +587,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 
 //
 //	Character Create Function
-CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, btVector3 Position) {
+CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const btVector3& Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);

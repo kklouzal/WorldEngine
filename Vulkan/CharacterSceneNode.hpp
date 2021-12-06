@@ -59,14 +59,14 @@ public:
 		_RigidBody->setWorldTransform(Trans);
 	}
 
-	void setPosition(btVector3 NewPosition) {
+	void setPosition(const btVector3& NewPosition) {
 		btTransform Trans = _RigidBody->getWorldTransform();
 		Trans.setOrigin(btVector3(NewPosition));
 		_RigidBody->activate(true);
 		_RigidBody->setWorldTransform(Trans);
 	}
 
-	void setYaw(float Yaw) {
+	void setYaw(const float& Yaw) {
 		btTransform Trans = _RigidBody->getWorldTransform();
 		Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));
 		_RigidBody->activate(true);
@@ -82,7 +82,7 @@ public:
 		_Mesh->updateUniformBuffer(currentImage, ubo);
 	}
 
-	void drawFrame(const VkCommandBuffer& CommandBuffer, uint32_t CurFrame) {
+	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
 		if (!Valid) {
 			_Mesh->draw(CommandBuffer, CurFrame);
 		}

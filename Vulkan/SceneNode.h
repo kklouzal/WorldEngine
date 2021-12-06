@@ -11,7 +11,7 @@ public:
 public:
 	virtual ~SceneNode() = 0;
 	virtual void updateUniformBuffer(const uint32_t &currentImage) = 0;
-	virtual void drawFrame(const VkCommandBuffer &CommandBuffer, uint32_t CurFrame) = 0;
+	virtual void drawFrame(const VkCommandBuffer &CommandBuffer, const uint32_t &CurFrame) = 0;
 	//virtual void drawFrame2(const VkCommandBuffer& CommandBuffer, uint32_t CurFrame) = 0;
 	virtual void preDelete(btDiscreteDynamicsWorld* _BulletWorld) = 0;
 };
