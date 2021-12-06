@@ -458,9 +458,10 @@ void VulkanDriver::mainLoop() {
 		//	Simulate Physics
 		_SceneGraph->stepSimulation(deltaFrame/1000);
 		//
-		//	Update Shaders
+		//	Update Shader Uniforms
 		updateUniformBufferOffscreen(currentFrame);
 		updateUniformBufferComposition(currentFrame);
+		_SceneGraph->updateUniformBuffer(currentFrame);
 		//
 		//	Draw Frame
 		Render();
@@ -528,8 +529,6 @@ void VulkanDriver::Render()
 	for (size_t i = 0; i < _SceneGraph->SceneNodes.size(); i++) {
 		_SceneGraph->SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 	}
-	//	Do this somewhere else?
-	_SceneGraph->updateUniformBuffer(currentFrame);
 
 	vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 	VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
