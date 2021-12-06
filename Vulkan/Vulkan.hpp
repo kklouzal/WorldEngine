@@ -31,6 +31,7 @@
 #include <array>
 #include <fstream>
 #include <deque>
+#include <string>
 
 //
 //	Include Vulkan Helpers
@@ -289,7 +290,7 @@ public:
 	//	End and submit single immediate use CommandBuffer
 	void endSingleTimeCommands(const VkCommandBuffer& commandBuffer)
 	{
-		vkEndCommandBuffer(commandBuffer);
+		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 		VkSubmitInfo submitInfo = vks::initializers::submitInfo();
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffer;
@@ -392,12 +393,7 @@ VulkanDriver::VulkanDriver() {
 	for (int i = 0; i < frameBuffers.size(); i++)
 	{
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-		if (vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
 	}
 	//
 	//	Create GUI CommandBuffers
@@ -405,12 +401,7 @@ VulkanDriver::VulkanDriver() {
 	for (int i = 0; i < frameBuffers.size(); i++)
 	{
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-		if (vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
 	}
 }
 
@@ -492,12 +483,7 @@ void VulkanDriver::Render()
 		//windowResize();
 	}
 	else {
-		if (result != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("swapChain.acquireNextImage Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(result);
 	}
 	//
 	//		START DRAWING OFFSCREEN
@@ -528,7 +514,7 @@ void VulkanDriver::Render()
 	renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues.size());
 	renderPassBeginInfo1.pClearValues = clearValues.data();
 
-	if (vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1) != VK_SUCCESS) { printf("FAIL2!\n"); }
+	VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1));
 	vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 
 	VkViewport viewport = vks::initializers::viewport((float)offScreenFrameBuf.width, (float)offScreenFrameBuf.height, 0.0f, 1.0f);
@@ -544,13 +530,8 @@ void VulkanDriver::Render()
 	_SceneGraph->updateUniformBuffer(currentFrame);
 
 	vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
-	if (vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]) != VK_SUCCESS) { printf("FAIL2!\n"); }
-	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkQueueSubmit Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
+	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
 	//
 	//		START DRAWING ONSCREEN
 	// 
@@ -580,11 +561,7 @@ void VulkanDriver::Render()
 	renderPassBeginInfo2.framebuffer = frameBuffers[currentFrame];
 	//
 	//	Set target Primary Command Buffer
-	if (vkBeginCommandBuffer(primaryCommandBuffers[currentFrame], &cmdBufInfo2) != VK_SUCCESS) {
-		#ifdef _DEBUG
-		throw std::runtime_error("failed to begin recording primary command buffer!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers[currentFrame], &cmdBufInfo2));
 	//
 	//	Begin render pass
 	vkCmdBeginRenderPass(primaryCommandBuffers[currentFrame], &renderPassBeginInfo2, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
@@ -600,12 +577,7 @@ void VulkanDriver::Render()
 	commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 	//
 	//	Begin recording
-	if (vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkBeginCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo));
 	vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport_Main);
 	vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
 	//
@@ -616,12 +588,7 @@ void VulkanDriver::Render()
 	//
 	//
 	//	End recording state
-	if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkEndCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrame]));
 	secondaryCommandBuffers.push_back(commandBuffers[currentFrame]);
 
 	//
@@ -629,12 +596,7 @@ void VulkanDriver::Render()
 	// 
 	//
 	//	Begin recording
-	if (vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkBeginCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo));
 	//	test
 	DrawExternal(commandBuffers_GUI[currentFrame]);
 	#ifdef _DEBUG
@@ -645,12 +607,7 @@ void VulkanDriver::Render()
 	//
 	//
 	//	End recording state
-	if (vkEndCommandBuffer(commandBuffers_GUI[currentFrame]) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkEndCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[currentFrame]));
 	secondaryCommandBuffers.push_back(commandBuffers_GUI[currentFrame]);
 
 	//
@@ -659,19 +616,9 @@ void VulkanDriver::Render()
 	//	Execute render commands from the secondary command buffers
 	vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 	vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
-	if (vkEndCommandBuffer(primaryCommandBuffers[currentFrame]) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkEndCommandBuffer Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentFrame]));
 
-	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkQueueSubmit Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
 
 	//
 	//		PRESENT TO SCREEN
@@ -684,12 +631,7 @@ void VulkanDriver::Render()
 			//return;
 		}
 		else {
-			if (result != VK_SUCCESS)
-			{
-				#ifdef _DEBUG
-				throw std::runtime_error("swapChain.queuePresent Failed!");
-				#endif
-			}
+			VK_CHECK_RESULT(result);
 		}
 	}
 	vkQueueWaitIdle(graphicsQueue);
@@ -776,11 +718,7 @@ void VulkanDriver::createInstance() {
 		}
 	}
 
-	if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-#ifdef _DEBUG
-		throw std::runtime_error("failed to create instance!");
-#endif
-	}
+	VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &instance));
 }
 
 //
@@ -818,12 +756,7 @@ void VulkanDriver::createLogicalDevice()
 	//
 	//	Create logical device
 	_VulkanDevice = new VulkanDevice(physicalDevice);
-	if (_VulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, nullptr) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("failed to create logical device!");
-		#endif
-	}
+	VK_CHECK_RESULT(_VulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, nullptr));
 	//
 	//	Get graphics queue
 	vkGetDeviceQueue(_VulkanDevice->logicalDevice, _VulkanDevice->queueFamilyIndices.graphics, 0, &graphicsQueue);
@@ -839,28 +772,13 @@ void VulkanDriver::createLogicalDevice()
 	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 	// Create a semaphore used to synchronize image presentation
 	// Ensures that the image is displayed before we start submitting new commands to the queue
-	if (vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkCreateSemaphore Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.presentComplete));
 	// Create a semaphore used to synchronize command submission
 	// Ensures that the image is not presented until all commands have been submitted and executed
-	if (vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkCreateSemaphore Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.renderComplete));
 	// Create a semaphore used to synchronize deferred rendering
 	// Ensures that drawing happens at the appropriate times
-	if (vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.offscreenSync) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkCreateSemaphore Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores.offscreenSync));
 	//
 	//	Submit Information
 	submitInfo = vks::initializers::submitInfo();
@@ -908,12 +826,7 @@ void VulkanDriver::createDepthResources() {
 	if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
 		textureImageViewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 	}
-	if (vkCreateImageView(_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &depthStencil.view) != VK_SUCCESS)
-	{
-#ifdef _DEBUG
-		throw std::runtime_error("vkCreateImageView Failed!");
-#endif
-	}
+	VK_CHECK_RESULT(vkCreateImageView(_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &depthStencil.view));
 }
 
 void VulkanDriver::createRenderPass() {
@@ -985,12 +898,7 @@ void VulkanDriver::createRenderPass() {
 	renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 	renderPassInfo.pDependencies = dependencies.data();
 
-	if (vkCreateRenderPass(_VulkanDevice->logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
-	{
-		#ifdef _DEBUG
-		throw std::runtime_error("vkCreateRenderPass Failed!");
-		#endif
-	}
+	VK_CHECK_RESULT(vkCreateRenderPass(_VulkanDevice->logicalDevice, &renderPassInfo, nullptr, &renderPass));
 }
 
 void VulkanDriver::createFrameBuffers() {
@@ -1019,40 +927,20 @@ void VulkanDriver::createFrameBuffers() {
 		//
 		//	FrameBuffers
 		attachments[0] = swapChain.buffers[i].view;
-		if (vkCreateFramebuffer(_VulkanDevice->logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers[i]) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkCreateFramebuffer Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkCreateFramebuffer(_VulkanDevice->logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers[i]));
 		//
 		//	CommandPools
 		VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 		poolInfo.queueFamilyIndex = _VulkanDevice->queueFamilyIndices.graphics;
 		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		//
-		if (vkCreateCommandPool(_VulkanDevice->logicalDevice, &poolInfo, nullptr, &commandPools[i]) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkCreateCommandPool Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkCreateCommandPool(_VulkanDevice->logicalDevice, &poolInfo, nullptr, &commandPools[i]));
 		//
 		//	Primary CommandBuffers
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-		if (vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &primaryCommandBuffers[i]) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &primaryCommandBuffers[i]));
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo2 = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-		if (vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo2, &offscreenCommandBuffers[i]) != VK_SUCCESS)
-		{
-			#ifdef _DEBUG
-			throw std::runtime_error("vkAllocateCommandBuffers Failed!");
-			#endif
-		}
+		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo2, &offscreenCommandBuffers[i]));
 	}
 }
 
@@ -1108,10 +996,7 @@ void VulkanDriver::createAttachment(
 	imageView.subresourceRange.baseArrayLayer = 0;
 	imageView.subresourceRange.layerCount = 1;
 	imageView.image = attachment->image;
-	if (vkCreateImageView(_VulkanDevice->logicalDevice, &imageView, nullptr, &attachment->view) != VK_SUCCESS)
-	{
-		printf("FAIL!\n");
-	}
+	VK_CHECK_RESULT(vkCreateImageView(_VulkanDevice->logicalDevice, &imageView, nullptr, &attachment->view));
 }
 
 // Prepare a new framebuffer and attachments for offscreen rendering (G-Buffer)
@@ -1223,10 +1108,7 @@ void VulkanDriver::prepareOffscreenFrameBuffer()
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies = dependencies.data();
 
-	if (vkCreateRenderPass(_VulkanDevice->logicalDevice, &renderPassInfo, nullptr, &offScreenFrameBuf.renderPass) != VK_SUCCESS)
-	{
-		printf("FAIL!\n");
-	}
+	VK_CHECK_RESULT(vkCreateRenderPass(_VulkanDevice->logicalDevice, &renderPassInfo, nullptr, &offScreenFrameBuf.renderPass));
 
 	std::array<VkImageView, 4> attachments;
 	attachments[0] = offScreenFrameBuf.position.view;
@@ -1243,25 +1125,7 @@ void VulkanDriver::prepareOffscreenFrameBuffer()
 	fbufCreateInfo.width = offScreenFrameBuf.width;
 	fbufCreateInfo.height = offScreenFrameBuf.height;
 	fbufCreateInfo.layers = 1;
-	if (vkCreateFramebuffer(_VulkanDevice->logicalDevice, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer) != VK_SUCCESS)
-	{
-		printf("FAIL!\n");
-	}
-
-	// Create sampler to sample from the color attachments
-	/*VkSamplerCreateInfo sampler = vks::initializers::samplerCreateInfo();
-	sampler.magFilter = VK_FILTER_NEAREST;
-	sampler.minFilter = VK_FILTER_NEAREST;
-	sampler.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-	sampler.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-	sampler.addressModeV = sampler.addressModeU;
-	sampler.addressModeW = sampler.addressModeU;
-	sampler.mipLodBias = 0.0f;
-	sampler.maxAnisotropy = 1.0f;
-	sampler.minLod = 0.0f;
-	sampler.maxLod = 1.0f;
-	sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-	VK_CHECK_RESULT(vkCreateSampler(device, &sampler, nullptr, &colorSampler));*/
+	VK_CHECK_RESULT(vkCreateFramebuffer(_VulkanDevice->logicalDevice, &fbufCreateInfo, nullptr, &offScreenFrameBuf.frameBuffer));
 }
 
 void VulkanDriver::createVmaAllocator() {
