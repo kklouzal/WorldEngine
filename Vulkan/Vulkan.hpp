@@ -488,17 +488,18 @@ void VulkanDriver::mainLoop() {
 void VulkanDriver::Render()
 {
 	// 
-	//	Synchronize with in-flight-frames
+	//	Wait on this frame if it is still being used by the GPU
 	vkWaitForFences(_VulkanDevice->logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 	// 
 	// Acquire the next image from the swap chain
 	VkResult result = swapChain.acquireNextImage(semaphores[currentFrame].presentComplete, &currentImage);
 	//
-	// Wait on this image if it's still in use
+	//	Check again if this image is currently being used by the GPU
 	if (imagesInFlight[currentImage] != VK_NULL_HANDLE) {
 		vkWaitForFences(_VulkanDevice->logicalDevice, 1, &imagesInFlight[currentImage], VK_TRUE, UINT64_MAX);
 	}
-	// Mark the image as now being in use by this frame
+	//
+	//	Mark this image as being used by the GPU for this frame
 	imagesInFlight[currentImage] = inFlightFences[currentFrame];
 	//
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
@@ -655,8 +656,9 @@ void VulkanDriver::Render()
 			VK_CHECK_RESULT(result);
 		}
 	}
+	//
+	//	Submit this frame to the GPU and increment our currentFrame identifier
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-	//vkQueueWaitIdle(graphicsQueue);
 }
 
 void VulkanDriver::initLua() {
