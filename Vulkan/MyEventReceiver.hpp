@@ -139,9 +139,9 @@ public:
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 				if (Character && !IsMenuOpen()) {
 					auto CamPos = Cam->Pos;
-					dVector From(CamPos.x, CamPos.y, CamPos.z, 0.f);
+					dVector From((dFloat32)CamPos.x, (dFloat32)CamPos.y, (dFloat32)CamPos.z, 0.f);
 					auto CamDir = CamPos + Cam->Ang * 1000.0f;
-					dVector To(CamDir.x, CamDir.y, CamDir.z, 0.f);
+					dVector To((dFloat32)CamDir.x, (dFloat32)CamDir.y, (dFloat32)CamDir.z, 0.f);
 					//Character->_Weapon.Primary(_Driver->_SceneGraph->castRay(From,To));
 				}
 			}

@@ -304,7 +304,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.emplace_back(V1, V2, V3, 0);
+		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
 	}
 	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
@@ -320,6 +320,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	body2->SetMassMatrix(10.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
+	MeshNode->_RigidBody = body2;
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -356,7 +357,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.emplace_back(V1, V2, V3, 0);
+		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
 	}
 	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
@@ -372,6 +373,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	body2->SetMassMatrix(10.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
+	MeshNode->_RigidBody = body2;
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -408,7 +410,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.emplace_back(V1, V2, V3, 0);
+		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
 	}
 	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
@@ -424,6 +426,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	body2->SetMassMatrix(10.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
+	MeshNode->_RigidBody = body2;
 
 	SceneNodes.push_back(MeshNode);
 	return MeshNode;
@@ -458,7 +461,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.emplace_back(V1, V2, V3, 0);
+		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
 	}
 	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
@@ -474,6 +477,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	body2->SetMassMatrix(10.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
+	MeshNode->_RigidBody = body2;
 
 	//
 	//	Push new SceneNode into the SceneGraph
