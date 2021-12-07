@@ -481,7 +481,7 @@ namespace Gwen
 
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
 
-				auto CB = _Driver->beginSingleTimeCommands();
+				const VkCommandBuffer &CB = _Driver->beginSingleTimeCommands();
 				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;

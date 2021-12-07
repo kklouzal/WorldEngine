@@ -25,17 +25,19 @@ public:
 	std::vector<VkBuffer> uniformBuffers = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
 
-	TextureObject* Texture;
+	TextureObject* Texture_Albedo;
+	TextureObject* Texture_Normal;
 	DescriptorObject* Descriptor;
 
 public:
 	
-	TriangleMesh(VulkanDriver* Driver, Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Diffuse)
+	TriangleMesh(VulkanDriver* Driver, Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
 		: _Driver(Driver), Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
 		createUniformBuffers();
-		Texture = Diffuse;
-		Descriptor = Pipe->createDescriptor(Texture, uniformBuffers);
+		Texture_Albedo = Albedo;
+		Texture_Normal = Normal;
+		Descriptor = Pipe->createDescriptor(Albedo, Normal, uniformBuffers);
 	}
 
 	~TriangleMesh() {
@@ -51,16 +53,15 @@ public:
 	}
 
 
-	void createUniformBuffers() {
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
+	void createUniformBuffers()
+	{
 		uniformBuffers.resize(_Driver->swapChain.images.size());
 		uniformAllocations.resize(_Driver->swapChain.images.size());
 
 		for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
 
 			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			uniformBufferInfo.size = bufferSize;
+			uniformBufferInfo.size = sizeof(UniformBufferObject);
 			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -68,9 +69,7 @@ public:
 			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			VmaAllocationInfo uniformBufferAllocInfo = {};
-
-			vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &uniformBuffers[i], &uniformAllocations[i], &uniformBufferAllocInfo);
+			vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &uniformBuffers[i], &uniformAllocations[i], nullptr);
 		}
 	}
 

@@ -66,17 +66,17 @@ public:
 		createUniformBuffers();
 		//
 		//	Create Object CommandBuffers
-		commandBuffers.resize(_Driver->frameBuffers.size());
-		commandBuffers_GUI.resize(_Driver->frameBuffers.size());
-		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
+		commandBuffers.resize(_Driver->frameBuffers_Main.size());
+		commandBuffers_GUI.resize(_Driver->frameBuffers_Main.size());
+		for (int i = 0; i < _Driver->frameBuffers_Main.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
 		}
 		//
 		//	Create GUI CommandBuffers
-		commandBuffers.resize(_Driver->frameBuffers.size());
-		for (int i = 0; i < _Driver->frameBuffers.size(); i++)
+		commandBuffers.resize(_Driver->frameBuffers_Main.size());
+		for (int i = 0; i < _Driver->frameBuffers_Main.size(); i++)
 		{
 			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
@@ -110,9 +110,9 @@ public:
 	//
 	//	Create SceneNode Functions
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
-	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, btVector3 Position);
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
-	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass = btScalar(1.0f), btVector3 Position = btVector3(0, 5, 0));
+	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const btVector3& Position);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position);
+	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position);
 
 	std::vector<VkBuffer> UniformBuffers_Lighting = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
@@ -133,9 +133,7 @@ public:
 			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			VmaAllocationInfo uniformBufferAllocInfo = {};
-
-			VK_CHECK_RESULT(vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], &uniformBufferAllocInfo));
+			VK_CHECK_RESULT(vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], nullptr));
 		}
 	}
 
@@ -174,8 +172,9 @@ public:
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
-	//btSetTaskScheduler(btGetOpenMPTaskScheduler());
 	btSetTaskScheduler(btCreateDefaultTaskScheduler());
+	//btSetTaskScheduler(btGetSequentialTaskScheduler());
+	//btSetTaskScheduler(btGetOpenMPTaskScheduler());
 	//
 	btDefaultCollisionConstructionInfo cci;
 	cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
@@ -185,11 +184,11 @@ void SceneGraph::initWorld() {
 	broadphase = new btDbvtBroadphase();
 	//
 	//	Solver Pool
-	btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
-	int maxThreadCount = BT_MAX_THREAD_COUNT;
+	btConstraintSolver* solvers[8];
+	int maxThreadCount = 8;
 	for (int i = 0; i < maxThreadCount; ++i)
 	{
-		solvers[i] = new btSequentialImpulseConstraintSolverMt();
+		solvers[i] = new btSequentialImpulseConstraintSolver();
 	}
 	solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
 	btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
@@ -215,7 +214,7 @@ void SceneGraph::initWorld() {
 	dynamicsWorld->getSolverInfo().m_numIterations = 10;
 	//
 	//	true - false
-	btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
+	btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = false;
 	//
 	//	0.0f - 0.25f
 	printf("m_leastSquaresResidualThreshold %f\n", dynamicsWorld->getSolverInfo().m_leastSquaresResidualThreshold);
@@ -366,7 +365,7 @@ void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const
 	//	Begin recording
 	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo));
 	//	test
-	_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
+	//_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
 	#ifdef _DEBUG
 	if (isWorld) {
 		//dynamicsWorld->debugDrawWorld();
@@ -411,15 +410,15 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	}
 	//	END TODO
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 	btCollisionShape* ColShape;
 	//if (_CollisionShapes.count(FileFBX) == 0) {
 	btTriangleMesh* trimesh = new btTriangleMesh();
 	_TriangleMeshes.push_back(trimesh);
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-		auto V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
-		auto V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-		auto V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+		auto &V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+		auto &V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+		auto &V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
 
 		trimesh->addTriangle(btVector3(V1.x, V1.y, V1.z), btVector3(V2.x, V2.y, V2.z), btVector3(V3.x, V3.y, V3.z));
 	}
@@ -461,7 +460,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 //
 //	TriangleMesh Create Function
-TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
+TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
@@ -476,7 +475,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	}
 	//	END TODO
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 	btCollisionShape* ColShape;
 	if (_CollisionShapes.count(FileFBX) == 0) {
 		DecompResults* Results = Decomp(Infos);
@@ -525,7 +524,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 //
 //	SkinnedMesh Create Function
-SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, btScalar Mass, btVector3 Position) {
+SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
@@ -540,7 +539,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	}
 	//	END TODO
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 	btCollisionShape* ColShape;
 	if (_CollisionShapes.count(FileFBX) == 0) {
 		DecompResults* Results = Decomp(Infos);
@@ -587,7 +586,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 
 //
 //	Character Create Function
-CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, btVector3 Position) {
+CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const btVector3& Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
@@ -602,7 +601,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, bt
 	}
 	//	END TODO
 
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 	btCollisionShape* ColShape;
 	if (_CollisionShapes.count(FileFBX) == 0) {
 		DecompResults* Results = Decomp(Infos);

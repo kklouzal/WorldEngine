@@ -111,7 +111,7 @@ namespace Pipeline {
 			vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			//	Separate render pass
-			pipelineCI.renderPass = _Driver->offScreenFrameBuf.renderPass;
+			pipelineCI.renderPass = _Driver->frameBuffers.deferred->renderPass;
 			//	Blend attachment states required for all color attachments
 			std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
@@ -152,19 +152,19 @@ namespace Pipeline {
 				VkDescriptorImageInfo texDescriptorPosition =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						_Driver->offScreenFrameBuf.position.view,
+						_Driver->frameBuffers.deferred->attachments[0].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorNormal =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						_Driver->offScreenFrameBuf.normal.view,
+						_Driver->frameBuffers.deferred->attachments[1].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorAlbedo =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						_Driver->offScreenFrameBuf.albedo.view,
+						_Driver->frameBuffers.deferred->attachments[2].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorBufferInfo bufferInfo_composition = {};
@@ -192,7 +192,7 @@ namespace Pipeline {
 		//	Create Descriptor
 		//
 		//
-		DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers) {
+		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& UniformBuffers) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
 			//
 			//	Create Descriptor Pool
@@ -214,10 +214,16 @@ namespace Pipeline {
 				bufferInfo.offset = 0;
 				bufferInfo.range = sizeof(UniformBufferObject);
 
-				VkDescriptorImageInfo textureImage =
+				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						Texture->ImageView,
+						TextureColor->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorImageInfo textureImageNormal =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						TextureNormal->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
@@ -226,9 +232,9 @@ namespace Pipeline {
 					// Binding 0 : vertex data
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo),
 					// Binding 1 : texture
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImage),
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImageColor),
 					// Binding 2 : texture
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImage)
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageNormal)
 				};
 
 				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
