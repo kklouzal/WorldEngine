@@ -16,8 +16,8 @@ public:
 		delete _Mesh;
 	}
 
-	void preDelete(btDiscreteDynamicsWorld* _BulletWorld) {
-		_BulletWorld->removeRigidBody(_RigidBody);
+	void preDelete(ndWorld* _ndWorld) {
+		//	ToDo: Remove physics object from newton world?
 	}
 
 	void updateUniformBuffer(const uint32_t& currentImage) {

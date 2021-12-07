@@ -1,13 +1,5 @@
 #pragma once
 
-#include "btBulletDynamicsCommon.h"
-#include "Bullet_DebugDraw.hpp"
-#include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
-#include "BulletCollision/CollisionDispatch/btCollisionDispatcherMt.h"
-#include "BulletDynamics/Dynamics/btSimulationIslandManagerMt.h"  // for setSplitIslands()
-#include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
-#include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
-
 #include "Import_GLTF.hpp"
 #include "ConvexDecomposition.hpp"
 
@@ -29,23 +21,6 @@ class SceneGraph
 {
 	Camera _Camera;
 	CharacterSceneNode* _Character;
-	//
-	//	Bullet Physics
-
-	btDefaultCollisionConfiguration* collisionConfiguration;
-	btCollisionDispatcherMt* dispatcher;
-	btBroadphaseInterface* broadphase;
-	btConstraintSolverPoolMt* solverPool;
-	btDiscreteDynamicsWorld* dynamicsWorld;
-
-	//
-	//
-	std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
-	std::deque<btTriangleMesh*> _TriangleMeshes;
-	std::deque<btConvexShape*> _ConvexShapes;
-#ifdef _DEBUG
-	VulkanBTDebugDraw BTDebugDraw;
-#endif
 	//
 	//	Secondary Command Buffers
 	//	One buffer per frame per object type
@@ -105,14 +80,12 @@ public:
 
 	void updateUniformBuffer(const uint32_t &currentImage);
 
-	void stepSimulation(const btScalar& timeStep);
-
 	//
 	//	Create SceneNode Functions
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
-	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const btVector3& Position);
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position);
-	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position);
+	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const dVector& Position);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position);
+	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position);
 
 	std::vector<VkBuffer> UniformBuffers_Lighting = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
@@ -150,13 +123,13 @@ public:
 
 	//
 	//	Raytest
-	btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To)
+	/*btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To)
 	{
 		btCollisionWorld::ClosestRayResultCallback closestResults(From, To);
 		closestResults.m_flags |= btTriangleRaycastCallback::kF_FilterBackfaces;
 		dynamicsWorld->rayTest(From, To, closestResults);
 		return closestResults;
-	}
+	}*/
 };
 
 #include "MaterialCache.hpp"
@@ -172,72 +145,9 @@ public:
 void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
-	btSetTaskScheduler(btCreateDefaultTaskScheduler());
-	//btSetTaskScheduler(btGetSequentialTaskScheduler());
-	//btSetTaskScheduler(btGetOpenMPTaskScheduler());
-	//
-	btDefaultCollisionConstructionInfo cci;
-	cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
-	cci.m_defaultMaxCollisionAlgorithmPoolSize = 102400;
-	collisionConfiguration = new btDefaultCollisionConfiguration(cci);
-	dispatcher = new btCollisionDispatcherMt(collisionConfiguration, 40);
-	broadphase = new btDbvtBroadphase();
-	//
-	//	Solver Pool
-	btConstraintSolver* solvers[8];
-	int maxThreadCount = 8;
-	for (int i = 0; i < maxThreadCount; ++i)
-	{
-		solvers[i] = new btSequentialImpulseConstraintSolver();
-	}
-	solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
-	btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
-	//
-	//	Create Dynamics World
-	dynamicsWorld = new btDiscreteDynamicsWorldMt(dispatcher, broadphase, solverPool, solver, collisionConfiguration);
-	//
-	//	Set World Properties
-	dynamicsWorld->setGravity(btVector3(0, -10, 0));
-	dynamicsWorld->setForceUpdateAllAabbs(false);
-	dynamicsWorld->getSolverInfo().m_solverMode = SOLVER_SIMD |
-		//SOLVER_USE_WARMSTARTING |
-		//SOLVER_RANDMIZE_ORDER |
-		// SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
-		// SOLVER_USE_2_FRICTION_DIRECTIONS |
-		SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
-		//SOLVER_CACHE_FRIENDLY |
-		SOLVER_DISABLE_IMPLICIT_CONE_FRICTION |
-		//SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION |
-		0;
-	
-
-	dynamicsWorld->getSolverInfo().m_numIterations = 10;
-	//
-	//	true - false
-	btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = false;
-	//
-	//	0.0f - 0.25f
-	printf("m_leastSquaresResidualThreshold %f\n", dynamicsWorld->getSolverInfo().m_leastSquaresResidualThreshold);
-	//
-	//	1.0f - 2000.0f
-	printf("s_minimumContactManifoldsForBatching %i\n", btSequentialImpulseConstraintSolverMt::s_minimumContactManifoldsForBatching);
-	//
-	//	1.0f - 1000.0f
-	printf("s_minBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_minBatchSize);
-	//
-	//	1.0f - 1000.0f
-	printf("s_maxBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_maxBatchSize);
-	//
-	//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_2D
-	//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_3D
-	printf("s_contactBatchingMethod %i\n", btSequentialImpulseConstraintSolverMt::s_contactBatchingMethod);
-
-	#ifdef _DEBUG
-	dynamicsWorld->setDebugDrawer(&BTDebugDraw);
-	#endif
 
 	createWorldSceneNode("media/models/StartingArea.gltf");
-	_Character = createCharacterSceneNode("media/models/box.gltf", btVector3(0, 15, 0));
+	_Character = createCharacterSceneNode("media/models/box.gltf", dVector(0, 15, 0, 0));
 	_Character->_Camera = &_Camera;
 
 	isWorld = true;
@@ -253,46 +163,12 @@ void SceneGraph::cleanupWorld() {
 	//
 	//	Cleanup SceneNodes
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
-		SceneNodes[i]->preDelete(dynamicsWorld);
 		delete SceneNodes[i];
 	}
 	SceneNodes.clear();
 	SceneNodes.shrink_to_fit();
 
-	for (auto Shape : _CollisionShapes) {
-		delete Shape.second;
-	}
-	_CollisionShapes.clear();
-
-	for (size_t i = 0; i < _ConvexShapes.size(); i++) {
-		delete _ConvexShapes[i];
-	}
-	_ConvexShapes.clear();
-	_ConvexShapes.shrink_to_fit();
-
-	for (size_t i = 0; i < _TriangleMeshes.size(); i++) {
-		delete _TriangleMeshes[i];
-	}
-	_TriangleMeshes.clear();
-	_TriangleMeshes.shrink_to_fit();
-
-	//delete dynamics world
-	delete dynamicsWorld;
-	//delete solver
-	delete solverPool;
-	//delete broadphase
-	delete broadphase;
-	//delete dispatcher
-	delete dispatcher;
-	delete collisionConfiguration;
-
 	_Driver->_MaterialCache->GetPipe_Default()->EmptyCache();
-}
-
-void SceneGraph::stepSimulation(const btScalar &timeStep) {
-	if (isWorld) {
-		dynamicsWorld->stepSimulation(timeStep, 0);
-	}
 }
 
 void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const VkCommandBuffer& PriCmdBuffer, const VkFramebuffer& FrmBuffer)
@@ -411,19 +287,8 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	//	END TODO
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
-	btCollisionShape* ColShape;
-	//if (_CollisionShapes.count(FileFBX) == 0) {
-	btTriangleMesh* trimesh = new btTriangleMesh();
-	_TriangleMeshes.push_back(trimesh);
-	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-		auto &V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
-		auto &V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-		auto &V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
 
-		trimesh->addTriangle(btVector3(V1.x, V1.y, V1.z), btVector3(V2.x, V2.y, V2.z), btVector3(V3.x, V3.y, V3.z));
-	}
-	ColShape = new btBvhTriangleMeshShape(trimesh, true);
-	_CollisionShapes[FileFBX] = ColShape;
+
 	//}
 	//else {
 	//	ColShape = _CollisionShapes[FileFBX];
@@ -432,25 +297,29 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
 	MeshNode->Name = "World";
 
-	//
-	//	Bullet Physics
-	MeshNode->_CollisionShape = ColShape;
-	btTransform Transform;
-	Transform.setIdentity();
+	_Driver->_ndWorld->Sync();
 
-	btScalar Mass(0.0f);
-	bool isDynamic = (Mass != 0.f);
-
-	btVector3 localInertia(0, 0, 0);
-	if (isDynamic) {
-		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	std::vector<dVector> Verts;
+	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
+		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+		Verts.emplace_back(V1, V2, V3, 0);
 	}
+	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
-	SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
-	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
-	MeshNode->_RigidBody = new btRigidBody(rbInfo);
-	MeshNode->_RigidBody->setUserPointer(MeshNode);
-	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+	dMatrix matrix(dGetIdentityMatrix());
+	matrix.m_posit = dVector(0, 0, 0, 0);
+	matrix.m_posit.m_w = 1.0f;
+
+	ndBodyDynamic* const body2 = new ndBodyDynamic();
+
+	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
+	body2->SetMatrix(matrix);
+	body2->SetCollisionShape(shape);
+	body2->SetMassMatrix(10.0f, shape);
+
+	_Driver->_ndWorld->AddBody(body2);
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -460,7 +329,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 //
 //	TriangleMesh Create Function
-TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position) {
+TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
@@ -476,45 +345,33 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	//	END TODO
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
-	btCollisionShape* ColShape;
-	if (_CollisionShapes.count(FileFBX) == 0) {
-		DecompResults* Results = Decomp(Infos);
-		ColShape = Results->CompoundShape;
-		_CollisionShapes[FileFBX] = ColShape;
-		for (int i = 0; i < Results->m_convexShapes.size(); i++) {
-			_ConvexShapes.push_back(Results->m_convexShapes[i]);
-		}
-		for (int i = 0; i < Results->m_trimeshes.size(); i++) {
-			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-		}
-		delete Results;
-	}
-	else {
-		ColShape = _CollisionShapes[FileFBX];
-	}
 
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 	MeshNode->Name = "TriangleMeshSceneNode";
 
-	//
-	//	Bullet Physics
-	MeshNode->_CollisionShape = ColShape;
-	btTransform Transform;
-	Transform.setIdentity();
-	Transform.setOrigin(Position);
+	_Driver->_ndWorld->Sync();
 
-	bool isDynamic = (Mass != 0.f);
-
-	btVector3 localInertia(0, 0, 0);
-	if (isDynamic) {
-		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	std::vector<dVector> Verts;
+	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
+		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+		Verts.emplace_back(V1, V2, V3, 0);
 	}
+	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
-	SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
-	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
-	MeshNode->_RigidBody = new btRigidBody(rbInfo);
-	MeshNode->_RigidBody->setUserPointer(MeshNode);
-	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+	dMatrix matrix(dGetIdentityMatrix());
+	matrix.m_posit = dVector(0, 0, 0, 0);
+	matrix.m_posit.m_w = 1.0f;
+
+	ndBodyDynamic* const body2 = new ndBodyDynamic();
+
+	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
+	body2->SetMatrix(matrix);
+	body2->SetCollisionShape(shape);
+	body2->SetMassMatrix(10.0f, shape);
+
+	_Driver->_ndWorld->AddBody(body2);
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -524,7 +381,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 //
 //	SkinnedMesh Create Function
-SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const btScalar &Mass, const btVector3 &Position) {
+SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
@@ -540,45 +397,33 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	//	END TODO
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
-	btCollisionShape* ColShape;
-	if (_CollisionShapes.count(FileFBX) == 0) {
-		DecompResults* Results = Decomp(Infos);
-		ColShape = Results->CompoundShape;
-		_CollisionShapes[FileFBX] = ColShape;
-		for (int i = 0; i < Results->m_convexShapes.size(); i++) {
-			_ConvexShapes.push_back(Results->m_convexShapes[i]);
-		}
-		for (int i = 0; i < Results->m_trimeshes.size(); i++) {
-			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-		}
-		delete Results;
-	}
-	else {
-		ColShape = _CollisionShapes[FileFBX];
-	}
 
 	SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh);
 	MeshNode->Name = "SkinnedMeshSceneNode";
 
-	//
-	//	Bullet Physics
-	MeshNode->_CollisionShape = ColShape;
-	btTransform Transform;
-	Transform.setIdentity();
-	Transform.setOrigin(Position);
+	_Driver->_ndWorld->Sync();
 
-	bool isDynamic = (Mass != 0.f);
-
-	btVector3 localInertia(0, 0, 0);
-	if (isDynamic) {
-		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	std::vector<dVector> Verts;
+	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
+		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+		Verts.emplace_back(V1, V2, V3, 0);
 	}
+	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
-	SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
-	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
-	MeshNode->_RigidBody = new btRigidBody(rbInfo);
-	MeshNode->_RigidBody->setUserPointer(MeshNode);
-	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+	dMatrix matrix(dGetIdentityMatrix());
+	matrix.m_posit = dVector(0, 0, 0, 0);
+	matrix.m_posit.m_w = 1.0f;
+
+	ndBodyDynamic* const body2 = new ndBodyDynamic();
+
+	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
+	body2->SetMatrix(matrix);
+	body2->SetCollisionShape(shape);
+	body2->SetMassMatrix(10.0f, shape);
+
+	_Driver->_ndWorld->AddBody(body2);
 
 	SceneNodes.push_back(MeshNode);
 	return MeshNode;
@@ -586,7 +431,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 
 //
 //	Character Create Function
-CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const btVector3& Position) {
+CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const dVector& Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
@@ -602,47 +447,33 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	//	END TODO
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
-	btCollisionShape* ColShape;
-	if (_CollisionShapes.count(FileFBX) == 0) {
-		DecompResults* Results = Decomp(Infos);
-		ColShape = Results->CompoundShape;
-		_CollisionShapes[FileFBX] = ColShape;
-		for (int i = 0; i < Results->m_convexShapes.size(); i++) {
-			_ConvexShapes.push_back(Results->m_convexShapes[i]);
-		}
-		for (int i = 0; i < Results->m_trimeshes.size(); i++) {
-			_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-		}
-		delete Results;
-	}
-	else {
-		ColShape = _CollisionShapes[FileFBX];
-	}
 
 	CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
 	MeshNode->Name = "Character Scene Node";
 
-	//
-	//	Bullet Physics
-	MeshNode->_CollisionShape = ColShape;
-	btTransform Transform;
-	Transform.setIdentity();
-	Transform.setOrigin(Position);
+	_Driver->_ndWorld->Sync();
 
-	btScalar Mass = 0.5f;
-	bool isDynamic = (Mass != 0.f);
-
-	btVector3 localInertia(0, 0, 0);
-	if (isDynamic) {
-		MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+	std::vector<dVector> Verts;
+	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
+		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+		Verts.emplace_back(V1, V2, V3, 0);
 	}
+	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
-	CharacterSceneNodeMotionState* MotionState = new CharacterSceneNodeMotionState(MeshNode, Transform);
-	btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
-	MeshNode->_RigidBody = new btRigidBody(rbInfo);
-	MeshNode->_RigidBody->setUserPointer(MeshNode);
-	MeshNode->_RigidBody->setAngularFactor(btVector3(0.0f, 0.0f, 0.0f));
-	dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+	dMatrix matrix(dGetIdentityMatrix());
+	matrix.m_posit = dVector(0, 0, 0, 0);
+	matrix.m_posit.m_w = 1.0f;
+
+	ndBodyDynamic* const body2 = new ndBodyDynamic();
+
+	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
+	body2->SetMatrix(matrix);
+	body2->SetCollisionShape(shape);
+	body2->SetMassMatrix(10.0f, shape);
+
+	_Driver->_ndWorld->AddBody(body2);
 
 	//
 	//	Push new SceneNode into the SceneGraph

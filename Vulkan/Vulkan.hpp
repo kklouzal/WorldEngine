@@ -19,6 +19,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/hash.hpp>
 
+#include <ndNewton.h>
+
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
@@ -176,6 +178,8 @@ public:
 	// VMA
 	VmaAllocator allocator = VMA_NULL;
 	//
+
+	ndWorld* _ndWorld;
 
 	MaterialCache* _MaterialCache;
 	SceneGraph* _SceneGraph;
@@ -380,6 +384,12 @@ VulkanDriver::VulkanDriver() {
 	createFrameBuffers();
 	createUniformBuffersDeferred();
 	prepareOffscreenFrameBuffer();
+
+	_ndWorld = new ndWorld();
+	_ndWorld->SetThreadCount(6);
+	_ndWorld->SetSubSteps(4);
+	_ndWorld->SetSolverIterations(2);
+
 	_SceneGraph = new SceneGraph(this);
 	_MaterialCache = new MaterialCache(this);
 
@@ -436,6 +446,8 @@ VulkanDriver::~VulkanDriver() {
 	vkDestroyRenderPass(_VulkanDevice->logicalDevice, renderPass, nullptr);
 	delete _MaterialCache;
 
+	delete _ndWorld;
+
 	//	Destroy VMA Allocator
 	vmaDestroyAllocator(allocator);
 	//
@@ -465,7 +477,7 @@ void VulkanDriver::mainLoop() {
 		_EventReceiver->OnUpdate();
 		//
 		//	Simulate Physics
-		_SceneGraph->stepSimulation(deltaFrame/1000);
+		_ndWorld->Update(deltaFrame/1000);
 		//
 		//	Update Shader Uniforms
 		updateUniformBufferOffscreen(currentFrame);

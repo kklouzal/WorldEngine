@@ -62,10 +62,10 @@ public:
 				//	Only keyboard-spawn-objects when menus closed and world initialized
 				if (!IsMenuOpen() && IsWorldInitialized()) {
 					if (NewEvent.Key == GLFW_KEY_SPACE) {
-						_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, btVector3(0, 15, 0));
+						_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, dVector(0, 15, 0, 0));
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0, 5, 0));
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(0, 5, 0, 0));
 					}
 				}
 				if (NewEvent.Key == GLFW_KEY_W) {
@@ -120,7 +120,7 @@ public:
 					int X = (rand() % 100) - 50;
 					int Z = (rand() % 100) - 50;
 					int Y = (rand() % 70) + 30;
-					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
+					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 0));
 				}
 				else if (NewEvent.Key == GLFW_KEY_X) {
 					for (int i = 0; i < 25; i++)
@@ -128,7 +128,7 @@ public:
 						int X = (rand() % 100) - 50;
 						int Z = (rand() % 100) - 50;
 						int Y = (rand() % 70) + 30;
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 0));
 					}
 				}
 			}
@@ -139,10 +139,10 @@ public:
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 				if (Character && !IsMenuOpen()) {
 					auto CamPos = Cam->Pos;
-					btVector3 From(CamPos.x, CamPos.y, CamPos.z);
+					dVector From(CamPos.x, CamPos.y, CamPos.z, 0.f);
 					auto CamDir = CamPos + Cam->Ang * 1000.0f;
-					btVector3 To(CamDir.x, CamDir.y, CamDir.z);
-					Character->_Weapon.Primary(_Driver->_SceneGraph->castRay(From,To));
+					dVector To(CamDir.x, CamDir.y, CamDir.z, 0.f);
+					//Character->_Weapon.Primary(_Driver->_SceneGraph->castRay(From,To));
 				}
 			}
 			else if (NewEvent.Action == EventActions::Release) {
