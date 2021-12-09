@@ -392,7 +392,7 @@ VulkanDriver::VulkanDriver() {
 
 	_ndWorld = new ndWorld();
 	_ndWorld->SetThreadCount(6);
-	_ndWorld->SetSubSteps(4);
+	_ndWorld->SetSubSteps(3);
 	_ndWorld->SetSolverIterations(2);
 
 	_SceneGraph = new SceneGraph(this);
@@ -483,8 +483,9 @@ void VulkanDriver::mainLoop() {
 		//
 		//	Simulate Physics
 		//_ndWorld->Update(deltaFrame/1000.0f);
-		printf("Dela A %f B %f\n", deltaFrame, 1.0f/60.0f);
-		_ndWorld->Update(DF);
+		//printf("Dela A %f B %f\n", deltaFrame, 1.0f/60.0f);
+		//_ndWorld->Update(DF);
+		_ndWorld->Update(1.0f / 300.0f);
 		//
 		//	Update Shader Uniforms
 		updateUniformBufferOffscreen(currentFrame);

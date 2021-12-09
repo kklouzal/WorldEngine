@@ -65,7 +65,7 @@ public:
 						_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, dVector(0, 15, 0, 0));
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(0, 5, 0, 0));
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(0.0f, 15.0f, 0.0f, 1.0f));
 					}
 				}
 				if (NewEvent.Key == GLFW_KEY_W) {
@@ -117,18 +117,18 @@ public:
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
 				if (NewEvent.Key == GLFW_KEY_C) {
-					int X = (rand() % 100) - 50;
-					int Z = (rand() % 100) - 50;
-					int Y = (rand() % 70) + 30;
-					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 0));
+					float X = (rand() % 100) - 50.0f;
+					float Z = (rand() % 100) - 50.0f;
+					float Y = (rand() % 70) + 30.0f;
+					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 1.0f));
 				}
 				else if (NewEvent.Key == GLFW_KEY_X) {
 					for (int i = 0; i < 25; i++)
 					{
-						int X = (rand() % 100) - 50;
-						int Z = (rand() % 100) - 50;
-						int Y = (rand() % 70) + 30;
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 0));
+						float X = (rand() % 100) - 50.0f;
+						float Z = (rand() % 100) - 50.0f;
+						float Y = (rand() % 70) + 30.0f;
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 1.0f));
 					}
 				}
 			}

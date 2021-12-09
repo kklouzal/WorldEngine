@@ -299,14 +299,22 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 	_Driver->_ndWorld->Sync();
 
-	std::vector<dVector> Verts;
+	dPolygonSoupBuilder meshBuilder;
+	meshBuilder.Begin();
+
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
+		dVector face[256];
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
+		face[0] = dVector(V1.x, V1.y, V1.z, 0.0f);
+		face[1] = dVector(V2.x, V2.y, V2.z, 0.0f);
+		face[2] = dVector(V3.x, V3.y, V3.z, 0.0f);
+		meshBuilder.AddFace(&face[0].m_x, sizeof(dVector), 3, 0);
 	}
-	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
+	meshBuilder.End(false);
+
+	ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
 
 	dMatrix matrix(dGetIdentityMatrix());
 	matrix.m_posit = dVector(0, 0, 0, 0);
@@ -314,7 +322,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
-	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
+	body2->SetNotifyCallback(MeshNode);
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	//body2->SetMassMatrix(10.0f, shape);
@@ -349,25 +357,33 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 	MeshNode->Name = "TriangleMeshSceneNode";
-
+	printf("Create Triangle Mesh\n");
 	_Driver->_ndWorld->Sync();
 
-	std::vector<dVector> Verts;
+	dPolygonSoupBuilder meshBuilder;
+	meshBuilder.Begin();
+
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
+		dVector face[256];
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
+		face[0] = dVector(V1.x, V1.y, V1.z, 0.0f);
+		face[1] = dVector(V2.x, V2.y, V2.z, 0.0f);
+		face[2] = dVector(V3.x, V3.y, V3.z, 0.0f);
+		meshBuilder.AddFace(&face[0].m_x, sizeof(dVector), 3, 0);
 	}
-	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
+	meshBuilder.End(false);
+
+	ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
 
 	dMatrix matrix(dGetIdentityMatrix());
-	matrix.m_posit = dVector(0, 0, 0, 0);
+	matrix.m_posit = dVector(0.0f, 50.0f, 0.0f, 1.0f);
 	matrix.m_posit.m_w = 1.0f;
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
-	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
+	body2->SetNotifyCallback(MeshNode);
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	body2->SetMassMatrix(1.0f, shape);
@@ -420,7 +436,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
-	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
+	body2->SetNotifyCallback(MeshNode);
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	body2->SetMassMatrix(1.0f, shape);
@@ -466,12 +482,12 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
 	dMatrix matrix(dGetIdentityMatrix());
-	matrix.m_posit = dVector(0.0f, 500.0f, 0.0f, 1.0f);
+	matrix.m_posit = dVector(0.0f, 300.0f, 0.0f, 1.0f);
 	matrix.m_posit.m_w = 1.0f;
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
-	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
+	body2->SetNotifyCallback(MeshNode);
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	body2->SetMassMatrix(1.0f, shape);
