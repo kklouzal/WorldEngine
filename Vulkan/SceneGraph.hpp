@@ -360,25 +360,17 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	printf("Create Triangle Mesh\n");
 	_Driver->_ndWorld->Sync();
 
-	dPolygonSoupBuilder meshBuilder;
-	meshBuilder.Begin();
-
+	std::vector<dVector> Verts;
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-		dVector face[256];
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		face[0] = dVector(V1.x, V1.y, V1.z, 0.0f);
-		face[1] = dVector(V2.x, V2.y, V2.z, 0.0f);
-		face[2] = dVector(V3.x, V3.y, V3.z, 0.0f);
-		meshBuilder.AddFace(&face[0].m_x, sizeof(dVector), 3, 0);
+		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
 	}
-	meshBuilder.End(false);
-
-	ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
+	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
 	dMatrix matrix(dGetIdentityMatrix());
-	matrix.m_posit = dVector(0.0f, 50.0f, 0.0f, 1.0f);
+	matrix.m_posit = Position;
 	matrix.m_posit.m_w = 1.0f;
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();

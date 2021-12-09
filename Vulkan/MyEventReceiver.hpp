@@ -123,7 +123,7 @@ public:
 					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 1.0f));
 				}
 				else if (NewEvent.Key == GLFW_KEY_X) {
-					for (int i = 0; i < 25; i++)
+					for (int i = 0; i < 5; i++)
 					{
 						float X = (rand() % 100) - 50.0f;
 						float Z = (rand() % 100) - 50.0f;
