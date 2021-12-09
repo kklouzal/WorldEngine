@@ -474,7 +474,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
 	dMatrix matrix(dGetIdentityMatrix());
-	matrix.m_posit = dVector(0.0f, 300.0f, 0.0f, 1.0f);
+	matrix.m_posit = dVector(0.0f, 10.0f, 0.0f, 1.0f);
 	matrix.m_posit.m_w = 1.0f;
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();

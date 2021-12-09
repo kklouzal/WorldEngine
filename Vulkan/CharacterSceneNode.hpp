@@ -20,30 +20,48 @@ public:
 
 	void moveForward(const dFloat32& Speed) {
 		dMatrix Trans = _RigidBody->GetMatrix();
-		//const dVector Forward = Trans(btVector3(1 * Speed, 0, 0));
-		//Trans.setOrigin(Forward);
+
+		Trans.m_posit.m_x += _Camera->front.x * Speed;
+		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
+		Trans.m_posit.m_z += _Camera->front.z * Speed;
+
 		_RigidBody->SetMatrix(Trans);
 	}
 
 	void moveBackward(const dFloat32& Speed) {
+
 		dMatrix Trans = _RigidBody->GetMatrix();
-		//const dVector Backward = Trans(btVector3(-1 * Speed, 0, 0));
-		//Trans.setOrigin(Backward);
+
+		Trans.m_posit.m_x += _Camera->front.x * -Speed;
+		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
+		Trans.m_posit.m_z += _Camera->front.z * -Speed;
+
 		_RigidBody->SetMatrix(Trans);
+
 	}
 
 	void moveLeft(const dFloat32& Speed) {
+
 		dMatrix Trans = _RigidBody->GetMatrix();
-		//const dVector Left = Trans(btVector3(0, 0, -1 * Speed));
-		//Trans.setOrigin(Left);
+
+		Trans.m_posit.m_x += _Camera->right.x * -Speed;
+		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
+		Trans.m_posit.m_z += _Camera->right.z * -Speed;
+
 		_RigidBody->SetMatrix(Trans);
+
 	}
 
 	void moveRight(const dFloat32& Speed) {
+
 		dMatrix Trans = _RigidBody->GetMatrix();
-		//const dVector Right = Trans(btVector3(0, 0, 1 * Speed));
-		//Trans.setOrigin(Right);
+		
+		Trans.m_posit.m_x += _Camera->right.x * Speed;
+		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
+		Trans.m_posit.m_z += _Camera->right.z * Speed;
+
 		_RigidBody->SetMatrix(Trans);
+
 	}
 
 	void doJump(const dFloat32& Speed) {

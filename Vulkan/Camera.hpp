@@ -7,6 +7,7 @@ public:
 	glm::vec3 Pos{};
 	glm::vec3 Ang{};
 	glm::vec3 front{};
+	glm::vec3 right{};
 
 	glm::mat4 View{};
 
@@ -65,6 +66,9 @@ public:
 		front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 		front.y = sin(glm::radians(pitch));
 		front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+		right = -glm::vec3(front.z, front.y, -front.x);
+
 		Ang = glm::normalize(front);
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
