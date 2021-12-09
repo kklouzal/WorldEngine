@@ -280,6 +280,7 @@ public:
 		{
 			desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
 		}
+		desiredNumberOfSwapchainImages = 2;
 		printf("SwapChain Image Count: %i\n", desiredNumberOfSwapchainImages);
 
 		// Find the transformation of the surface
