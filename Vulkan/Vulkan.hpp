@@ -469,10 +469,10 @@ void VulkanDriver::mainLoop() {
 		//	Mark Frame Start Time and Calculate Previous Frame Statistics
 		startFrame = std::chrono::high_resolution_clock::now();
 		float DF = GetDeltaFrames();
-		float FPS = (1.0f / DF) * 1000.0f;
+		float FPS = (1.0f / DF);
 
 		if (_EventReceiver) {
-			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
+			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Stats (60 Frame Average) - FPS: %f - Frame Time: %f - Physics Time: %f - Scene Nodes: %i", FPS, DF, _ndWorld->GetUpdateTime(), _SceneGraph->SceneNodes.size()));
 		}
 		//
 		//	Handle Inputs
@@ -482,7 +482,9 @@ void VulkanDriver::mainLoop() {
 		_EventReceiver->OnUpdate();
 		//
 		//	Simulate Physics
-		_ndWorld->Update(deltaFrame/1000);
+		//_ndWorld->Update(deltaFrame/1000.0f);
+		printf("Dela A %f B %f\n", deltaFrame, 1.0f/60.0f);
+		_ndWorld->Update(DF);
 		//
 		//	Update Shader Uniforms
 		updateUniformBufferOffscreen(currentFrame);
@@ -494,7 +496,7 @@ void VulkanDriver::mainLoop() {
 		//
 		//	Mark Frame End Time and Calculate Delta
 		endFrame = std::chrono::high_resolution_clock::now();
-		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count();
+		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count()/1000.f;
 		PushFrameDelta(deltaFrame);
 	}
 	//

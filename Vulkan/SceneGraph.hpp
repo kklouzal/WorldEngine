@@ -317,7 +317,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
-	body2->SetMassMatrix(10.0f, shape);
+	//body2->SetMassMatrix(10.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
 	MeshNode->_RigidBody = body2;
@@ -370,7 +370,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
-	body2->SetMassMatrix(10.0f, shape);
+	body2->SetMassMatrix(1.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
 	MeshNode->_RigidBody = body2;
@@ -423,7 +423,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
-	body2->SetMassMatrix(10.0f, shape);
+	body2->SetMassMatrix(1.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
 	MeshNode->_RigidBody = body2;
@@ -466,7 +466,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
 	dMatrix matrix(dGetIdentityMatrix());
-	matrix.m_posit = dVector(0, 0, 0, 0);
+	matrix.m_posit = dVector(0.0f, 500.0f, 0.0f, 1.0f);
 	matrix.m_posit.m_w = 1.0f;
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
@@ -474,7 +474,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	body2->SetNotifyCallback(new NewtonEntityNotify(MeshNode));
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
-	body2->SetMassMatrix(10.0f, shape);
+	body2->SetMassMatrix(1.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
 	MeshNode->_RigidBody = body2;
