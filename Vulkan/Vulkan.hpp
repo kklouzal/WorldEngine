@@ -488,7 +488,8 @@ void VulkanDriver::mainLoop() {
 		_EventReceiver->OnUpdate();
 		//
 		//	Simulate Physics
-		_ndWorld->Update(deltaFrame);
+		//_ndWorld->Update(deltaFrame);
+		_ndWorld->Update(1.0/60.0f);
 		//
 		//	Update Shader Uniforms
 		updateUniformBufferOffscreen(currentFrame);

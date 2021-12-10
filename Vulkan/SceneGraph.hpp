@@ -322,7 +322,6 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
-	body2->SetNotifyCallback(MeshNode);
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	//body2->SetMassMatrix(10.0f, shape);
@@ -459,33 +458,40 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
 
-	CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
+	dMatrix localAxis(dGetIdentityMatrix());
+	localAxis[0] = dVector(0.0, 1.0f, 0.0f, 0.0f);
+	localAxis[1] = dVector(1.0, 0.0f, 0.0f, 0.0f);
+	localAxis[2] = localAxis[0].CrossProduct(localAxis[1]);
+
+	dFloat32 height = 1.9f;
+	dFloat32 radio = 0.5f;
+	dFloat32 mass = 100.0f;
+	CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh, localAxis, mass, radio, height, height/4.0f);
 	MeshNode->Name = "Character Scene Node";
 
 	_Driver->_ndWorld->Sync();
 
-	std::vector<dVector> Verts;
-	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
-		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
-	}
-	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
+	//std::vector<dVector> Verts;
+	//for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
+	//	auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+	//	auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+	//	auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+	//	Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
+	//}
+	//ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
 	dMatrix matrix(dGetIdentityMatrix());
 	matrix.m_posit = dVector(0.0f, 10.0f, 0.0f, 1.0f);
-	matrix.m_posit.m_w = 1.0f;
 
-	ndBodyDynamic* const body2 = new ndBodyDynamic();
+	MeshNode->SetNotifyCallback(MeshNode);
+	MeshNode->SetMatrix(matrix);
+	//body2->SetCollisionShape(shape);
+	//MeshNode->SetMassMatrix(1.0f, shape);
 
-	body2->SetNotifyCallback(MeshNode);
-	body2->SetMatrix(matrix);
-	body2->SetCollisionShape(shape);
-	body2->SetMassMatrix(1.0f, shape);
+	auto DN = MeshNode->GetAsBodyDynamic();
 
-	_Driver->_ndWorld->AddBody(body2);
-	MeshNode->_RigidBody = body2;
+	_Driver->_ndWorld->AddBody((ndBodyPlayerCapsule*)MeshNode);
+	MeshNode->_RigidBody = MeshNode;
 
 	//
 	//	Push new SceneNode into the SceneGraph

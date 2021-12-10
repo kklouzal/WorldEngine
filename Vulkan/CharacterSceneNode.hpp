@@ -2,7 +2,8 @@
 
 #include "Weapon.hpp"
 
-class CharacterSceneNode : public SceneNode {
+class CharacterSceneNode : public SceneNode, public ndBodyPlayerCapsule, public ndBodyNotify
+{
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
@@ -10,66 +11,118 @@ class CharacterSceneNode : public SceneNode {
 public:
 	TriangleMesh* _Mesh = nullptr;
 	Weapon _Weapon;
-	dFloat32 Mass = 1;
 	bool onGround = false;
+
+	class PlayerInputs
+	{
+	public:
+		PlayerInputs()
+		{
+			m_heading = 0.0f;
+			m_forwardSpeed = 0.0f;
+			m_strafeSpeed = 0.0f;
+			m_jump = false;
+		}
+		dFloat32 m_heading;
+		dFloat32 m_forwardSpeed;
+		dFloat32 m_strafeSpeed;
+		bool m_jump;
+	};
+
+	PlayerInputs m_playerInput;
 public:
-	CharacterSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
+	CharacterSceneNode(TriangleMesh* Mesh, dMatrix localAxis, dFloat32 Mass, dFloat32 Radius, dFloat32 Height, dFloat32 StepHeight)
+		: _Mesh(Mesh), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight), ndBodyNotify(dVector(0.0f, -10.0f, 0.0f, 0.0f)) {}
 
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
 		delete _Mesh;
 	}
 
+	virtual void OnApplyExternalForce(dInt32, dFloat32) {}
+	virtual void OnTransform(dInt32 threadIndex, const dMatrix& matrix) {}
+
+	dFloat32 ContactFrictionCallback(const dVector&, const dVector& normal, dInt32, const ndBodyKinematic* const) const
+	{
+		//return dFloat32(2.0f);
+		if (dAbs(normal.m_y) < 0.8f)
+		{
+			return 0.4f;
+		}
+		return dFloat32(2.0f);
+	}
+
+	void ApplyInputs(dFloat32 timestep)
+	{
+		//calculate the gravity contribution to the velocity, 
+		const dVector gravity(GetNotifyCallback()->GetGravity());
+		const dVector totalImpulse(m_impulse + gravity.Scale(1.0f * timestep));
+		m_impulse = totalImpulse;
+
+		//dTrace(("  frame: %d    player camera: %f\n", m_scene->GetWorld()->GetFrameIndex(), m_playerInput.m_heading * dRadToDegree));
+		if (m_playerInput.m_jump)
+		{
+			dFloat32 PLAYER_JUMP_SPEED = 1.0f;
+			dVector jumpImpule(0.0f, PLAYER_JUMP_SPEED * m_mass, 0.0f, 0.0f);
+			m_impulse += jumpImpule;
+			m_playerInput.m_jump = false;
+		}
+
+		//SetForwardSpeed(m_playerInput.m_forwardSpeed);
+		//SetLateralSpeed(m_playerInput.m_strafeSpeed);
+		//SetHeadingAngle(m_playerInput.m_heading);
+	}
+
 	void moveForward(const dFloat32& Speed) {
-		dMatrix Trans = _RigidBody->GetMatrix();
+		dMatrix Trans = GetMatrix();
 
 		Trans.m_posit.m_x += _Camera->front.x * Speed;
 		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
 		Trans.m_posit.m_z += _Camera->front.z * Speed;
 
-		_RigidBody->SetMatrix(Trans);
+		SetMatrix(Trans);
 	}
 
 	void moveBackward(const dFloat32& Speed) {
 
-		dMatrix Trans = _RigidBody->GetMatrix();
+		dMatrix Trans = GetMatrix();
 
 		Trans.m_posit.m_x += _Camera->front.x * -Speed;
 		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
 		Trans.m_posit.m_z += _Camera->front.z * -Speed;
 
-		_RigidBody->SetMatrix(Trans);
+		SetMatrix(Trans);
 
 	}
 
 	void moveLeft(const dFloat32& Speed) {
 
-		dMatrix Trans = _RigidBody->GetMatrix();
+		dMatrix Trans = GetMatrix();
 
 		Trans.m_posit.m_x += _Camera->right.x * -Speed;
 		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
 		Trans.m_posit.m_z += _Camera->right.z * -Speed;
 
-		_RigidBody->SetMatrix(Trans);
+		SetMatrix(Trans);
 
 	}
 
 	void moveRight(const dFloat32& Speed) {
 
-		dMatrix Trans = _RigidBody->GetMatrix();
+		dMatrix Trans = GetMatrix();
 		
 		Trans.m_posit.m_x += _Camera->right.x * Speed;
 		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
 		Trans.m_posit.m_z += _Camera->right.z * Speed;
 
-		_RigidBody->SetMatrix(Trans);
+		SetMatrix(Trans);
 
 	}
 
 	void setPosition(const dFloat32& NewPosition) {
-		dMatrix Trans = _RigidBody->GetMatrix();
+		dMatrix Trans = GetMatrix();
 		//Trans.setOrigin(btVector3(NewPosition));
-		_RigidBody->SetMatrix(Trans);
+		SetMatrix(Trans);
 	}
 
 	void findGround()
@@ -85,15 +138,15 @@ public:
 		//dMatrix Trans = _RigidBody->GetMatrix();
 		//_RigidBody->SetMatrix(Trans);
 
-		dVector jumpImpulse = { 0.0f, (Speed * Mass), 0.0f, 0.0f };
-		_RigidBody->AddImpulse(jumpImpulse, _RigidBody->GetPosition(), 1);
+		dVector jumpImpulse = { 0.0f, (Speed * m_mass), 0.0f, 0.0f };
+		//_RigidBody->AddImpulse(jumpImpulse, _RigidBody->GetPosition(), 1);
 
 	}
 
 	void setYaw(const float& Yaw) {
-		dMatrix Trans = _RigidBody->GetMatrix();
+		dMatrix Trans = GetMatrix();
 		//Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));
-		_RigidBody->SetMatrix(Trans);
+		SetMatrix(Trans);
 	}
 
 	void preDelete(ndWorld* _ndWorld) {
