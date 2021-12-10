@@ -6,6 +6,7 @@ class CustomEventReceiver : public EventReceiver {
 	bool isS = false;
 	bool isA = false;
 	bool isD = false;
+	bool isSpace = false;
 public:
 	CustomEventReceiver(VulkanDriver* Driver) : EventReceiver(Driver) { }
 	~CustomEventReceiver() { printf("Destroy Custom Event Receiver\n"); }
@@ -54,6 +55,14 @@ public:
 					Cam->GoRight(10.0f * (_Driver->deltaFrame / 1000));
 				}
 			}
+			if (isSpace)
+			{
+
+				if (Character && Character->_Camera) {
+					Character->doJump(50.0f);
+				}
+
+			}
 		}
 	}
 
@@ -66,7 +75,8 @@ public:
 				//	Only keyboard-spawn-objects when menus closed and world initialized
 				if (!IsMenuOpen() && IsWorldInitialized()) {
 					if (NewEvent.Key == GLFW_KEY_SPACE) {
-						_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, dVector(0, 15, 0, 0));
+						//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, dVector(0, 15, 0, 0));
+						isSpace = true;
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
 						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(0.0f, 15.0f, 0.0f, 1.0f));
@@ -117,6 +127,12 @@ public:
 				}
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = false;
+				}
+				else if (NewEvent.Key == GLFW_KEY_SPACE)
+				{
+
+					isSpace = false;
+
 				}
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {

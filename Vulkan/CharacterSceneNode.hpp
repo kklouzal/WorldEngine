@@ -10,6 +10,8 @@ class CharacterSceneNode : public SceneNode {
 public:
 	TriangleMesh* _Mesh = nullptr;
 	Weapon _Weapon;
+	dFloat32 Mass = 1;
+	bool onGround = false;
 public:
 	CharacterSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
 
@@ -64,17 +66,28 @@ public:
 
 	}
 
-	void doJump(const dFloat32& Speed) {
-		dMatrix Trans = _RigidBody->GetMatrix();
-		//const dVector Up = Trans(btVector3(0, 1 * Speed, 0));
-		//Trans.setOrigin(Up);
-		_RigidBody->SetMatrix(Trans);
-	}
-
 	void setPosition(const dFloat32& NewPosition) {
 		dMatrix Trans = _RigidBody->GetMatrix();
 		//Trans.setOrigin(btVector3(NewPosition));
 		_RigidBody->SetMatrix(Trans);
+	}
+
+	void findGround()
+	{
+
+		//_RigidBody->RayCast();
+
+	}
+
+	void doJump(const dFloat32& Speed)
+	{
+
+		//dMatrix Trans = _RigidBody->GetMatrix();
+		//_RigidBody->SetMatrix(Trans);
+
+		dVector jumpImpulse = { 0.0f, (Speed * Mass), 0.0f, 0.0f };
+		_RigidBody->AddImpulse(jumpImpulse, _RigidBody->GetPosition(), 1);
+
 	}
 
 	void setYaw(const float& Yaw) {
