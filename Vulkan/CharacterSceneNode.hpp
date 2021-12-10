@@ -101,59 +101,68 @@ public:
 		if (m_playerInput.m_jump)
 		{
 			dFloat32 PLAYER_JUMP_SPEED = 1.0f;
-			dVector jumpImpule(0.0f, PLAYER_JUMP_SPEED * m_mass, 0.0f, 0.0f);
-			m_impulse += jumpImpule;
+			dVector jumpImpulse(0.0f, PLAYER_JUMP_SPEED * m_mass, 0.0f, 0.0f);
+			m_impulse += jumpImpulse;
 			m_playerInput.m_jump = false;
 		}
 
-		//SetForwardSpeed(m_playerInput.m_forwardSpeed);
-		//SetLateralSpeed(m_playerInput.m_strafeSpeed);
-		//SetHeadingAngle(m_playerInput.m_heading);
+		SetForwardSpeed(m_playerInput.m_forwardSpeed);
+		SetLateralSpeed(m_playerInput.m_strafeSpeed);
+		SetHeadingAngle(m_playerInput.m_heading);
 	}
 
 	void moveForward(const dFloat32& Speed) {
-		dMatrix Trans = GetMatrix();
+		//dMatrix Trans = GetMatrix();
 
-		Trans.m_posit.m_x += _Camera->front.x * Speed;
+		//Trans.m_posit.m_x += _Camera->front.x * Speed;
 		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
-		Trans.m_posit.m_z += _Camera->front.z * Speed;
+		//Trans.m_posit.m_z += _Camera->front.z * Speed;
 
-		SetMatrix(Trans);
+		//SetMatrix(Trans);
+
+		m_playerInput.m_forwardSpeed = Speed;
+
 	}
 
 	void moveBackward(const dFloat32& Speed) {
 
-		dMatrix Trans = GetMatrix();
+		//dMatrix Trans = GetMatrix();
 
-		Trans.m_posit.m_x += _Camera->front.x * -Speed;
-		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
-		Trans.m_posit.m_z += _Camera->front.z * -Speed;
+		//Trans.m_posit.m_x += _Camera->front.x * -Speed;
+		////Trans.m_posit.m_y += _Camera->front.y * -Speed;
+		//Trans.m_posit.m_z += _Camera->front.z * -Speed;
 
-		SetMatrix(Trans);
+		//SetMatrix(Trans);
+
+		m_playerInput.m_forwardSpeed = -Speed;
 
 	}
 
 	void moveLeft(const dFloat32& Speed) {
 
-		dMatrix Trans = GetMatrix();
+		//dMatrix Trans = GetMatrix();
 
-		Trans.m_posit.m_x += _Camera->right.x * -Speed;
-		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
-		Trans.m_posit.m_z += _Camera->right.z * -Speed;
+		//Trans.m_posit.m_x += _Camera->right.x * -Speed;
+		////Trans.m_posit.m_y += _Camera->right.y * -Speed;
+		//Trans.m_posit.m_z += _Camera->right.z * -Speed;
 
-		SetMatrix(Trans);
+		//SetMatrix(Trans);
+
+		m_playerInput.m_strafeSpeed = -Speed;
 
 	}
 
 	void moveRight(const dFloat32& Speed) {
 
-		dMatrix Trans = GetMatrix();
-		
-		Trans.m_posit.m_x += _Camera->right.x * Speed;
-		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
-		Trans.m_posit.m_z += _Camera->right.z * Speed;
+		//dMatrix Trans = GetMatrix();
+		//
+		//Trans.m_posit.m_x += _Camera->right.x * Speed;
+		////Trans.m_posit.m_y += _Camera->right.y * -Speed;
+		//Trans.m_posit.m_z += _Camera->right.z * Speed;
 
-		SetMatrix(Trans);
+		//SetMatrix(Trans);
+
+		m_playerInput.m_strafeSpeed = Speed;
 
 	}
 
@@ -175,16 +184,27 @@ public:
 
 		//dMatrix Trans = _RigidBody->GetMatrix();
 		//_RigidBody->SetMatrix(Trans);
-
-		dVector jumpImpulse = { 0.0f, (Speed * m_mass), 0.0f, 0.0f };
+		
+		//dVector jumpImpulse = { 0.0f, (Speed * 1), 0.0f, 0.0f };
 		//_RigidBody->AddImpulse(jumpImpulse, _RigidBody->GetPosition(), 1);
+		//AddImpulse(jumpImpulse, _RigidBody->GetPosition(), 1);
+
+		if (IsOnFloor())
+		{
+
+			m_playerInput.m_jump = true;
+
+		}
 
 	}
 
 	void setYaw(const float& Yaw) {
-		dMatrix Trans = GetMatrix();
+
+		m_playerInput.m_heading = Yaw;
+		printf("%f\n\n", Yaw);
+		//dMatrix Trans = GetMatrix();
 		//Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));
-		SetMatrix(Trans);
+		//SetMatrix(Trans);
 	}
 
 	void preDelete(ndWorld* _ndWorld) {

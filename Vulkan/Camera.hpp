@@ -58,6 +58,8 @@ public:
 		yaw += deltaX * sensitivity;
 		pitch += deltaY * sensitivity;
 
+		yaw -= 360.0f * std::floor((yaw + 180.0f) * (1.0f / 360.0f));
+
 		if (pitch > 89.0f)
 			pitch = 89.0f;
 		if (pitch < -89.0f)

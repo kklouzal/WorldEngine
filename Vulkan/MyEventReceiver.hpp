@@ -19,9 +19,13 @@ public:
 		if (!IsMenuOpen() && IsWorldInitialized()) {
 			CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
 			Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+
+			Character->moveForward((dInt32(isW) - dInt32(isS)) * 10.0f);
+			Character->moveRight((dInt32(isD) - dInt32(isA)) * 10.0f);
+
 			if (isW) {
 				if (Character && Character->_Camera) {
-					Character->moveForward(0.01f);
+					
 					//Character->moveForward(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
@@ -30,7 +34,7 @@ public:
 			}
 			if (isS) {
 				if (Character && Character->_Camera) {
-					Character->moveBackward(0.01f);
+					//Character->moveBackward(1.0f);
 					//Character->moveBackward(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
@@ -39,7 +43,7 @@ public:
 			}
 			if (isA) {
 				if (Character && Character->_Camera) {
-					Character->moveLeft(0.01f);
+					//Character->moveLeft(1.0f);
 					//Character->moveLeft(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
@@ -48,7 +52,7 @@ public:
 			}
 			if (isD) {
 				if (Character && Character->_Camera) {
-					Character->moveRight(0.01f);
+					
 					//Character->moveRight(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
@@ -59,7 +63,7 @@ public:
 			{
 
 				if (Character && Character->_Camera) {
-					Character->doJump(50.0f);
+					Character->doJump(25.0f);
 				}
 
 			}
