@@ -392,7 +392,7 @@ VulkanDriver::VulkanDriver() {
 
 	_ndWorld = new ndWorld();
 	_ndWorld->SetThreadCount(6);
-	_ndWorld->SetSubSteps(3);
+	_ndWorld->SetSubSteps(2);
 	_ndWorld->SetSolverIterations(2);
 
 	_SceneGraph = new SceneGraph(this);
@@ -461,10 +461,16 @@ VulkanDriver::~VulkanDriver() {
 	glfwTerminate();
 }
 
+
+//		X --- --- X
+
+
+
 //
 //	Loop Main Logic
 void VulkanDriver::mainLoop() {
-	while (!glfwWindowShouldClose(_Window)) {
+	while (!glfwWindowShouldClose(_Window))
+	{
 		//
 		//	Mark Frame Start Time and Calculate Previous Frame Statistics
 		startFrame = std::chrono::high_resolution_clock::now();
@@ -482,10 +488,7 @@ void VulkanDriver::mainLoop() {
 		_EventReceiver->OnUpdate();
 		//
 		//	Simulate Physics
-		//_ndWorld->Update(deltaFrame/1000.0f);
-		//printf("Dela A %f B %f\n", deltaFrame, 1.0f/60.0f);
-		//_ndWorld->Update(DF);
-		_ndWorld->Update(1.0f / 300.0f);
+		_ndWorld->Update(deltaFrame);
 		//
 		//	Update Shader Uniforms
 		updateUniformBufferOffscreen(currentFrame);
@@ -497,6 +500,8 @@ void VulkanDriver::mainLoop() {
 		//
 		//	Mark Frame End Time and Calculate Delta
 		endFrame = std::chrono::high_resolution_clock::now();
+
+
 		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count()/1000.f;
 		PushFrameDelta(deltaFrame);
 	}
