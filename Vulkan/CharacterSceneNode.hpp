@@ -200,7 +200,7 @@ public:
 
 	void setYaw(const float& Yaw) {
 
-		m_playerInput.m_heading = Yaw;
+		m_playerInput.m_heading = glm::radians(-Yaw);
 		printf("%f\n\n", Yaw);
 		//dMatrix Trans = GetMatrix();
 		//Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));

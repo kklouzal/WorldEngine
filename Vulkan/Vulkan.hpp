@@ -428,6 +428,28 @@ VulkanDriver::VulkanDriver() {
 	clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues[3].depthStencil = { 1.0f, 0 };
+	//
+	//	Create synchronization objects
+	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
+	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+	printf("SWAPCHAIN IMAGE COUNT %i\n", swapChain.imageCount);
+	inFlightFences.resize(swapChain.imageCount);
+	imagesInFlight.resize(swapChain.imageCount, VK_NULL_HANDLE);
+	for (uint32_t i = 0; i < swapChain.imageCount; i++)
+	{
+		// Create a semaphore used to synchronize image presentation
+		// Ensures that the image is displayed before we start submitting new commands to the queue
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete));
+		// Create a semaphore used to synchronize command submission
+		// Ensures that the image is not presented until all commands have been submitted and executed
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].renderComplete));
+		// Create a semaphore used to synchronize deferred rendering
+		// Ensures that drawing happens at the appropriate times
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].offscreenSync));
+		//
+		//
+		VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]));
+	}
 }
 
 //
@@ -684,7 +706,7 @@ void VulkanDriver::Render()
 	}
 	//
 	//	Submit this frame to the GPU and increment our currentFrame identifier
-	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	currentFrame = (currentFrame + 1) % swapChain.imageCount;
 }
 
 void VulkanDriver::initLua() {
@@ -817,28 +839,6 @@ void VulkanDriver::createLogicalDevice()
 	//
 	//	Connect the swapchain
 	swapChain.connect(instance, physicalDevice, _VulkanDevice->logicalDevice);
-	//
-	//	Create synchronization objects
-	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-	printf("SWAPCHAIN IMAGE COUNT %i\n", swapChain.imageCount);
-	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-	imagesInFlight.resize(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
-	for (uint32_t i = 0; i < 2; i++)
-	{
-		// Create a semaphore used to synchronize image presentation
-		// Ensures that the image is displayed before we start submitting new commands to the queue
-		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete));
-		// Create a semaphore used to synchronize command submission
-		// Ensures that the image is not presented until all commands have been submitted and executed
-		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].renderComplete));
-		// Create a semaphore used to synchronize deferred rendering
-		// Ensures that drawing happens at the appropriate times
-		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].offscreenSync));
-		//
-		//
-		VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]));
-	}
 	//
 	//	Submit Information
 	submitInfo = vks::initializers::submitInfo();
