@@ -80,6 +80,5 @@ public:
 		ModelPtr[13] = matrix.m_posit.m_y;
 		ModelPtr[14] = matrix.m_posit.m_z;
 		ModelPtr[15] = matrix.m_posit.m_w;
-
 	}
 };

@@ -322,6 +322,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
+	body2->SetNotifyCallback(MeshNode);
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	//body2->SetMassMatrix(10.0f, shape);
