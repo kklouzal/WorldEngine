@@ -22,6 +22,7 @@ struct PipelineObject {
 	}
 
 	virtual TextureObject* createTextureImage(const std::string& File) = 0;
+	virtual TextureObject* createTextureImage2(tinygltf::Image& ImgData) { return nullptr; };
 
 	void EmptyCache() {
 		for (auto Tex : _Textures) {

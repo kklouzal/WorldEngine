@@ -207,10 +207,6 @@ public:
 		//SetMatrix(Trans);
 	}
 
-	void preDelete(ndWorld* _ndWorld) {
-		//	ToDo: Remove physics object from newton world?
-	}
-
 	void updateUniformBuffer(const uint32_t& currentImage) {
 		ubo.model = Model;
 		_Mesh->updateUniformBuffer(currentImage, ubo);
