@@ -6,6 +6,7 @@ class CustomEventReceiver : public EventReceiver {
 	bool isS = false;
 	bool isA = false;
 	bool isD = false;
+	bool isSpace = false;
 public:
 	CustomEventReceiver(VulkanDriver* Driver) : EventReceiver(Driver) { }
 	~CustomEventReceiver() { printf("Destroy Custom Event Receiver\n"); }
@@ -18,9 +19,14 @@ public:
 		if (!IsMenuOpen() && IsWorldInitialized()) {
 			CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
 			Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+
+			Character->moveForward((dInt32(isW) - dInt32(isS)) * 10.0f);
+			Character->moveRight((dInt32(isD) - dInt32(isA)) * 10.0f);
+
 			if (isW) {
 				if (Character && Character->_Camera) {
-					Character->moveForward(3.0f * (_Driver->deltaFrame / 1000));
+					
+					//Character->moveForward(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoForward(10.0f * (_Driver->deltaFrame / 1000));
@@ -28,15 +34,17 @@ public:
 			}
 			if (isS) {
 				if (Character && Character->_Camera) {
-					Character->moveBackward(3.0f * (_Driver->deltaFrame / 1000));
+					//Character->moveBackward(1.0f);
+					//Character->moveBackward(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
-					Cam->GoBackward(10.0f * (_Driver->deltaFrame / 1000));
+					Cam->GoBackward(10.0f * (_Driver->deltaFrame / 300));
 				}
 			}
 			if (isA) {
 				if (Character && Character->_Camera) {
-					Character->moveLeft(3.0f * (_Driver->deltaFrame / 1000));
+					//Character->moveLeft(1.0f);
+					//Character->moveLeft(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoLeft(10.0f * (_Driver->deltaFrame / 1000));
@@ -44,11 +52,20 @@ public:
 			}
 			if (isD) {
 				if (Character && Character->_Camera) {
-					Character->moveRight(3.0f * (_Driver->deltaFrame / 1000));
+					
+					//Character->moveRight(3.0f * (_Driver->deltaFrame / 1000));
 				}
 				else {
 					Cam->GoRight(10.0f * (_Driver->deltaFrame / 1000));
 				}
+			}
+			if (isSpace)
+			{
+
+				if (Character && Character->_Camera) {
+					Character->doJump(25.0f);
+				}
+
 			}
 		}
 	}
@@ -62,10 +79,11 @@ public:
 				//	Only keyboard-spawn-objects when menus closed and world initialized
 				if (!IsMenuOpen() && IsWorldInitialized()) {
 					if (NewEvent.Key == GLFW_KEY_SPACE) {
-						_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, btVector3(0, 15, 0));
+						//_Driver->_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, dVector(0, 15, 0, 0));
+						isSpace = true;
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0, 5, 0));
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(0.0f, 15.0f, 0.0f, 1.0f));
 					}
 				}
 				if (NewEvent.Key == GLFW_KEY_W) {
@@ -114,21 +132,27 @@ public:
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = false;
 				}
+				else if (NewEvent.Key == GLFW_KEY_SPACE)
+				{
+
+					isSpace = false;
+
+				}
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
 				if (NewEvent.Key == GLFW_KEY_C) {
-					int X = (rand() % 100) - 50;
-					int Z = (rand() % 100) - 50;
-					int Y = (rand() % 70) + 30;
-					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
+					float X = (rand() % 100) - 50.0f;
+					float Z = (rand() % 100) - 50.0f;
+					float Y = (rand() % 70) + 30.0f;
+					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 1.0f));
 				}
 				else if (NewEvent.Key == GLFW_KEY_X) {
-					for (int i = 0; i < 25; i++)
+					for (int i = 0; i < 5; i++)
 					{
-						int X = (rand() % 100) - 50;
-						int Z = (rand() % 100) - 50;
-						int Y = (rand() % 70) + 30;
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
+						float X = (rand() % 100) - 50.0f;
+						float Z = (rand() % 100) - 50.0f;
+						float Y = (rand() % 70) + 30.0f;
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 1.0f));
 					}
 				}
 			}
@@ -139,10 +163,10 @@ public:
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 				if (Character && !IsMenuOpen()) {
 					auto CamPos = Cam->Pos;
-					btVector3 From(CamPos.x, CamPos.y, CamPos.z);
+					dVector From((dFloat32)CamPos.x, (dFloat32)CamPos.y, (dFloat32)CamPos.z, 0.f);
 					auto CamDir = CamPos + Cam->Ang * 1000.0f;
-					btVector3 To(CamDir.x, CamDir.y, CamDir.z);
-					Character->_Weapon.Primary(_Driver->_SceneGraph->castRay(From,To));
+					dVector To((dFloat32)CamDir.x, (dFloat32)CamDir.y, (dFloat32)CamDir.z, 0.f);
+					//Character->_Weapon.Primary(_Driver->_SceneGraph->castRay(From,To));
 				}
 			}
 			else if (NewEvent.Action == EventActions::Release) {

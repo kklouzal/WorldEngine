@@ -7,10 +7,13 @@ public:
 	glm::vec3 Pos{};
 	glm::vec3 Ang{};
 	glm::vec3 front{};
+	glm::vec3 right{};
 
 	glm::mat4 View{};
 
 	glm::vec3 Offset{};
+
+	CameraPushConstant CPC;
 
 public:
 
@@ -52,10 +55,12 @@ public:
 	float pitch = 0;
 	float sensitivity = 0.15;
 
-	void DoLook(const double deltaX, const double deltaY)
+	void DoLook(const double& deltaX, const double& deltaY)
 	{
 		yaw += deltaX * sensitivity;
 		pitch += deltaY * sensitivity;
+
+		yaw -= 360.0f * std::floor((yaw + 180.0f) * (1.0f / 360.0f));
 
 		if (pitch > 89.0f)
 			pitch = 89.0f;
@@ -65,6 +70,9 @@ public:
 		front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
 		front.y = sin(glm::radians(pitch));
 		front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+		right = -glm::vec3(front.z, front.y, -front.x);
+
 		Ang = glm::normalize(front);
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
@@ -74,5 +82,16 @@ public:
 	}
 	const glm::vec3 getOffset() const {
 		return Offset;
+	}
+
+	//
+	//	TODO: Only update the matrices when the camera actually moves/rotates
+	const CameraPushConstant& GetCPC(const float& ScrWidth, const float& ScrHeight, const float& zNear, const float& zFar, const float& FOV)
+	{
+		//ubo.view = glm::lookAt(glm::vec3(512.0f, 512.0f, 128.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		CPC.view = View;
+		CPC.proj = glm::perspective(glm::radians(FOV), ScrWidth/ScrHeight, zNear, zFar);
+		CPC.proj[1][1] *= -1;
+		return CPC;
 	}
 };

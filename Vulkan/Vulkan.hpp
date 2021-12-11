@@ -19,6 +19,13 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/hash.hpp>
 
+#define _D_CORE_DLL
+#define _D_NEWTON_DLL
+#define _D_COLLISION_DLL
+#include <ndNewton.h>
+#include <ndCore.h>
+#include <ndCollision.h>
+
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
@@ -176,6 +183,8 @@ public:
 	// VMA
 	VmaAllocator allocator = VMA_NULL;
 	//
+
+	ndWorld* _ndWorld;
 
 	MaterialCache* _MaterialCache;
 	SceneGraph* _SceneGraph;
@@ -380,6 +389,12 @@ VulkanDriver::VulkanDriver() {
 	createFrameBuffers();
 	createUniformBuffersDeferred();
 	prepareOffscreenFrameBuffer();
+
+	_ndWorld = new ndWorld();
+	_ndWorld->SetThreadCount(std::thread::hardware_concurrency());
+	_ndWorld->SetSubSteps(4);
+	_ndWorld->SetSolverIterations(2);
+
 	_SceneGraph = new SceneGraph(this);
 	_MaterialCache = new MaterialCache(this);
 
@@ -413,6 +428,28 @@ VulkanDriver::VulkanDriver() {
 	clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues[3].depthStencil = { 1.0f, 0 };
+	//
+	//	Create synchronization objects
+	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
+	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
+	printf("SWAPCHAIN IMAGE COUNT %i\n", swapChain.imageCount);
+	inFlightFences.resize(swapChain.imageCount);
+	imagesInFlight.resize(swapChain.imageCount, VK_NULL_HANDLE);
+	for (uint32_t i = 0; i < swapChain.imageCount; i++)
+	{
+		// Create a semaphore used to synchronize image presentation
+		// Ensures that the image is displayed before we start submitting new commands to the queue
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete));
+		// Create a semaphore used to synchronize command submission
+		// Ensures that the image is not presented until all commands have been submitted and executed
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].renderComplete));
+		// Create a semaphore used to synchronize deferred rendering
+		// Ensures that drawing happens at the appropriate times
+		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].offscreenSync));
+		//
+		//
+		VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]));
+	}
 }
 
 //
@@ -436,6 +473,8 @@ VulkanDriver::~VulkanDriver() {
 	vkDestroyRenderPass(_VulkanDevice->logicalDevice, renderPass, nullptr);
 	delete _MaterialCache;
 
+	delete _ndWorld;
+
 	//	Destroy VMA Allocator
 	vmaDestroyAllocator(allocator);
 	//
@@ -444,18 +483,24 @@ VulkanDriver::~VulkanDriver() {
 	glfwTerminate();
 }
 
+
+//		X --- --- X
+
+
+
 //
 //	Loop Main Logic
 void VulkanDriver::mainLoop() {
-	while (!glfwWindowShouldClose(_Window)) {
+	while (!glfwWindowShouldClose(_Window))
+	{
 		//
 		//	Mark Frame Start Time and Calculate Previous Frame Statistics
 		startFrame = std::chrono::high_resolution_clock::now();
 		float DF = GetDeltaFrames();
-		float FPS = (1.0f / DF) * 1000.0f;
+		float FPS = (1.0f / DF);
 
 		if (_EventReceiver) {
-			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Statistics (Averaged Over 60 Frames) - FPS: %f - Frame Time: %f - Scene Nodes: %i", FPS, DF, _SceneGraph->SceneNodes.size()));
+			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Stats (60 Frame Average) - FPS: %f - Frame Time: %f - Physics Time: %f - Scene Nodes: %i", FPS, DF, _ndWorld->GetUpdateTime(), _SceneGraph->SceneNodes.size()));
 		}
 		//
 		//	Handle Inputs
@@ -464,20 +509,30 @@ void VulkanDriver::mainLoop() {
 		//	Perform Inputs
 		_EventReceiver->OnUpdate();
 		//
-		//	Simulate Physics
-		_SceneGraph->stepSimulation(deltaFrame/1000);
-		//
-		//	Update Shader Uniforms
-		updateUniformBufferOffscreen(currentFrame);
-		updateUniformBufferComposition(currentFrame);
-		_SceneGraph->updateUniformBuffer(currentFrame);
-		//
-		//	Draw Frame
-		Render();
+		//	We trying to cleanup?
+		if (_SceneGraph->ShouldCleanupWorld())
+		{
+			_SceneGraph->cleanupWorld();
+		}
+		else
+		{
+			//
+			//	Simulate Physics
+			//_ndWorld->Update(deltaFrame);
+			_ndWorld->Update(1.0 / 120.0f);
+			//
+			//	Update Shader Uniforms
+			updateUniformBufferOffscreen(currentFrame);
+			updateUniformBufferComposition(currentFrame);
+			_SceneGraph->updateUniformBuffer(currentFrame);
+			//
+			//	Draw Frame
+			Render();
+		}
 		//
 		//	Mark Frame End Time and Calculate Delta
 		endFrame = std::chrono::high_resolution_clock::now();
-		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count();
+		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count()/1000.f;
 		PushFrameDelta(deltaFrame);
 	}
 	//
@@ -543,10 +598,15 @@ void VulkanDriver::Render()
 	vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
 
 	vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline);
+
+	//
+	//	Update Camera Push Constants
+	const CameraPushConstant& CPC = _SceneGraph->GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
+	vkCmdPushConstants(offscreenCommandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+
 	for (size_t i = 0; i < _SceneGraph->SceneNodes.size(); i++) {
 		_SceneGraph->SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 	}
-
 	vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 	VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
 	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
@@ -599,8 +659,9 @@ void VulkanDriver::Render()
 	vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport_Main);
 	vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
 	//
-	//	Submit individual SceneNode draw commands
+	//	Draw our combined image view over the entire screen
 	vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline_Composition);
+	vkCmdPushConstants(commandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 	vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->pipelineLayout, 0, 1, &_MaterialCache->GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 	vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
 	//
@@ -658,7 +719,7 @@ void VulkanDriver::Render()
 	}
 	//
 	//	Submit this frame to the GPU and increment our currentFrame identifier
-	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	currentFrame = (currentFrame + 1) % swapChain.imageCount;
 }
 
 void VulkanDriver::initLua() {
@@ -786,33 +847,12 @@ void VulkanDriver::createLogicalDevice()
 	vkGetDeviceQueue(_VulkanDevice->logicalDevice, _VulkanDevice->queueFamilyIndices.graphics, 0, &graphicsQueue);
 	//vkGetDeviceQueue(_VulkanDevice->logicalDevice, _VulkanDevice->queueFamilyIndices.present, 0, &presentQueue);
 
-	depthFormat = _VulkanDevice->getSupportedDepthFormat(false);
+	VkBool32 validDepthFormat = _VulkanDevice->getSupportedDepthFormat(physicalDevice, &depthFormat);
+	printf("Depth Format: %i\n", depthFormat);
 
 	//
 	//	Connect the swapchain
 	swapChain.connect(instance, physicalDevice, _VulkanDevice->logicalDevice);
-	//
-	//	Create synchronization objects
-	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
-	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-	printf("SWAPCHAIN IMAGE COUNT %i\n", swapChain.imageCount);
-	inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-	imagesInFlight.resize(MAX_FRAMES_IN_FLIGHT, VK_NULL_HANDLE);
-	for (uint32_t i = 0; i < 2; i++)
-	{
-		// Create a semaphore used to synchronize image presentation
-		// Ensures that the image is displayed before we start submitting new commands to the queue
-		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete));
-		// Create a semaphore used to synchronize command submission
-		// Ensures that the image is not presented until all commands have been submitted and executed
-		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].renderComplete));
-		// Create a semaphore used to synchronize deferred rendering
-		// Ensures that drawing happens at the appropriate times
-		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].offscreenSync));
-		//
-		//
-		VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]));
-	}
 	//
 	//	Submit Information
 	submitInfo = vks::initializers::submitInfo();
@@ -982,32 +1022,32 @@ void VulkanDriver::createFrameBuffers()
 // Prepare a new framebuffer and attachments for offscreen rendering (G-Buffer)
 void VulkanDriver::prepareOffscreenFrameBuffer()
 {
-	//
-	//
-	// Shadow
-	frameBuffers.shadow = new Framebuffer(_VulkanDevice, allocator);
+	////
+	////
+	//// Shadow
+	//frameBuffers.shadow = new Framebuffer(_VulkanDevice, allocator);
 
-	frameBuffers.shadow->width = SHADOWMAP_DIM;
-	frameBuffers.shadow->height = SHADOWMAP_DIM;
+	//frameBuffers.shadow->width = SHADOWMAP_DIM;
+	//frameBuffers.shadow->height = SHADOWMAP_DIM;
 
-	// Create a layered depth attachment for rendering the depth maps from the lights' point of view
-	// Each layer corresponds to one of the lights
-	// The actual output to the separate layers is done in the geometry shader using shader instancing
-	// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
-	AttachmentCreateInfo attachmentInfo1 = {};
-	attachmentInfo1.format = SHADOWMAP_FORMAT;
-	attachmentInfo1.width = SHADOWMAP_DIM;
-	attachmentInfo1.height = SHADOWMAP_DIM;
-	attachmentInfo1.layerCount = LIGHT_COUNT;
-	attachmentInfo1.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	frameBuffers.shadow->addAttachment(attachmentInfo1);
+	//// Create a layered depth attachment for rendering the depth maps from the lights' point of view
+	//// Each layer corresponds to one of the lights
+	//// The actual output to the separate layers is done in the geometry shader using shader instancing
+	//// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
+	//AttachmentCreateInfo attachmentInfo1 = {};
+	//attachmentInfo1.format = SHADOWMAP_FORMAT;
+	//attachmentInfo1.width = SHADOWMAP_DIM;
+	//attachmentInfo1.height = SHADOWMAP_DIM;
+	//attachmentInfo1.layerCount = LIGHT_COUNT;
+	//attachmentInfo1.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	//frameBuffers.shadow->addAttachment(attachmentInfo1);
 
-	// Create sampler to sample from to depth attachment
-	// Used to sample in the fragment shader for shadowed rendering
-	VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+	//// Create sampler to sample from to depth attachment
+	//// Used to sample in the fragment shader for shadowed rendering
+	//VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
-	// Create default renderpass for the framebuffer
-	VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
+	//// Create default renderpass for the framebuffer
+	//VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
 	//
 	//
 	//	Deferred
@@ -1034,11 +1074,7 @@ void VulkanDriver::prepareOffscreenFrameBuffer()
 	attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
 	frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-	// Depth attachment
-	// Find a suitable depth format
-	VkFormat attDepthFormat = _VulkanDevice->getSupportedDepthFormat(true);
-
-	attachmentInfo2.format = attDepthFormat;
+	attachmentInfo2.format = depthFormat;
 	attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	frameBuffers.deferred->addAttachment(attachmentInfo2);
 

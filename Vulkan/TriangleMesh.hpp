@@ -151,14 +151,8 @@ public:
 		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
 	}
 
-	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo) {
-
-		Camera Cam = _Driver->_SceneGraph->GetCamera();
-			//ubo.view = glm::lookAt(glm::vec3(512.0f, 512.0f, 128.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = Cam.View;
-		ubo.proj = glm::perspective(glm::radians(90.0f), (float)_Driver->swapChainExtent.width / (float)_Driver->swapChainExtent.height, 0.1f, 1024.0f);
-		ubo.proj[1][1] *= -1;
-
+	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo)
+	{
 		memcpy(uniformAllocations[currentImage]->GetMappedData(), &ubo, sizeof(ubo));
 	}
 };

@@ -20,7 +20,7 @@ public:
 	Weapon() {}
 	~Weapon() {}
 
-	void Primary(btCollisionWorld::ClosestRayResultCallback Ray) {
+	/*void Primary(btCollisionWorld::ClosestRayResultCallback Ray) {
 		if (Ray.hasHit()) {
 			printf("Hit\n");
 			const btCollisionObject* HitObj = Ray.m_collisionObject;
@@ -33,7 +33,7 @@ public:
 		else {
 			printf("No Hit\n");
 		}
-	}
+	}*/
 
 	void Secondary() {
 

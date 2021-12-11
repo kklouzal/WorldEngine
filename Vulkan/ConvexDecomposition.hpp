@@ -4,9 +4,9 @@
 //
 //	Structure containing objects created during composition
 struct DecompResults {
-	btCompoundShape* CompoundShape = nullptr;
-	btAlignedObjectArray<btConvexShape*> m_convexShapes = {};
-	btAlignedObjectArray<btTriangleMesh*> m_trimeshes = {};
+	ndShapeCompound* CompoundShape;
+	std::vector<ndShapeConvex*> m_convexShapes = {};
+	//btAlignedObjectArray<btTriangleMesh*> m_trimeshes = {};
 };
 
 //
@@ -70,7 +70,7 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 	DecompResults* Results = new DecompResults;
 	//
 	//	Create a new Compound Shape for this decomposition
-	Results->CompoundShape = new btCompoundShape();
+	Results->CompoundShape = new ndShapeCompound();
 	printf("[DECOMP] Num Hulls: %i\n", nConvexHulls);
 	//
 	//	Iterate through each convex hull and fill results
@@ -83,10 +83,8 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 		printf("\t\tVerts: %i\n", Hull.m_nPoints);
 		printf("\t\tTris: %i\n", Hull.m_nTriangles);
 		//
-		//	Create a new ConvexShape from this hulls Triangle Mesh
-		btConvexHullShape* convexShape = new btConvexHullShape();
-		//
 		//	Iterate through this hulls triangles
+		std::vector<dVector> Verts;
 		for (uint32_t i = 0; i < Hull.m_nTriangles; i++) {
 			//
 			//	Calculate indices
@@ -95,24 +93,21 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 			const uint32_t index2 = Hull.m_triangles[i * 3 + 2];
 			//
 			//	Calculate vertices
-			const btVector3 vertex0(Hull.m_points[index0 * 3], Hull.m_points[index0 * 3 + 1], Hull.m_points[index0 * 3 + 2]);
-			const btVector3 vertex1(Hull.m_points[index1 * 3], Hull.m_points[index1 * 3 + 1], Hull.m_points[index1 * 3 + 2]);
-			const btVector3 vertex2(Hull.m_points[index2 * 3], Hull.m_points[index2 * 3 + 1], Hull.m_points[index2 * 3 + 2]);
-			//
-			//	Add this triangle into our Triangle Mesh
-			convexShape->addPoint(vertex0);
-			convexShape->addPoint(vertex1);
-			convexShape->addPoint(vertex2);
+			Verts.emplace_back(Hull.m_points[index0 * 3], Hull.m_points[index0 * 3 + 1], Hull.m_points[index0 * 3 + 2], 0);
+			Verts.emplace_back(Hull.m_points[index1 * 3], Hull.m_points[index1 * 3 + 1], Hull.m_points[index1 * 3 + 2], 0);
+			Verts.emplace_back(Hull.m_points[index2 * 3], Hull.m_points[index2 * 3 + 1], Hull.m_points[index2 * 3 + 2], 0);
 		}
+		//
+		//	Create a new ConvexShape from this hulls Triangle Mesh
+		ndShapeConvexHull* convexShape = new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x);
 		Results->m_convexShapes.push_back(convexShape);
 		//
 		//	Grab the hulls center position
-		btTransform trans;
-		trans.setIdentity();
-		trans.setOrigin(btVector3(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]));
+		dMatrix matrix(dGetIdentityMatrix());
+		matrix.m_posit = dVector(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2], 0);
 		//
 		//	Add this ConvexShape to our CompoundShape
-		Results->CompoundShape->addChildShape(trans, convexShape);
+		Results->CompoundShape->AddCollision(new ndShapeInstance(convexShape));
 	}
 	//
 	// release memory
