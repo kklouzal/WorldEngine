@@ -177,7 +177,7 @@ namespace Pipeline {
 				VkDescriptorBufferInfo bufferInfo_composition = {};
 				bufferInfo_composition.buffer = _Driver->uboCompositionBuff[i];
 				bufferInfo_composition.offset = 0;
-				bufferInfo_composition.range = sizeof(_Driver->uboComposition);
+				bufferInfo_composition.range = sizeof(DComposition);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 

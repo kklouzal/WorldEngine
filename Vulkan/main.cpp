@@ -1,7 +1,3 @@
-#ifndef _DEBUG
-#define BT_NO_PROFILE 1
-#endif
-
 #include "Vulkan.hpp"
 //
 //	Client Implementation

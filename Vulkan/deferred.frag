@@ -9,15 +9,15 @@ layout (location = 0) in vec2 inUV;
 
 layout (location = 0) out vec4 outFragcolor;
 
-struct Light {
+struct DLight {
 	vec4 position;
 	vec4 color;
 	float radius;
 };
 
-layout (binding = 1) uniform uboC
+layout (binding = 1) uniform DComposition
 {
-	Light lights[6];
+	DLight lights[6];
 	vec4 viewPos;
 	int displayDebugTarget;
 } ubo;

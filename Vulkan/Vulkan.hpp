@@ -62,15 +62,15 @@ class MaterialCache;
 class SceneGraph;
 namespace Gwen { namespace Renderer { class Vulkan; } }
 
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
-	//
-	//	These are our selected values from QuerySwawpChainSupport()
-	VkPresentModeKHR presentMode;
-	VkExtent2D extent;
-	VkSurfaceFormatKHR surfaceFormat;
+struct DLight {
+	glm::vec4 position;
+	glm::vec4 color;
+	glm::f32 radius;
+};
+struct DComposition {
+	DLight lights[6];
+	glm::vec4 viewPos;
+	glm::i32 debugDisplayTarget = 0;
 };
 
 class VulkanDriver {
@@ -79,21 +79,7 @@ public:
 	~VulkanDriver();
 	void mainLoop();
 
-	struct uboOS {
-		glm::mat4 projection;
-		glm::mat4 model;
-		glm::mat4 view;
-	} uboOffscreenVS;
-	struct Light {
-		glm::vec4 position;
-		glm::vec4 color;
-		glm::f32 radius;
-	};
-	struct {
-		Light lights[6];
-		glm::vec4 viewPos;
-		glm::i32 debugDisplayTarget = 0;
-	} uboComposition;
+	DComposition uboComposition;
 
 	struct {
 		// Framebuffer resources for the deferred pass
@@ -111,11 +97,6 @@ public:
 	VkInstance instance = VK_NULL_HANDLE;
 	uint32_t glfwExtensionCount = 0;
 	const char** glfwExtensions;
-#ifdef _DEBUG
-	const bool enableValidationLayers = true;
-#else
-	const bool enableValidationLayers = false;
-#endif
 	//
 	//	SwapChain Semaphores
 	struct {
@@ -182,19 +163,13 @@ public:
 
 	std::vector<VkBuffer> uboCompositionBuff = {};					//	Cleaned Up
 	std::vector<VmaAllocation> uboCompositionAlloc = {};			//	Cleaned Up
-	std::vector<VmaAllocationInfo> uboCompositionAllocInfo = {};	//	TODO: Stop using me
-	std::vector<VkBuffer> uboOffscreenVSBuff = {};					//	Cleaned Up
-	std::vector<VmaAllocation> uboOffscreenVSAlloc = {};			//	Cleaned Up
-	std::vector<VmaAllocationInfo> uboOffscreenVSAllocInfo = {};	//	TODO: Stop using me
 
 	void createUniformBuffersDeferred()
 	{
-		VkDeviceSize bufferSize1 = sizeof(uboComposition);
-		VkDeviceSize bufferSize2 = sizeof(uboOffscreenVSBuff);
+		VkDeviceSize bufferSize1 = sizeof(DComposition);
 
 		uboCompositionBuff.resize(swapChain.images.size());
 		uboCompositionAlloc.resize(swapChain.images.size());
-		uboCompositionAllocInfo.resize(swapChain.images.size());
 
 		for (size_t i = 0; i < swapChain.images.size(); i++)
 		{
@@ -207,27 +182,10 @@ public:
 			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], &uboCompositionAllocInfo[i]);
-		}
-		uboOffscreenVSBuff.resize(swapChain.images.size());
-		uboOffscreenVSAlloc.resize(swapChain.images.size());
-		uboOffscreenVSAllocInfo.resize(swapChain.images.size());
-		for (size_t i = 0; i < swapChain.images.size(); i++)
-		{
-			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			uniformBufferInfo.size = bufferSize2;
-			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-			VmaAllocationCreateInfo uniformAllocInfo = {};
-			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboOffscreenVSBuff[i], &uboOffscreenVSAlloc[i], &uboOffscreenVSAllocInfo[i]);
+			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
 		}
 	}
 
-	void updateUniformBufferOffscreen(const size_t &CurFrame);
 	void updateUniformBufferComposition(const size_t &CurFrame);
 
 	//
@@ -312,16 +270,6 @@ public:
 
 #include "EventReceiver.hpp"
 
-// Update matrices used for the offscreen rendering of the scene
-void VulkanDriver::updateUniformBufferOffscreen(const size_t &CurFrame)
-{
-	uboOffscreenVS.projection = glm::perspective(glm::radians(90.0f), (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 1024.0f);
-	uboOffscreenVS.projection[1][1] *= -1;
-	uboOffscreenVS.view = _SceneGraph->GetCamera().View;
-	uboOffscreenVS.model = glm::mat4(1.0f);
-	memcpy(uboOffscreenVSAllocInfo[CurFrame].pMappedData, &uboOffscreenVS, sizeof(uboOffscreenVS));
-}
-
 // Update lights and parameters passed to the composition shaders
 void VulkanDriver::updateUniformBufferComposition(const size_t &CurFrame)
 {
@@ -353,7 +301,7 @@ void VulkanDriver::updateUniformBufferComposition(const size_t &CurFrame)
 	// Current view position
 	uboComposition.viewPos = glm::vec4(_SceneGraph->GetCamera().Pos, 0.0f) * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
-	memcpy(uboCompositionAllocInfo[CurFrame].pMappedData, &uboComposition, sizeof(uboComposition));
+	memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
 }
 
 //
@@ -379,7 +327,7 @@ VulkanDriver::VulkanDriver() {
 	prepareOffscreenFrameBuffer();
 
 	_ndWorld = new ndWorld();
-	_ndWorld->SetThreadCount(std::thread::hardware_concurrency());
+	_ndWorld->SetThreadCount(std::thread::hardware_concurrency()-2);
 	_ndWorld->SetSubSteps(4);
 	_ndWorld->SetSolverIterations(2);
 
@@ -480,10 +428,6 @@ VulkanDriver::~VulkanDriver() {
 	{
 		vmaDestroyBuffer(allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
 	}
-	for (int i = 0; i < uboOffscreenVSBuff.size(); i++)
-	{
-		vmaDestroyBuffer(allocator, uboOffscreenVSBuff[i], uboOffscreenVSAlloc[i]);
-	}
 
 	//	Destroy VMA Allocator
 	vmaDestroyAllocator(allocator);
@@ -527,7 +471,6 @@ void VulkanDriver::mainLoop() {
 			_ndWorld->Update(1.0 / 120.0f);
 			//
 			//	Update Shader Uniforms
-			updateUniformBufferOffscreen(currentFrame);
 			updateUniformBufferComposition(currentFrame);
 			_SceneGraph->updateUniformBuffer(currentFrame);
 			//
@@ -777,27 +720,27 @@ void VulkanDriver::createInstance() {
 	createInfo.pApplicationInfo = &appInfo;
 	createInfo.enabledExtensionCount = glfwExtensionCount;
 	createInfo.ppEnabledExtensionNames = glfwExtensions;
-	if (enableValidationLayers) {
-		const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
-		uint32_t instanceLayerCount;
-		vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
-		std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
-		vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
-		bool validationLayerPresent = false;
-		for (VkLayerProperties layer : instanceLayerProperties) {
-			if (strcmp(layer.layerName, validationLayerName) == 0) {
-				validationLayerPresent = true;
-				break;
-			}
-		}
-		if (validationLayerPresent) {
-			createInfo.ppEnabledLayerNames = &validationLayerName;
-			createInfo.enabledLayerCount = 1;
-		}
-		else {
-			printf("Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n");
+	#ifdef _DEBUG
+	const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
+	uint32_t instanceLayerCount;
+	vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
+	std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
+	vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
+	bool validationLayerPresent = false;
+	for (VkLayerProperties layer : instanceLayerProperties) {
+		if (strcmp(layer.layerName, validationLayerName) == 0) {
+			validationLayerPresent = true;
+			break;
 		}
 	}
+	if (validationLayerPresent) {
+		createInfo.ppEnabledLayerNames = &validationLayerName;
+		createInfo.enabledLayerCount = 1;
+	}
+	else {
+		printf("Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n");
+	}
+	#endif
 
 	VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &instance));
 }
