@@ -117,4 +117,12 @@ struct TextureObject {
 	}
 };
 
+#define TINYGLTF_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#define TINYGLTF_USE_CPP14
+
+#include "TinyGLTF.hpp"
+
 #include "PipelineObject.hpp"
+#include "Import_GLTF.hpp"

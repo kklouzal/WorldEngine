@@ -1,16 +1,12 @@
 #pragma once
-#define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#define TINYGLTF_USE_CPP14
-
-#include "TinyGLTF.hpp"
 
 struct GLTFInfo
 {
     std::vector<Vertex> Vertices;
     std::vector<uint32_t> Indices;
     const char* TexDiffuse;
+    TextureObject* DiffuseTex;
+    TextureObject* NormalTex;
 };
 
 class ImportGLTF
@@ -18,7 +14,7 @@ class ImportGLTF
     std::unordered_map<const char*, GLTFInfo*> Model_Cache;
 public:
 
-    GLTFInfo* loadModel(const char* filename)
+    GLTFInfo* loadModel(const char* filename, PipelineObject* Pipe)
     {
         
         if (Model_Cache.contains(filename))
@@ -53,7 +49,7 @@ public:
             for (size_t i = 0; i < model.meshes.size(); i++)
             {
                 const tinygltf::Mesh& _Mesh = model.meshes[i];
-
+                
                 for (size_t j = 0; j < _Mesh.primitives.size(); j++)
                 {
                     const tinygltf::Primitive& _Primitive = _Mesh.primitives[j];
@@ -82,6 +78,8 @@ public:
                         //  Handle our attributes
                         if (_Attribute.first == "POSITION")
                         {
+
+                            #ifdef _DEBUG
                             printf("[GLTF]: POSITION\n");
                             printf("\tAccessor ID %i\n", AccessorID);
                             printf("\tBufferView ID %i\n", Accessor.bufferView);
@@ -91,7 +89,7 @@ public:
                             printf("\t\tAccessor Type %i\n", Accessor.type);
                             printf("\t\tAccessor Count %zu\n", Accessor.count);
                             printf("\t\tAccessor Component Type %i\n", Accessor.componentType);
-
+                            #endif
                             if (Accessor.type == TINYGLTF_TYPE_VEC3)
                             {
                                 if (Accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
@@ -122,6 +120,8 @@ public:
                         }
                         else if (_Attribute.first == "JOINTS_0")
                         {
+
+                            #ifdef _DEBUG
                             printf("[GLTF]: JOINTS_0\n");
                             printf("\tAccessor ID %i\n", AccessorID);
                             printf("\tBufferView ID %i\n", Accessor.bufferView);
@@ -131,6 +131,7 @@ public:
                             printf("\t\tAccessor Type %i\n", Accessor.type);
                             printf("\t\tAccessor Count %zu\n", Accessor.count);
                             printf("\t\tAccessor Component Type %i\n", Accessor.componentType);
+                            #endif
 
                             size_t DataPos = DataStart;
 
@@ -163,6 +164,8 @@ public:
                         }
                         else if (_Attribute.first == "WEIGHTS_0")
                         {
+
+                            #ifdef _DEBUG
                             printf("[GLTF]: WEIGHTS_0\n");
                             printf("\tAccessor ID %i\n", AccessorID);
                             printf("\tBufferView ID %i\n", Accessor.bufferView);
@@ -172,6 +175,7 @@ public:
                             printf("\t\tAccessor Type %i\n", Accessor.type);
                             printf("\t\tAccessor Count %zu\n", Accessor.count);
                             printf("\t\tAccessor Component Type %i\n", Accessor.componentType);
+                            #endif
 
                             size_t DataPos = DataStart;
 
@@ -204,6 +208,8 @@ public:
                         }
                         else if (_Attribute.first == "TEXCOORD_0")
                         {
+
+                            #ifdef _DEBUG
                             printf("[GLTF]: TEXCOORD_0\n");
                             printf("\tAccessor ID %i\n", AccessorID);
                             printf("\tBufferView ID %i\n", Accessor.bufferView);
@@ -213,6 +219,7 @@ public:
                             printf("\t\tAccessor Type %i\n", Accessor.type);
                             printf("\t\tAccessor Count %zu\n", Accessor.count);
                             printf("\t\tAccessor Component Type %i\n", Accessor.componentType);
+                            #endif
 
                             size_t DataPos = DataStart;
 
@@ -241,6 +248,8 @@ public:
                         }
                         else if (_Attribute.first == "NORMAL")
                         {
+
+                            #ifdef _DEBUG
                             printf("[GLTF]: NORMAL\n");
                             printf("\tAccessor ID %i\n", AccessorID);
                             printf("\tBufferView ID %i\n", Accessor.bufferView);
@@ -250,6 +259,7 @@ public:
                             printf("\t\tAccessor Type %i\n", Accessor.type);
                             printf("\t\tAccessor Count %zu\n", Accessor.count);
                             printf("\t\tAccessor Component Type %i\n", Accessor.componentType);
+                            #endif
 
                             size_t DataPos = DataStart;
 
@@ -299,6 +309,8 @@ public:
                     std::vector<unsigned char> Buffer = model.buffers[BufferNum].data;
                     size_t DataStart = BufferView.byteOffset + Accessor.byteOffset;
                     int DataStride = Accessor.ByteStride(BufferView);
+
+                    #ifdef _DEBUG
                     printf("[GLTF]: INDEX\n");
                     printf("\tAccessor ID %i\n", AccessorID);
                     printf("\tBufferView ID %i\n", Accessor.bufferView);
@@ -308,6 +320,7 @@ public:
                     printf("\t\tAccessor Type %i\n", Accessor.type);
                     printf("\t\tAccessor Count %zu\n", Accessor.count);
                     printf("\t\tAccessor Component Type %i\n", Accessor.componentType);
+                    #endif
 
                     size_t DataPos = DataStart;
 
@@ -327,17 +340,23 @@ public:
                             }
                         }
                     }
+                    //
+                    //  Load Textures
+                    //
+                    //  TODO: Implement default/missing textures
+                    const tinygltf::Material& _Material = model.materials[_Primitive.material];
+                    int ColorTex = _Material.pbrMetallicRoughness.baseColorTexture.index;
+                    int NormalTex = _Material.normalTexture.index;
+
+                    printf("MODEL.IMAGES COLOR NAME %s\n", model.images[ColorTex].name.c_str());
+                    Infos->DiffuseTex = Pipe->createTextureImage2(model.images[ColorTex]);
+                    if (NormalTex >= 0)
+                    {
+                        printf("MODEL.IMAGES NORMAL NAME %s\n", model.images[NormalTex].name.c_str());
+                        Infos->NormalTex = Pipe->createTextureImage2(model.images[NormalTex]);
+                    }
                 }
             }
-            //
-            //  Load Textures
-            for (int i = 0; i < model.images.size(); i++)
-            {
-                const tinygltf::Image& Img = model.images[i];
-
-                //tinygltf::LoadImageData()
-            }
-            Infos->TexDiffuse = "grass.png";
             //
             //  Add this info into the model cache
             Model_Cache[filename] = Infos;

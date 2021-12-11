@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Import_GLTF.hpp"
 #include "ConvexDecomposition.hpp"
 
 #include "Camera.hpp"
@@ -36,7 +35,7 @@ public:
 
 	//
 	//	Constructor
-	SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), FrameCount(0), isWorld(false)
+	SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), isWorld(false)
 	{
 		createUniformBuffers();
 		//
@@ -61,7 +60,7 @@ public:
 	//	Destructor
 	~SceneGraph()
 	{
-		forceCleanupWorld();
+		cleanupWorld();
 		printf("Destroy SceneGraph\n");
 		for (size_t i = 0; i < UniformBuffers_Lighting.size(); i++) {
 			vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
@@ -111,14 +110,12 @@ public:
 	}
 
 	bool tryCleanupWorld;
-	unsigned int FrameCount;
 	bool isWorld;
 	void initWorld();
 	void cleanupWorld();
-	void forceCleanupWorld() {
-		tryCleanupWorld = true;
-		FrameCount = 3;
-		cleanupWorld();
+	const bool& ShouldCleanupWorld()
+	{
+		return tryCleanupWorld;
 	}
 
 	//
@@ -146,7 +143,7 @@ void SceneGraph::initWorld() {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
 
-	createWorldSceneNode("media/models/StartingArea.gltf");
+	createWorldSceneNode("media/models/CurrentWorld.gltf");
 	_Character = createCharacterSceneNode("media/models/box.gltf", dVector(0, 15, 0, 0));
 	_Character->_Camera = &_Camera;
 
@@ -155,110 +152,20 @@ void SceneGraph::initWorld() {
 
 void SceneGraph::cleanupWorld() {
 	if (!isWorld) { printf("cleanupWorld: No world initialized to cleanup!\n"); return; }
-	else if (isWorld && FrameCount < 3) { tryCleanupWorld = true; FrameCount++; return; }
+	else if (isWorld && !tryCleanupWorld) { tryCleanupWorld = true; return; }
 	isWorld = false;
-	FrameCount = 0;
 	tryCleanupWorld = false;
 	_Character = nullptr;
 	//
 	//	Cleanup SceneNodes
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
+		_Driver->_ndWorld->RemoveBody((ndBody*)SceneNodes[i]);
 		delete SceneNodes[i];
 	}
 	SceneNodes.clear();
 	SceneNodes.shrink_to_fit();
 
 	_Driver->_MaterialCache->GetPipe_Default()->EmptyCache();
-}
-
-void SceneGraph::validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const VkCommandBuffer& PriCmdBuffer, const VkFramebuffer& FrmBuffer)
-{
-	std::vector<VkCommandBuffer> secondaryCommandBuffers;
-
-	if (tryCleanupWorld) {
-		printf("Attempt World Cleanup\n");
-		cleanupWorld();
-	}
-
-	VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-	//cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-
-	VkClearValue clearValues[2];
-	clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-	clearValues[1].depthStencil = { 1.0f, 0 };
-
-	VkRenderPassBeginInfo renderPassBeginInfo = vks::initializers::renderPassBeginInfo();
-	renderPassBeginInfo.renderPass = _Driver->renderPass;
-	renderPassBeginInfo.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo.renderArea.extent = _Driver->swapChainExtent;
-	renderPassBeginInfo.clearValueCount = 2;
-	renderPassBeginInfo.pClearValues = clearValues;
-	renderPassBeginInfo.framebuffer = FrmBuffer;
-
-	//
-	//	Set target Primary Command Buffer
-	VK_CHECK_RESULT(vkBeginCommandBuffer(PriCmdBuffer, &cmdBufInfo));
-	//
-	//	Begin render pass
-	vkCmdBeginRenderPass(PriCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-	//
-	//	Secondary CommandBuffer Inheritance Info
-	VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
-	inheritanceInfo.renderPass = _Driver->renderPass;
-	inheritanceInfo.framebuffer = FrmBuffer;
-	//
-	//	Secondary CommandBuffer Begin Info
-	VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
-	commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
-	commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
-	//
-	//	BEGIN BUILDING SECONDARY COMMAND BUFFERS
-	//	ACTUALLY PUSH DRAW COMMANDS HERE
-	if (!tryCleanupWorld) {
-		// 
-		//
-		//	Begin recording
-		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[CurFrame], &commandBufferBeginInfo));
-		vkCmdSetViewport(commandBuffers[CurFrame], 0, 1, &_Driver->viewport_Main);
-		vkCmdSetScissor(commandBuffers[CurFrame], 0, 1, &_Driver->scissor_Main);
-		//
-		//	Submit individual SceneNode draw commands
-		vkCmdBindPipeline(commandBuffers[CurFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _Driver->_MaterialCache->GetPipe_Default()->graphicsPipeline);
-		for (size_t i = 0; i < SceneNodes.size(); i++) {
-			SceneNodes[i]->drawFrame(commandBuffers[CurFrame], CurFrame);
-		}
-		//
-		//
-		//	End recording state
-		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[CurFrame]));
-		secondaryCommandBuffers.push_back(commandBuffers[CurFrame]);
-	}
-	//
-	//	BUILD ANY SPECIAL/FIXED SECONDARY COMMAND BUFFERS
-	//	LIKE PUSH THE GUI DRAW COMMANDS HERE
-	//
-	//
-	//	Begin recording
-	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[CurFrame], &commandBufferBeginInfo));
-	//	test
-	//_Driver->DrawExternal(commandBuffers_GUI[CurFrame]);
-	#ifdef _DEBUG
-	if (isWorld) {
-		//dynamicsWorld->debugDrawWorld();
-	}
-	#endif
-	//
-	//
-	//	End recording state
-	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[CurFrame]));
-	secondaryCommandBuffers.push_back(commandBuffers_GUI[CurFrame]);
-	//
-	//	OH YEAH DO THOSE LAST TWO THINGS IN A SEPARATE THREAD
-	// 
-	// Execute render commands from the secondary command buffers
-	vkCmdExecuteCommands(PriCmdBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
-	vkCmdEndRenderPass(PriCmdBuffer);
-	VK_CHECK_RESULT(vkEndCommandBuffer(PriCmdBuffer));
 }
 
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
@@ -274,19 +181,9 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
-	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 
-	//	TODO:
-	//	Place this into Import_GLTF
-	std::string DiffuseFile("media/");
-	DiffuseFile += Infos->TexDiffuse;
-	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
-	if (DiffuseTex == nullptr) {
-		return nullptr;
-	}
-	//	END TODO
-
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
 
 
 	//}
@@ -328,7 +225,6 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 	//body2->SetMassMatrix(10.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
-	MeshNode->_RigidBody = body2;
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -341,19 +237,9 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
-	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 
-	//	TODO:
-	//	Place this into Import_GLTF
-	std::string DiffuseFile("media/");
-	DiffuseFile += Infos->TexDiffuse;
-	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
-	if (DiffuseTex == nullptr) {
-		return nullptr;
-	}
-	//	END TODO
-
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 	MeshNode->Name = "TriangleMeshSceneNode";
@@ -381,7 +267,6 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	body2->SetMassMatrix(1.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
-	MeshNode->_RigidBody = body2;
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -394,19 +279,9 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
-	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 
-	//	TODO:
-	//	Place this into Import_GLTF
-	std::string DiffuseFile("media/");
-	DiffuseFile += Infos->TexDiffuse;
-	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
-	if (DiffuseTex == nullptr) {
-		return nullptr;
-	}
-	//	END TODO
-
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh);
 	MeshNode->Name = "SkinnedMeshSceneNode";
@@ -434,7 +309,6 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	body2->SetMassMatrix(1.0f, shape);
 
 	_Driver->_ndWorld->AddBody(body2);
-	MeshNode->_RigidBody = body2;
 
 	SceneNodes.push_back(MeshNode);
 	return MeshNode;
@@ -445,19 +319,9 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const dVector& Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
-	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX);
+	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 
-	//	TODO:
-	//	Place this into Import_GLTF
-	std::string DiffuseFile("media/");
-	DiffuseFile += Infos->TexDiffuse;
-	TextureObject* DiffuseTex = Pipe->createTextureImage(DiffuseFile);
-	if (DiffuseTex == nullptr) {
-		return nullptr;
-	}
-	//	END TODO
-
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, DiffuseTex, DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	dMatrix localAxis(dGetIdentityMatrix());
 	localAxis[0] = dVector(0.0, 1.0f, 0.0f, 0.0f);
@@ -491,8 +355,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 
 	auto DN = MeshNode->GetAsBodyDynamic();
 
-	_Driver->_ndWorld->AddBody((ndBodyPlayerCapsule*)MeshNode);
-	MeshNode->_RigidBody = MeshNode;
+	_Driver->_ndWorld->AddBody(MeshNode);
 
 	//
 	//	Push new SceneNode into the SceneGraph

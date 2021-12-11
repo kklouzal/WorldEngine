@@ -509,22 +509,29 @@ void VulkanDriver::mainLoop() {
 		//	Perform Inputs
 		_EventReceiver->OnUpdate();
 		//
-		//	Simulate Physics
-		//_ndWorld->Update(deltaFrame);
-		_ndWorld->Update(1.0/120.0f);
-		//
-		//	Update Shader Uniforms
-		updateUniformBufferOffscreen(currentFrame);
-		updateUniformBufferComposition(currentFrame);
-		_SceneGraph->updateUniformBuffer(currentFrame);
-		//
-		//	Draw Frame
-		Render();
+		//	We trying to cleanup?
+		if (_SceneGraph->ShouldCleanupWorld())
+		{
+			_SceneGraph->cleanupWorld();
+		}
+		else
+		{
+			//
+			//	Simulate Physics
+			//_ndWorld->Update(deltaFrame);
+			_ndWorld->Update(1.0 / 120.0f);
+			//
+			//	Update Shader Uniforms
+			updateUniformBufferOffscreen(currentFrame);
+			updateUniformBufferComposition(currentFrame);
+			_SceneGraph->updateUniformBuffer(currentFrame);
+			//
+			//	Draw Frame
+			Render();
+		}
 		//
 		//	Mark Frame End Time and Calculate Delta
 		endFrame = std::chrono::high_resolution_clock::now();
-
-
 		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count()/1000.f;
 		PushFrameDelta(deltaFrame);
 	}
