@@ -151,19 +151,19 @@ namespace Pipeline {
 				// Image descriptors for the offscreen color attachments
 				VkDescriptorImageInfo texDescriptorPosition =
 					vks::initializers::descriptorImageInfo(
-						Sampler,
+						DeferredSampler,
 						_Driver->frameBuffers.deferred->attachments[0].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorNormal =
 					vks::initializers::descriptorImageInfo(
-						Sampler,
+						DeferredSampler,
 						_Driver->frameBuffers.deferred->attachments[1].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorAlbedo =
 					vks::initializers::descriptorImageInfo(
-						Sampler,
+						DeferredSampler,
 						_Driver->frameBuffers.deferred->attachments[2].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 

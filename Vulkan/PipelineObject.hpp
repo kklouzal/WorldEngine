@@ -6,6 +6,7 @@ struct PipelineObject {
 	VulkanDriver* _Driver;
 
 	VkSampler Sampler = VK_NULL_HANDLE;
+	VkSampler DeferredSampler = VK_NULL_HANDLE;
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
@@ -19,6 +20,7 @@ struct PipelineObject {
 		vkDestroyPipelineLayout(_Driver->_VulkanDevice->logicalDevice, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
 		vkDestroySampler(_Driver->_VulkanDevice->logicalDevice, Sampler, nullptr);
+		vkDestroySampler(_Driver->_VulkanDevice->logicalDevice, DeferredSampler, nullptr);
 	}
 
 	virtual TextureObject* createTextureImage(const std::string& File) = 0;
@@ -39,23 +41,41 @@ protected:
 	{
 		//
 		//	Image Sampler For Entire Pipeline
-		VkSamplerCreateInfo samplerInfo = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
-		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
-		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-		samplerInfo.anisotropyEnable = VK_TRUE;
-		samplerInfo.maxAnisotropy = 16;
-		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-		samplerInfo.unnormalizedCoordinates = VK_FALSE;
-		samplerInfo.compareEnable = VK_FALSE;
-		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-		samplerInfo.mipLodBias = 0.0f;
-		samplerInfo.minLod = 0.0f;
-		samplerInfo.maxLod = 0.0f;
-		if (vkCreateSampler(_Driver->_VulkanDevice->logicalDevice, &samplerInfo, nullptr, &Sampler) != VK_SUCCESS) {
+		VkSamplerCreateInfo samplerInfo1 = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
+		samplerInfo1.magFilter = VK_FILTER_LINEAR;
+		samplerInfo1.minFilter = VK_FILTER_LINEAR;
+		samplerInfo1.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo1.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo1.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo1.anisotropyEnable = VK_TRUE;
+		samplerInfo1.maxAnisotropy = 16;
+		samplerInfo1.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo1.unnormalizedCoordinates = VK_FALSE;
+		samplerInfo1.compareEnable = VK_FALSE;
+		samplerInfo1.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo1.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo1.mipLodBias = 0.0f;
+		samplerInfo1.minLod = 0.0f;
+		samplerInfo1.maxLod = 0.0f;
+		if (vkCreateSampler(_Driver->_VulkanDevice->logicalDevice, &samplerInfo1, nullptr, &Sampler) != VK_SUCCESS) {
+#ifdef _DEBUG
+			throw std::runtime_error("failed to create texture sampler!");
+#endif
+		}
+
+		VkSamplerCreateInfo samplerInfo2 = vks::initializers::samplerCreateInfo();
+		samplerInfo2.magFilter = VK_FILTER_NEAREST;
+		samplerInfo2.minFilter = VK_FILTER_NEAREST;
+		samplerInfo2.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo2.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo2.addressModeV = samplerInfo2.addressModeU;
+		samplerInfo2.addressModeW = samplerInfo2.addressModeU;
+		samplerInfo2.mipLodBias = 0.0f;
+		samplerInfo2.maxAnisotropy = 1.0f;
+		samplerInfo2.minLod = 0.0f;
+		samplerInfo2.maxLod = 1.0f;
+		samplerInfo2.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		if (vkCreateSampler(_Driver->_VulkanDevice->logicalDevice, &samplerInfo2, nullptr, &DeferredSampler) != VK_SUCCESS) {
 			#ifdef _DEBUG
 			throw std::runtime_error("failed to create texture sampler!");
 			#endif
