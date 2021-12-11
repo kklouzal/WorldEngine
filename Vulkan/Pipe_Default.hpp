@@ -495,6 +495,7 @@ namespace Pipeline {
 			textureImageViewInfo.subresourceRange.layerCount = 1;
 			vkCreateImageView(_Driver->_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Tex->ImageView);
 
+			_Textures2.push_back(Tex);
 			return Tex;
 		}
 	};

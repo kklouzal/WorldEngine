@@ -57,18 +57,10 @@
 // Offscreen frame buffer properties
 #define FB_DIM TEX_DIM
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
 class EventReceiver;
 class MaterialCache;
 class SceneGraph;
-namespace Gwen
-{
-	namespace Renderer
-	{
-		class Vulkan;
-	}
-}
+namespace Gwen { namespace Renderer { class Vulkan; } }
 
 struct SwapChainSupportDetails {
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -103,8 +95,7 @@ public:
 		glm::i32 debugDisplayTarget = 0;
 	} uboComposition;
 
-	struct
-	{
+	struct {
 		// Framebuffer resources for the deferred pass
 		Framebuffer* deferred;
 		// Framebuffer resources for the shadow pass
@@ -112,7 +103,7 @@ public:
 	} frameBuffers;
 
 public:
-	EventReceiver* _EventReceiver;
+	EventReceiver* _EventReceiver;	//	CLEANED
 	GLFWwindow* _Window = nullptr;
 	uint32_t WIDTH = 1024;
 	uint32_t HEIGHT = 768;
@@ -134,14 +125,14 @@ public:
 		VkSemaphore renderComplete;
 		// Offscreen synchronization
 		VkSemaphore offscreenSync;
-	} semaphores[2];
+	} semaphores[3];
 	//
 	//	DepthStencil Data
 	struct {
 		VkImage image;
 		VmaAllocation allocation;
 		VkImageView view;
-	} depthStencil;
+	} depthStencil;													//	Cleaned Up
 
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkPhysicalDeviceProperties deviceProperties;
@@ -149,53 +140,52 @@ public:
 	VkPhysicalDeviceFeatures enabledFeatures {};
 	std::vector<const char*> enabledDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 	std::vector<const char*> enabledInstanceExtensions;
-	//VkDevice device = VK_NULL_HANDLE;
 	VulkanDevice* _VulkanDevice;
 	VkQueue graphicsQueue = VK_NULL_HANDLE;
 	VkQueue presentQueue = VK_NULL_HANDLE;
 	VulkanSwapChain swapChain;
 	VkSubmitInfo submitInfo;
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	std::vector<VkFramebuffer>frameBuffers_Main;
+	std::vector<VkFramebuffer>frameBuffers_Main;					//	Cleaned Up
 	//
 	//	Frames-In-Flight
-	std::vector<VkFence> inFlightFences;
-	std::vector<VkFence> imagesInFlight;
+	std::vector<VkFence> inFlightFences;							//	Cleaned Up
+	std::vector<VkFence> imagesInFlight;							//	Doesnt Need Cleanup
 	uint32_t currentImage = 0;
 	uint32_t currentFrame = 0;
 	//
-	VkFormat depthFormat;
+	VkFormat depthFormat;										//
 	//
 	//	MAYBE only need a single pool and primary buffer..
-	std::vector <VkCommandPool> commandPools;
-	std::vector <VkCommandBuffer> primaryCommandBuffers;
-	std::vector <VkCommandBuffer> offscreenCommandBuffers;
+	std::vector <VkCommandPool> commandPools;						//	Cleaned Up
+	std::vector <VkCommandBuffer> primaryCommandBuffers;			//	Doesnt Need Cleanup
+	std::vector <VkCommandBuffer> offscreenCommandBuffers;			//	Doesnt Need Cleanup
 
-	VkExtent2D swapChainExtent;
-	VkRenderPass renderPass = VK_NULL_HANDLE;
+	VkExtent2D swapChainExtent;									//
+	VkRenderPass renderPass = VK_NULL_HANDLE;						//	Cleaned Up
 
-	VkViewport viewport_Main = {};
-	VkRect2D scissor_Main = {};
-	std::array<VkClearValue, 4> clearValues;
+	VkViewport viewport_Main = {};								//
+	VkRect2D scissor_Main = {};									//
+	std::array<VkClearValue, 4> clearValues;					//
 
 	// VMA
-	VmaAllocator allocator = VMA_NULL;
+	VmaAllocator allocator = VMA_NULL;								//	Cleaned Up
 	//
 
-	ndWorld* _ndWorld;
+	ndWorld* _ndWorld;												//	Cleaned Up
 
-	MaterialCache* _MaterialCache;
-	SceneGraph* _SceneGraph;
+	MaterialCache* _MaterialCache;									//	Cleaned Up
+	SceneGraph* _SceneGraph;										//	Cleaned Up
 
-	std::vector<VkCommandBuffer> commandBuffers;
-	std::vector<VkCommandBuffer> commandBuffers_GUI;
+	std::vector<VkCommandBuffer> commandBuffers;					//	Doesnt Need Cleanup
+	std::vector<VkCommandBuffer> commandBuffers_GUI;				//	Doesnt Need Cleanup
 
-	std::vector<VkBuffer> uboCompositionBuff = {};
-	std::vector<VmaAllocation> uboCompositionAlloc = {};	//CLEAN ME UP
-	std::vector<VmaAllocationInfo> uboCompositionAllocInfo = {};
-	std::vector<VkBuffer> uboOffscreenVSBuff = {};
-	std::vector<VmaAllocation> uboOffscreenVSAlloc = {};	//CLEAN ME UP
-	std::vector<VmaAllocationInfo> uboOffscreenVSAllocInfo = {};
+	std::vector<VkBuffer> uboCompositionBuff = {};					//	Cleaned Up
+	std::vector<VmaAllocation> uboCompositionAlloc = {};			//	Cleaned Up
+	std::vector<VmaAllocationInfo> uboCompositionAllocInfo = {};	//	TODO: Stop using me
+	std::vector<VkBuffer> uboOffscreenVSBuff = {};					//	Cleaned Up
+	std::vector<VmaAllocation> uboOffscreenVSAlloc = {};			//	Cleaned Up
+	std::vector<VmaAllocationInfo> uboOffscreenVSAllocInfo = {};	//	TODO: Stop using me
 
 	void createUniformBuffersDeferred()
 	{
@@ -458,6 +448,7 @@ VulkanDriver::~VulkanDriver() {
 	delete _EventReceiver;
 	//
 	delete _SceneGraph;
+	//
 	for (auto commandpool : commandPools) {
 		vkDestroyCommandPool(_VulkanDevice->logicalDevice, commandpool, nullptr);
 	}
@@ -467,11 +458,32 @@ VulkanDriver::~VulkanDriver() {
 	//	Destroy Depth Buffer
 	vkDestroyImageView(_VulkanDevice->logicalDevice, depthStencil.view, nullptr);
 	vmaDestroyImage(allocator, depthStencil.image, depthStencil.allocation);
-	//
+	//	Destroy Render Pass
 	vkDestroyRenderPass(_VulkanDevice->logicalDevice, renderPass, nullptr);
+	//	Destroy Synchronization Objects
+	for (auto sync : inFlightFences)
+	{
+		vkDestroyFence(_VulkanDevice->logicalDevice, sync, nullptr);
+	}
+	for (auto sync : semaphores)
+	{
+		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.offscreenSync, nullptr);
+		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.renderComplete, nullptr);
+		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.presentComplete, nullptr);
+	}
+	delete frameBuffers.deferred;
+	delete frameBuffers.shadow;
 	delete _MaterialCache;
 
 	delete _ndWorld;
+	for (int i = 0; i < uboCompositionBuff.size(); i++)
+	{
+		vmaDestroyBuffer(allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
+	}
+	for (int i = 0; i < uboOffscreenVSBuff.size(); i++)
+	{
+		vmaDestroyBuffer(allocator, uboOffscreenVSBuff[i], uboOffscreenVSAlloc[i]);
+	}
 
 	//	Destroy VMA Allocator
 	vmaDestroyAllocator(allocator);
@@ -480,11 +492,6 @@ VulkanDriver::~VulkanDriver() {
 	glfwDestroyWindow(_Window);
 	glfwTerminate();
 }
-
-
-//		X --- --- X
-
-
 
 //
 //	Loop Main Logic

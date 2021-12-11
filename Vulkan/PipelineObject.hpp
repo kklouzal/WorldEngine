@@ -31,11 +31,16 @@ struct PipelineObject {
 			delete Tex.second;
 		}
 		_Textures.clear();
+		for (auto Tex : _Textures2) {
+			delete Tex;
+		}
+		_Textures2.clear();
 	}
 
 protected:
 
 	std::unordered_map<std::string, TextureObject*> _Textures;
+	std::deque<TextureObject*> _Textures2;
 
 	PipelineObject(VulkanDriver* Driver) : _Driver(Driver)
 	{
