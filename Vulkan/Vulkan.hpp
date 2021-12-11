@@ -391,7 +391,7 @@ VulkanDriver::VulkanDriver() {
 	prepareOffscreenFrameBuffer();
 
 	_ndWorld = new ndWorld();
-	_ndWorld->SetThreadCount(6);
+	_ndWorld->SetThreadCount(std::thread::hardware_concurrency());
 	_ndWorld->SetSubSteps(4);
 	_ndWorld->SetSolverIterations(2);
 
