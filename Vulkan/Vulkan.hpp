@@ -598,10 +598,15 @@ void VulkanDriver::Render()
 	vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
 
 	vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline);
+
+	//
+	//	Update Camera Push Constants
+	const CameraPushConstant& CPC = _SceneGraph->GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
+	vkCmdPushConstants(offscreenCommandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+
 	for (size_t i = 0; i < _SceneGraph->SceneNodes.size(); i++) {
 		_SceneGraph->SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 	}
-
 	vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 	VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
 	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
@@ -654,8 +659,9 @@ void VulkanDriver::Render()
 	vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport_Main);
 	vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
 	//
-	//	Submit individual SceneNode draw commands
+	//	Draw our combined image view over the entire screen
 	vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline_Composition);
+	vkCmdPushConstants(commandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 	vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->pipelineLayout, 0, 1, &_MaterialCache->GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 	vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
 	//

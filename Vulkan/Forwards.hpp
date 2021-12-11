@@ -1,11 +1,15 @@
 #pragma once
 
 //
+//	Push Constant
+struct CameraPushConstant {
+	glm::mat4 view{};
+	glm::mat4 proj{};
+};
+//
 //	Uniform Buffer Object
 struct UniformBufferObject {
 	glm::mat4 model{};
-	glm::mat4 view{};
-	glm::mat4 proj{};
 	glm::mat4 bones[128]{};
 };
 
@@ -65,7 +69,7 @@ struct Vertex {
 
 		attributeDescriptions[6].binding = 0;
 		attributeDescriptions[6].location = 6;
-		attributeDescriptions[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Tangent
+		attributeDescriptions[6].format = VK_FORMAT_R32G32B32_SFLOAT;	//	Tangent
 		attributeDescriptions[6].offset = offsetof(Vertex, Tangents);
 
 		return attributeDescriptions;

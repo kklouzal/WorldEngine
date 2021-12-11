@@ -18,9 +18,12 @@ public:
 	}
 
 	void updateUniformBuffer(const uint32_t& currentImage) {
-		ubo.model = Model;
-
-		_Mesh->updateUniformBuffer(currentImage, ubo);
+		if (bNeedsUpdate[currentImage])
+		{
+			ubo.model = Model;
+			_Mesh->updateUniformBuffer(currentImage, ubo);
+			bNeedsUpdate[currentImage] = false;
+		}
 	}
 
 	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
@@ -45,6 +48,9 @@ public:
 		// apply this transformation matrix to the application user data.
 		//dAssert(0);
 		SceneNode* Node = (SceneNode*)this;
+		Node->bNeedsUpdate[0] = true;
+		Node->bNeedsUpdate[1] = true;
+		Node->bNeedsUpdate[2] = true;
 		if (Node->_Camera)
 		{
 			const dVector Pos = matrix.m_posit;

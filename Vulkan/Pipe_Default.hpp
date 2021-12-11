@@ -10,9 +10,12 @@ namespace Pipeline {
 		VkDescriptorSetLayout descriptorSetLayout_Composition;
 		VkDescriptorPool DescriptorPool_Composition;
 
+		~Default() {}
+
 		Default(VulkanDriver* Driver, VkPipelineCache PipelineCache)
 			: PipelineObject(Driver), _Driver(Driver)
 		{
+
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
@@ -33,6 +36,12 @@ namespace Pipeline {
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+			VkPushConstantRange push_constant;
+			push_constant.offset = 0;
+			push_constant.size = sizeof(CameraPushConstant);
+			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
+			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 			VK_CHECK_RESULT(vkCreatePipelineLayout(_Driver->_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			//

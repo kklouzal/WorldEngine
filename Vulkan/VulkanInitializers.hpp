@@ -340,14 +340,14 @@ namespace vks
 			return pipelineLayoutCreateInfo;
 		}
 
-		/*inline VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
+		inline VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo(
 			uint32_t setLayoutCount = 1)
 		{
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{};
 			pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pipelineLayoutCreateInfo.setLayoutCount = setLayoutCount;
 			return pipelineLayoutCreateInfo;
-		}*/
+		}
 
 		inline VkDescriptorSetAllocateInfo descriptorSetAllocateInfo(
 			VkDescriptorPool descriptorPool,

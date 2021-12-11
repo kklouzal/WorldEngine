@@ -11,7 +11,7 @@ struct PipelineObject {
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
 
-	~PipelineObject() {
+	virtual ~PipelineObject() {
 		printf("\tDestroy Base PipelineObject\n");
 		for (auto Tex : _Textures) {
 			delete Tex.second;

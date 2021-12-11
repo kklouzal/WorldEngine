@@ -107,6 +107,8 @@ public:
 		//	ToDo: Remove physics object from newton world?
 	}
 
+	//
+	//	TODO: Check for bNeedsUpdate
 	void updateUniformBuffer(const uint32_t &currentImage) {
 		endFrame = std::chrono::high_resolution_clock::now();
 		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count();
@@ -203,6 +205,9 @@ public:
 		// apply this transformation matrix to the application user data.
 		//dAssert(0);
 		SceneNode* Node = (SceneNode*)this;
+		Node->bNeedsUpdate[0] = true;
+		Node->bNeedsUpdate[1] = true;
+		Node->bNeedsUpdate[2] = true;
 		if (Node->_Camera)
 		{
 			const dVector Pos = matrix.m_posit;
