@@ -18,53 +18,25 @@ class SkinnedMeshSceneNode;
 
 class SceneGraph
 {
+	VulkanDriver* _Driver = VK_NULL_HANDLE;
+	ImportGLTF* _ImportGLTF;
 	Camera _Camera;
 	CharacterSceneNode* _Character;
-	//
-	//	Secondary Command Buffers
-	//	One buffer per frame per object type
-	std::vector<VkCommandBuffer> commandBuffers;
-	std::vector<VkCommandBuffer> commandBuffers_GUI;
 
 public:
-	VulkanDriver* _Driver = VK_NULL_HANDLE;
 
 	std::deque<SceneNode*> SceneNodes = {};
-
-	ImportGLTF* _ImportGLTF;
 
 	//
 	//	Constructor
 	SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), isWorld(false)
-	{
-		createUniformBuffers();
-		//
-		//	Create Object CommandBuffers
-		commandBuffers.resize(_Driver->frameBuffers_Main.size());
-		commandBuffers_GUI.resize(_Driver->frameBuffers_Main.size());
-		for (int i = 0; i < _Driver->frameBuffers_Main.size(); i++)
-		{
-			VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
-		}
-		//
-		//	Create GUI CommandBuffers
-		commandBuffers.resize(_Driver->frameBuffers_Main.size());
-		for (int i = 0; i < _Driver->frameBuffers_Main.size(); i++)
-		{
-			VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(_Driver->commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-			VK_CHECK_RESULT(vkAllocateCommandBuffers(_Driver->_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
-		}
-	}
+	{}
 	//
 	//	Destructor
 	~SceneGraph()
 	{
 		cleanupWorld();
 		printf("Destroy SceneGraph\n");
-		for (size_t i = 0; i < UniformBuffers_Lighting.size(); i++) {
-			vmaDestroyBuffer(_Driver->allocator, UniformBuffers_Lighting[i], uniformAllocations[i]);
-		}
 		delete _ImportGLTF;
 	}
 
@@ -83,29 +55,6 @@ public:
 	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const ndVector& Position);
 	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position);
 	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position);
-
-	std::vector<VkBuffer> UniformBuffers_Lighting = {};
-	std::vector<VmaAllocation> uniformAllocations = {};
-	void createUniformBuffers() {
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-		UniformBuffers_Lighting.resize(_Driver->swapChain.images.size());
-		uniformAllocations.resize(_Driver->swapChain.images.size());
-
-		for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
-
-			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			uniformBufferInfo.size = bufferSize;
-			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-			VmaAllocationCreateInfo uniformAllocInfo = {};
-			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-			VK_CHECK_RESULT(vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &UniformBuffers_Lighting[i], &uniformAllocations[i], nullptr));
-		}
-	}
 
 	bool tryCleanupWorld;
 	bool isWorld;
@@ -137,9 +86,9 @@ public:
 //
 //	Define SceneGraph Implementation
 
-void SceneGraph::initWorld() {
+void SceneGraph::initWorld()
+{
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
-
 
 	createWorldSceneNode("media/models/CurrentWorld.gltf");
 	_Character = createCharacterSceneNode("media/models/box.gltf", ndVector(0, 15, 0, 0));
@@ -148,7 +97,8 @@ void SceneGraph::initWorld() {
 	isWorld = true;
 }
 
-void SceneGraph::cleanupWorld() {
+void SceneGraph::cleanupWorld()
+{
 	if (!isWorld) { printf("cleanupWorld: No world initialized to cleanup!\n"); return; }
 	else if (isWorld && !tryCleanupWorld) { tryCleanupWorld = true; return; }
 	isWorld = false;
@@ -166,7 +116,8 @@ void SceneGraph::cleanupWorld() {
 	_Driver->_MaterialCache->GetPipe_Default()->EmptyCache();
 }
 
-void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
+void SceneGraph::updateUniformBuffer(const uint32_t& currentImage)
+{
 	//
 	//	Update SceneNode Uniform Buffers
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
@@ -176,13 +127,13 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage) {
 
 //
 //	World Create Function
-WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
+WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
+{
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
-
 
 	//}
 	//else {
@@ -232,7 +183,8 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 //
 //	TriangleMesh Create Function
-TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position) {
+TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position)
+{
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -274,7 +226,8 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 //
 //	SkinnedMesh Create Function
-SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position) {
+SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position)
+{
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -314,7 +267,8 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 
 //
 //	Character Create Function
-CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const ndVector& Position) {
+CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const ndVector& Position)
+{
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
