@@ -841,7 +841,7 @@ void VulkanDriver::createLogicalDevice()
 	vkGetDeviceQueue(_VulkanDevice->logicalDevice, _VulkanDevice->queueFamilyIndices.graphics, 0, &graphicsQueue);
 	//vkGetDeviceQueue(_VulkanDevice->logicalDevice, _VulkanDevice->queueFamilyIndices.present, 0, &presentQueue);
 
-	depthFormat = _VulkanDevice->getSupportedDepthFormat(false);
+	VkBool32 validDepthFormat = _VulkanDevice->getSupportedDepthFormat(physicalDevice, &depthFormat);
 
 	//
 	//	Connect the swapchain
@@ -1069,9 +1069,9 @@ void VulkanDriver::prepareOffscreenFrameBuffer()
 
 	// Depth attachment
 	// Find a suitable depth format
-	VkFormat attDepthFormat = _VulkanDevice->getSupportedDepthFormat(true);
+	//VkFormat attDepthFormat = _VulkanDevice->getSupportedDepthFormat(true);
 
-	attachmentInfo2.format = attDepthFormat;
+	attachmentInfo2.format = depthFormat;
 	attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	frameBuffers.deferred->addAttachment(attachmentInfo2);
 
