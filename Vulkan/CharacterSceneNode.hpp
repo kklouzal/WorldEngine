@@ -2,13 +2,12 @@
 
 #include "Weapon.hpp"
 
-class CharacterSceneNode : public SceneNode, public ndBodyPlayerCapsule, public ndBodyNotify
+class CharacterSceneNode : public SceneNode, public ndBodyPlayerCapsule
 {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
 	UniformBufferObject ubo = {};
-	glm::f32* ModelPtr;
 public:
 	TriangleMesh* _Mesh = nullptr;
 	Weapon _Weapon;
@@ -32,58 +31,15 @@ public:
 
 	PlayerInputs m_playerInput;
 public:
-	CharacterSceneNode(TriangleMesh* Mesh, dMatrix localAxis, dFloat32 Mass, dFloat32 Radius, dFloat32 Height, dFloat32 StepHeight)
-		: _Mesh(Mesh), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight), ndBodyNotify(dVector(0.0f, -10.0f, 0.0f, 0.0f)), ModelPtr(glm::value_ptr(Model)) {}
+	CharacterSceneNode(TriangleMesh* Mesh, ndMatrix localAxis, dFloat32 Mass, dFloat32 Radius, dFloat32 Height, dFloat32 StepHeight)
+		: _Mesh(Mesh), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight) {}
 
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
 		delete _Mesh;
 	}
 
-	virtual void OnApplyExternalForce(dInt32, dFloat32)
-	{
-	}
-
-	virtual void OnTransform(dInt32 threadIndex, const dMatrix& matrix)
-	{
-		// apply this transformation matrix to the application user data.
-		//dAssert(0);
-		SceneNode* Node = (SceneNode*)this;
-		Node->bNeedsUpdate[0] = true;
-		Node->bNeedsUpdate[1] = true;
-		Node->bNeedsUpdate[2] = true;
-		if (Node->_Camera)
-		{
-			const dVector Pos = matrix.m_posit;
-			Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + Node->_Camera->getOffset());
-		}
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-
-		ModelPtr[0] = matrix.m_front.m_x;
-		ModelPtr[1] = matrix.m_front.m_y;
-		ModelPtr[2] = matrix.m_front.m_z;
-		ModelPtr[3] = matrix.m_front.m_w;
-
-		ModelPtr[4] = matrix.m_up.m_x;
-		ModelPtr[5] = matrix.m_up.m_y;
-		ModelPtr[6] = matrix.m_up.m_z;
-		ModelPtr[7] = matrix.m_up.m_w;
-
-		ModelPtr[8] = matrix.m_right.m_x;
-		ModelPtr[9] = matrix.m_right.m_y;
-		ModelPtr[10] = matrix.m_right.m_z;
-		ModelPtr[11] = matrix.m_right.m_w;
-
-		ModelPtr[12] = matrix.m_posit.m_x;
-		ModelPtr[13] = matrix.m_posit.m_y;
-		ModelPtr[14] = matrix.m_posit.m_z;
-		ModelPtr[15] = matrix.m_posit.m_w;
-	}
-
-	dFloat32 ContactFrictionCallback(const dVector&, const dVector& normal, dInt32, const ndBodyKinematic* const) const
+	dFloat32 ContactFrictionCallback(const ndVector&, const ndVector& normal, dInt32, const ndBodyKinematic* const) const
 	{
 		//return dFloat32(2.0f);
 		if (dAbs(normal.m_y) < 0.8f)
@@ -96,15 +52,15 @@ public:
 	void ApplyInputs(dFloat32 timestep)
 	{
 		//calculate the gravity contribution to the velocity, 
-		const dVector gravity(GetNotifyCallback()->GetGravity());
-		const dVector totalImpulse(m_impulse + gravity.Scale(1.0f * timestep));
+		const ndVector gravity(GetNotifyCallback()->GetGravity());
+		const ndVector totalImpulse(m_impulse + gravity.Scale(1.0f * timestep));
 		m_impulse = totalImpulse;
 
 		//dTrace(("  frame: %d    player camera: %f\n", m_scene->GetWorld()->GetFrameIndex(), m_playerInput.m_heading * dRadToDegree));
 		if (m_playerInput.m_jump)
 		{
 			dFloat32 PLAYER_JUMP_SPEED = 1.0f;
-			dVector jumpImpulse(0.0f, PLAYER_JUMP_SPEED * m_mass, 0.0f, 0.0f);
+			ndVector jumpImpulse(0.0f, PLAYER_JUMP_SPEED * m_mass, 0.0f, 0.0f);
 			m_impulse += jumpImpulse;
 			m_playerInput.m_jump = false;
 		}
@@ -170,7 +126,7 @@ public:
 	}
 
 	void setPosition(const dFloat32& NewPosition) {
-		dMatrix Trans = GetMatrix();
+		ndMatrix Trans = GetMatrix();
 		//Trans.setOrigin(btVector3(NewPosition));
 		SetMatrix(Trans);
 	}
@@ -223,5 +179,56 @@ public:
 		if (!Valid) {
 			_Mesh->draw(CommandBuffer, CurFrame);
 		}
+	}
+};
+
+class CharacterSceneNodeNotify : public ndBodyNotify
+{
+	CharacterSceneNode* _Node;
+	glm::f32* ModelPtr;
+public:
+	CharacterSceneNodeNotify(CharacterSceneNode* Node)
+		: _Node(Node), ModelPtr(glm::value_ptr(Node->Model)), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
+	{}
+
+	virtual void OnApplyExternalForce(dInt32, dFloat32)
+	{
+	}
+
+	virtual void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
+	{
+		// apply this transformation matrix to the application user data.
+		_Node->bNeedsUpdate[0] = true;
+		_Node->bNeedsUpdate[1] = true;
+		_Node->bNeedsUpdate[2] = true;
+		if (_Node->_Camera)
+		{
+			const ndVector Pos = matrix.m_posit;
+			_Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + _Node->_Camera->getOffset());
+		}
+		//	[x][y][z][w]
+		//	[x][y][z][w]
+		//	[x][y][z][w]
+		//	[x][y][z][w]
+
+		ModelPtr[0] = matrix.m_front.m_x;
+		ModelPtr[1] = matrix.m_front.m_y;
+		ModelPtr[2] = matrix.m_front.m_z;
+		ModelPtr[3] = matrix.m_front.m_w;
+
+		ModelPtr[4] = matrix.m_up.m_x;
+		ModelPtr[5] = matrix.m_up.m_y;
+		ModelPtr[6] = matrix.m_up.m_z;
+		ModelPtr[7] = matrix.m_up.m_w;
+
+		ModelPtr[8] = matrix.m_right.m_x;
+		ModelPtr[9] = matrix.m_right.m_y;
+		ModelPtr[10] = matrix.m_right.m_z;
+		ModelPtr[11] = matrix.m_right.m_w;
+
+		ModelPtr[12] = matrix.m_posit.m_x;
+		ModelPtr[13] = matrix.m_posit.m_y;
+		ModelPtr[14] = matrix.m_posit.m_z;
+		ModelPtr[15] = matrix.m_posit.m_w;
 	}
 };

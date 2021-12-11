@@ -1,16 +1,15 @@
 #pragma once
 #include <filesystem>
 
-class WorldSceneNode : public SceneNode, public ndBodyNotify {
+class WorldSceneNode : public SceneNode {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
 	UniformBufferObject ubo = {};
-	glm::f32* ModelPtr;
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	WorldSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh), ndBodyNotify(dVector(0.0f, -10.0f, 0.0f, 0.0f)), ModelPtr(glm::value_ptr(Model)) {}
+	WorldSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
 
 	~WorldSceneNode() {
 		printf("Destroy WorldSceneNode\n");
@@ -31,30 +30,39 @@ public:
 			_Mesh->draw(CommandBuffer, CurFrame);
 		}
 	}
+};
+
+class WorldSceneNodeNotify : public ndBodyNotify
+{
+	WorldSceneNode* _Node;
+	glm::f32* ModelPtr;
+public:
+	WorldSceneNodeNotify(WorldSceneNode* Node)
+		: _Node(Node), ModelPtr(glm::value_ptr(Node->Model)), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
+	{}
+
 	virtual void OnApplyExternalForce(dInt32, dFloat32)
 	{
 		ndBodyDynamic* const dynamicBody = GetBody()->GetAsBodyDynamic();
 		if (dynamicBody)
 		{
-			dVector massMatrix(dynamicBody->GetMassMatrix());
-			dVector force(dVector(0.0f, -10.0f, 0.0f, 0.0f).Scale(massMatrix.m_w));
+			ndVector massMatrix(dynamicBody->GetMassMatrix());
+			ndVector force(ndVector(0.0f, -10.0f, 0.0f, 0.0f).Scale(massMatrix.m_w));
 			dynamicBody->SetForce(force);
-			dynamicBody->SetTorque(dVector::m_zero);
+			dynamicBody->SetTorque(ndVector::m_zero);
 		}
 	}
 
-	virtual void OnTransform(dInt32 threadIndex, const dMatrix& matrix)
+	virtual void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
 	{
 		// apply this transformation matrix to the application user data.
-		//dAssert(0);
-		SceneNode* Node = (SceneNode*)this;
-		Node->bNeedsUpdate[0] = true;
-		Node->bNeedsUpdate[1] = true;
-		Node->bNeedsUpdate[2] = true;
-		if (Node->_Camera)
+		_Node->bNeedsUpdate[0] = true;
+		_Node->bNeedsUpdate[1] = true;
+		_Node->bNeedsUpdate[2] = true;
+		if (_Node->_Camera)
 		{
-			const dVector Pos = matrix.m_posit;
-			Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + Node->_Camera->getOffset());
+			const ndVector Pos = matrix.m_posit;
+			_Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + _Node->_Camera->getOffset());
 		}
 		//	[x][y][z][w]
 		//	[x][y][z][w]

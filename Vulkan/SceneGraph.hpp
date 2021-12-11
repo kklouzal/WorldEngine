@@ -75,16 +75,14 @@ public:
 		return _Character;
 	}
 
-	void validate(uint32_t CurFrame, const VkCommandPool& CmdPool, const VkCommandBuffer& PriCmdBuffer, const VkFramebuffer& FrmBuffer);
-
 	void updateUniformBuffer(const uint32_t &currentImage);
 
 	//
 	//	Create SceneNode Functions
 	WorldSceneNode* createWorldSceneNode(const char* FileFBX);
-	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const dVector& Position);
-	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position);
-	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position);
+	CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const ndVector& Position);
+	TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position);
+	SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position);
 
 	std::vector<VkBuffer> UniformBuffers_Lighting = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
@@ -144,7 +142,7 @@ void SceneGraph::initWorld() {
 
 
 	createWorldSceneNode("media/models/CurrentWorld.gltf");
-	_Character = createCharacterSceneNode("media/models/box.gltf", dVector(0, 15, 0, 0));
+	_Character = createCharacterSceneNode("media/models/box.gltf", ndVector(0, 15, 0, 0));
 	_Character->_Camera = &_Camera;
 
 	isWorld = true;
@@ -159,11 +157,11 @@ void SceneGraph::cleanupWorld() {
 	//
 	//	Cleanup SceneNodes
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
-		_Driver->_ndWorld->RemoveBody((ndBody*)SceneNodes[i]);
-		delete SceneNodes[i];
+		//_Driver->_ndWorld->RemoveBody((ndBody*)SceneNodes[i]);
+		//delete SceneNodes[i];
 	}
-	SceneNodes.clear();
-	SceneNodes.shrink_to_fit();
+	//SceneNodes.clear();
+	//SceneNodes.shrink_to_fit();
 
 	_Driver->_MaterialCache->GetPipe_Default()->EmptyCache();
 }
@@ -196,30 +194,30 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 	_Driver->_ndWorld->Sync();
 
-	dPolygonSoupBuilder meshBuilder;
+	ndPolygonSoupBuilder meshBuilder;
 	meshBuilder.Begin();
 
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-		dVector face[256];
+		ndVector face[256];
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		face[0] = dVector(V1.x, V1.y, V1.z, 0.0f);
-		face[1] = dVector(V2.x, V2.y, V2.z, 0.0f);
-		face[2] = dVector(V3.x, V3.y, V3.z, 0.0f);
-		meshBuilder.AddFace(&face[0].m_x, sizeof(dVector), 3, 0);
+		face[0] = ndVector(V1.x, V1.y, V1.z, 0.0f);
+		face[1] = ndVector(V2.x, V2.y, V2.z, 0.0f);
+		face[2] = ndVector(V3.x, V3.y, V3.z, 0.0f);
+		meshBuilder.AddFace(&face[0].m_x, sizeof(ndVector), 3, 0);
 	}
 	meshBuilder.End(false);
 
 	ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
 
-	dMatrix matrix(dGetIdentityMatrix());
-	matrix.m_posit = dVector(0, 0, 0, 0);
+	ndMatrix matrix(dGetIdentityMatrix());
+	matrix.m_posit = ndVector(0, 0, 0, 0);
 	matrix.m_posit.m_w = 1.0f;
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
-	body2->SetNotifyCallback(MeshNode);
+	body2->SetNotifyCallback(new WorldSceneNodeNotify(MeshNode));
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	//body2->SetMassMatrix(10.0f, shape);
@@ -234,7 +232,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX) {
 
 //
 //	TriangleMesh Create Function
-TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position) {
+TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -246,22 +244,22 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	printf("Create Triangle Mesh\n");
 	_Driver->_ndWorld->Sync();
 
-	std::vector<dVector> Verts;
+	std::vector<ndVector> Verts;
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
+		Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
 	}
-	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
+	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
-	dMatrix matrix(dGetIdentityMatrix());
+	ndMatrix matrix(dGetIdentityMatrix());
 	matrix.m_posit = Position;
 	matrix.m_posit.m_w = 1.0f;
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
-	body2->SetNotifyCallback(MeshNode);
+	body2->SetNotifyCallback(new TriangleMeshSceneNodeNotify(MeshNode));
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	body2->SetMassMatrix(1.0f, shape);
@@ -276,7 +274,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 
 //
 //	SkinnedMesh Create Function
-SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const dVector &Position) {
+SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -288,22 +286,22 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 
 	_Driver->_ndWorld->Sync();
 
-	std::vector<dVector> Verts;
+	std::vector<ndVector> Verts;
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
 		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
 		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-		Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
+		Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
 	}
-	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
+	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
-	dMatrix matrix(dGetIdentityMatrix());
-	matrix.m_posit = dVector(0, 0, 0, 0);
+	ndMatrix matrix(dGetIdentityMatrix());
+	matrix.m_posit = ndVector(0, 0, 0, 0);
 	matrix.m_posit.m_w = 1.0f;
 
 	ndBodyDynamic* const body2 = new ndBodyDynamic();
 
-	body2->SetNotifyCallback(MeshNode);
+	body2->SetNotifyCallback(new SkinnedMeshSceneNodeNotify(MeshNode));
 	body2->SetMatrix(matrix);
 	body2->SetCollisionShape(shape);
 	body2->SetMassMatrix(1.0f, shape);
@@ -316,16 +314,16 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 
 //
 //	Character Create Function
-CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const dVector& Position) {
+CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const ndVector& Position) {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
 
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
-	dMatrix localAxis(dGetIdentityMatrix());
-	localAxis[0] = dVector(0.0, 1.0f, 0.0f, 0.0f);
-	localAxis[1] = dVector(1.0, 0.0f, 0.0f, 0.0f);
+	ndMatrix localAxis(dGetIdentityMatrix());
+	localAxis[0] = ndVector(0.0, 1.0f, 0.0f, 0.0f);
+	localAxis[1] = ndVector(1.0, 0.0f, 0.0f, 0.0f);
 	localAxis[2] = localAxis[0].CrossProduct(localAxis[1]);
 
 	dFloat32 height = 1.9f;
@@ -345,10 +343,10 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	//}
 	//ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
-	dMatrix matrix(dGetIdentityMatrix());
-	matrix.m_posit = dVector(0.0f, 10.0f, 0.0f, 1.0f);
+	ndMatrix matrix(dGetIdentityMatrix());
+	matrix.m_posit = ndVector(0.0f, 10.0f, 0.0f, 1.0f);
 
-	MeshNode->SetNotifyCallback(MeshNode);
+	MeshNode->SetNotifyCallback(new CharacterSceneNodeNotify(MeshNode));
 	MeshNode->SetMatrix(matrix);
 	//body2->SetCollisionShape(shape);
 	//MeshNode->SetMassMatrix(1.0f, shape);

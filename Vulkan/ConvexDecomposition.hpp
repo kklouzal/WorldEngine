@@ -84,7 +84,7 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 		printf("\t\tTris: %i\n", Hull.m_nTriangles);
 		//
 		//	Iterate through this hulls triangles
-		std::vector<dVector> Verts;
+		std::vector<ndVector> Verts;
 		for (uint32_t i = 0; i < Hull.m_nTriangles; i++) {
 			//
 			//	Calculate indices
@@ -99,12 +99,12 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 		}
 		//
 		//	Create a new ConvexShape from this hulls Triangle Mesh
-		ndShapeConvexHull* convexShape = new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x);
+		ndShapeConvexHull* convexShape = new ndShapeConvexHull(Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x);
 		Results->m_convexShapes.push_back(convexShape);
 		//
 		//	Grab the hulls center position
-		dMatrix matrix(dGetIdentityMatrix());
-		matrix.m_posit = dVector(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2], 0);
+		ndMatrix matrix(dGetIdentityMatrix());
+		matrix.m_posit = ndVector(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2], 0);
 		//
 		//	Add this ConvexShape to our CompoundShape
 		Results->CompoundShape->AddCollision(new ndShapeInstance(convexShape));

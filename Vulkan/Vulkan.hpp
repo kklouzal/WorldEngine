@@ -23,8 +23,6 @@
 #define _D_NEWTON_DLL
 #define _D_COLLISION_DLL
 #include <ndNewton.h>
-#include <ndCore.h>
-#include <ndCollision.h>
 
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"

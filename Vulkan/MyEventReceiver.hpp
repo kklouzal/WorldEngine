@@ -83,7 +83,7 @@ public:
 						isSpace = true;
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(0.0f, 15.0f, 0.0f, 1.0f));
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
 					}
 				}
 				if (NewEvent.Key == GLFW_KEY_W) {
@@ -144,7 +144,7 @@ public:
 					float X = (rand() % 100) - 50.0f;
 					float Z = (rand() % 100) - 50.0f;
 					float Y = (rand() % 70) + 30.0f;
-					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 1.0f));
+					_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
 				}
 				else if (NewEvent.Key == GLFW_KEY_X) {
 					for (int i = 0; i < 5; i++)
@@ -152,7 +152,7 @@ public:
 						float X = (rand() % 100) - 50.0f;
 						float Z = (rand() % 100) - 50.0f;
 						float Y = (rand() % 70) + 30.0f;
-						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, dVector(X, Y, Z, 1.0f));
+						_Driver->_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
 					}
 				}
 			}
@@ -163,9 +163,9 @@ public:
 				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 				if (Character && !IsMenuOpen()) {
 					auto CamPos = Cam->Pos;
-					dVector From((dFloat32)CamPos.x, (dFloat32)CamPos.y, (dFloat32)CamPos.z, 0.f);
+					ndVector From((dFloat32)CamPos.x, (dFloat32)CamPos.y, (dFloat32)CamPos.z, 0.f);
 					auto CamDir = CamPos + Cam->Ang * 1000.0f;
-					dVector To((dFloat32)CamDir.x, (dFloat32)CamDir.y, (dFloat32)CamDir.z, 0.f);
+					ndVector To((dFloat32)CamDir.x, (dFloat32)CamDir.y, (dFloat32)CamDir.z, 0.f);
 					//Character->_Weapon.Primary(_Driver->_SceneGraph->castRay(From,To));
 				}
 			}
