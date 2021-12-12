@@ -184,7 +184,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 		face[2] = ndVector(V3.x, V3.y, V3.z, 0.0f);
 		meshBuilder.AddFace(&face[0].m_x, sizeof(ndVector), 3, 0);
 	}
-	meshBuilder.End(false);
+	meshBuilder.End(true);
 
 	ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
 	//shape.DebugShape(dGetIdentityMatrix(), NDD);

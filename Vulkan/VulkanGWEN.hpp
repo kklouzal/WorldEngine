@@ -98,7 +98,7 @@ namespace Gwen
 			void initFreeType()
 			{
 				Face1 = new GWENFaceRec;
-				Face1->file_path = "./OpenSans.ttf";
+				Face1->file_path = "./media/OpenSans.ttf";
 				Face1->face_index = 0;
 
 				Face1Rec = new FTC_ImageTypeRec;

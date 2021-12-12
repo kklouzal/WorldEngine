@@ -118,7 +118,7 @@ EventReceiver::EventReceiver(VulkanDriver* Driver) :_Driver(Driver) {
 
 	pRenderer->Init();
 	pSkin = new Gwen::Skin::TexturedBase(pRenderer);
-	pSkin->Init("DefaultSkin.png");
+	pSkin->Init("media/DefaultSkin.png");
 
 	pCanvas = new Gwen::Controls::Canvas(pSkin);
 	pCanvas->SetSize(_Driver->WIDTH, _Driver->HEIGHT);
