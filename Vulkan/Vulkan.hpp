@@ -580,7 +580,7 @@ void VulkanDriver::Render()
 	VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers[currentFrame], &cmdBufInfo2));
 	//
 	//	Begin render pass
-	vkCmdBeginRenderPass(primaryCommandBuffers[currentFrame], &renderPassBeginInfo2, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+	vkCmdBeginRenderPass(primaryCommandBuffers[currentFrame], &renderPassBeginInfo2, VK_SUBPASS_CONTENTS_INLINE);
 	//
 	//	Secondary CommandBuffer Inheritance Info
 	VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
@@ -593,31 +593,31 @@ void VulkanDriver::Render()
 	commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 	//
 	//	Begin recording
-	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo));
-	vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport_Main);
-	vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
+	//VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo));
+	vkCmdSetViewport(primaryCommandBuffers[currentFrame], 0, 1, &viewport_Main);
+	vkCmdSetScissor(primaryCommandBuffers[currentFrame], 0, 1, &scissor_Main);
 	//
 	//	Draw our combined image view over the entire screen
-	vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline_Composition);
-	vkCmdPushConstants(commandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
-	vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->pipelineLayout, 0, 1, &_MaterialCache->GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
-	vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
+	vkCmdBindPipeline(primaryCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline_Composition);
+	vkCmdPushConstants(primaryCommandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+	vkCmdBindDescriptorSets(primaryCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->pipelineLayout, 0, 1, &_MaterialCache->GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
+	vkCmdDraw(primaryCommandBuffers[currentFrame], 3, 1, 0, 0);
 	//
 	//
 	//	End recording state
-	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrame]));
-	secondaryCommandBuffers.push_back(commandBuffers[currentFrame]);
+	//VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrame]));
+	//secondaryCommandBuffers.push_back(commandBuffers[currentFrame]);
 
 	//
 	//		START DRAWING GUI
 	// 
 	//
 	//	Begin recording
-	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo));
+	//VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo));
 	//
 	//	Issue draw commands
 	if (_EventReceiver) {
-		_EventReceiver->drawGWEN(commandBuffers_GUI[currentFrame]);
+		_EventReceiver->drawGWEN(primaryCommandBuffers[currentFrame]);
 	}
 	#ifdef _DEBUG
 	//if (isWorld) {
@@ -627,14 +627,14 @@ void VulkanDriver::Render()
 	//
 	//
 	//	End recording state
-	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[currentFrame]));
-	secondaryCommandBuffers.push_back(commandBuffers_GUI[currentFrame]);
+	//VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[currentFrame]));
+	//secondaryCommandBuffers.push_back(commandBuffers_GUI[currentFrame]);
 
 	//
 	//		END ONSCREEN DRAWING
 	// 
 	//	Execute render commands from the secondary command buffers
-	vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
+	//vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 	vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
 	VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentFrame]));
 
