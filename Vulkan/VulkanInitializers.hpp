@@ -93,12 +93,12 @@ namespace vks
 			return commandBufferAllocateInfo;
 		}
 
-		//inline VkCommandPoolCreateInfo commandPoolCreateInfo()
-		//{
-		//	VkCommandPoolCreateInfo cmdPoolCreateInfo{};
-		//	cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		//	return cmdPoolCreateInfo;
-		//}
+		inline VkCommandPoolCreateInfo commandPoolCreateInfo()
+		{
+			VkCommandPoolCreateInfo cmdPoolCreateInfo{};
+			cmdPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+			return cmdPoolCreateInfo;
+		}
 
 		inline VkCommandBufferBeginInfo commandBufferBeginInfo()
 		{
@@ -121,12 +121,12 @@ namespace vks
 			return renderPassBeginInfo;
 		}
 
-		//inline VkRenderPassCreateInfo renderPassCreateInfo()
-		//{
-		//	VkRenderPassCreateInfo renderPassCreateInfo{};
-		//	renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-		//	return renderPassCreateInfo;
-		//}
+		inline VkRenderPassCreateInfo renderPassCreateInfo()
+		{
+			VkRenderPassCreateInfo renderPassCreateInfo{};
+			renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+			return renderPassCreateInfo;
+		}
 
 		///** @brief Initialize an image memory barrier with no image transfer ownership */
 		//inline VkImageMemoryBarrier imageMemoryBarrier()
@@ -177,12 +177,12 @@ namespace vks
 			return imageViewCreateInfo;
 		}
 
-		//inline VkFramebufferCreateInfo framebufferCreateInfo()
-		//{
-		//	VkFramebufferCreateInfo framebufferCreateInfo{};
-		//	framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		//	return framebufferCreateInfo;
-		//}
+		inline VkFramebufferCreateInfo framebufferCreateInfo()
+		{
+			VkFramebufferCreateInfo framebufferCreateInfo{};
+			framebufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			return framebufferCreateInfo;
+		}
 
 		inline VkSemaphoreCreateInfo semaphoreCreateInfo()
 		{
@@ -248,16 +248,16 @@ namespace vks
 		//	return bufCreateInfo;
 		//}
 
-		//inline VkBufferCreateInfo bufferCreateInfo(
-		//	VkBufferUsageFlags usage,
-		//	VkDeviceSize size)
-		//{
-		//	VkBufferCreateInfo bufCreateInfo{};
-		//	bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		//	bufCreateInfo.usage = usage;
-		//	bufCreateInfo.size = size;
-		//	return bufCreateInfo;
-		//}
+		inline VkBufferCreateInfo bufferCreateInfo(
+			VkBufferUsageFlags usage,
+			VkDeviceSize size)
+		{
+			VkBufferCreateInfo bufCreateInfo{};
+			bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			bufCreateInfo.usage = usage;
+			bufCreateInfo.size = size;
+			return bufCreateInfo;
+		}
 
 		/*inline VkDescriptorPoolCreateInfo descriptorPoolCreateInfo(
 			uint32_t poolSizeCount,

@@ -84,9 +84,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Vulkan.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TriangleMesh.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -197,6 +194,9 @@
     </ClInclude>
     <ClInclude Include="Item_Physgun.hpp">
       <Filter>Header Files\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="Vulkan.hpp">
+      <Filter>Header Files\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

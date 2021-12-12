@@ -145,9 +145,13 @@ public:
 	VkExtent2D swapChainExtent;									//
 	VkRenderPass renderPass = VK_NULL_HANDLE;						//	Cleaned Up
 
-	VkViewport viewport_Main = {};								//
-	VkRect2D scissor_Main = {};									//
-	std::array<VkClearValue, 4> clearValues;					//
+
+	VkViewport viewport_Deferred;								//
+	VkRect2D scissor_Deferred;									//
+	VkViewport viewport_Main;									//
+	VkRect2D scissor_Main;										//
+	std::array<VkClearValue, 4> clearValues_Deferred;			//
+	std::array<VkClearValue, 2> clearValues_Main;				//
 
 	// VMA
 	VmaAllocator allocator = VMA_NULL;								//	Cleaned Up
@@ -166,22 +170,15 @@ public:
 
 	void createUniformBuffersDeferred()
 	{
-		VkDeviceSize bufferSize1 = sizeof(DComposition);
-
 		uboCompositionBuff.resize(swapChain.images.size());
 		uboCompositionAlloc.resize(swapChain.images.size());
-
 		for (size_t i = 0; i < swapChain.images.size(); i++)
 		{
-			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			uniformBufferInfo.size = bufferSize1;
-			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DComposition));
 			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
 			VmaAllocationCreateInfo uniformAllocInfo = {};
 			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
 			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
 		}
 	}
@@ -306,7 +303,8 @@ void VulkanDriver::updateUniformBufferComposition(const size_t &CurFrame)
 
 //
 //	Initialize
-VulkanDriver::VulkanDriver() {
+VulkanDriver::VulkanDriver()
+{
 	swapChainExtent.width = WIDTH;
 	swapChainExtent.height = HEIGHT;
 	initLua();
@@ -333,17 +331,18 @@ VulkanDriver::VulkanDriver() {
 
 	_SceneGraph = new SceneGraph(this);
 	_MaterialCache = new MaterialCache(this);
-
-	viewport_Main.x = 0.0f;
-	viewport_Main.y = 0.0f;
-	viewport_Main.width = (float)WIDTH;
-	viewport_Main.height = (float)HEIGHT;
-	viewport_Main.minDepth = 0.0f;
-	viewport_Main.maxDepth = 1.0f;
-
-	scissor_Main.offset = { 0, 0 };
-	scissor_Main.extent = swapChainExtent;
-
+	//
+	viewport_Deferred = vks::initializers::viewport((float)frameBuffers.deferred->width, (float)frameBuffers.deferred->height, 0.0f, 1.0f);
+	scissor_Deferred = vks::initializers::rect2D(frameBuffers.deferred->width, frameBuffers.deferred->height, 0, 0);
+	clearValues_Deferred[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues_Deferred[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues_Deferred[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues_Deferred[3].depthStencil = { 1.0f, 0 };
+	viewport_Main = vks::initializers::viewport((float)WIDTH, (float)HEIGHT, 0.0f, 1.0f);
+	scissor_Main = vks::initializers::rect2D(WIDTH, HEIGHT, 0, 0);
+	clearValues_Main[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+	clearValues_Main[1].depthStencil = { 1.0f, 0 };
+	//
 	commandBuffers.resize(frameBuffers_Main.size());
 	commandBuffers_GUI.resize(frameBuffers_Main.size());
 	for (int i = 0; i < frameBuffers_Main.size(); i++)
@@ -359,16 +358,10 @@ VulkanDriver::VulkanDriver() {
 		VkCommandBufferAllocateInfo cmdBufAllocateInfo_GUI = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
 	}
-
-	clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues[3].depthStencil = { 1.0f, 0 };
 	//
 	//	Create synchronization objects
 	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-	printf("SWAPCHAIN IMAGE COUNT %i\n", swapChain.imageCount);
 	inFlightFences.resize(swapChain.imageCount);
 	imagesInFlight.resize(swapChain.imageCount, VK_NULL_HANDLE);
 	for (uint32_t i = 0; i < swapChain.imageCount; i++)
@@ -382,15 +375,16 @@ VulkanDriver::VulkanDriver() {
 		// Create a semaphore used to synchronize deferred rendering
 		// Ensures that drawing happens at the appropriate times
 		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].offscreenSync));
-		//
-		//
+		// Create a fence used to synchronize cpu/gpu access per frame
+		// Ensures a frame completely finishes on the gpu before being used again on the cpu
 		VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]));
 	}
 }
 
 //
 //	Deinitialize
-VulkanDriver::~VulkanDriver() {
+VulkanDriver::~VulkanDriver()
+{
 	lua_close(state);
 	//
 	delete _EventReceiver;
@@ -439,7 +433,8 @@ VulkanDriver::~VulkanDriver() {
 
 //
 //	Loop Main Logic
-void VulkanDriver::mainLoop() {
+void VulkanDriver::mainLoop()
+{
 	while (!glfwWindowShouldClose(_Window))
 	{
 		//
@@ -452,10 +447,8 @@ void VulkanDriver::mainLoop() {
 			_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Stats (60 Frame Average) - FPS: %f - Frame Time: %f - Physics Time: %f - Scene Nodes: %i", FPS, DF, _ndWorld->GetUpdateTime(), _SceneGraph->SceneNodes.size()));
 		}
 		//
-		//	Handle Inputs
+		//	Handle and perform Inputs
 		glfwPollEvents();
-		//
-		//	Perform Inputs
 		_EventReceiver->OnUpdate();
 		//
 		//	We trying to cleanup?
@@ -468,7 +461,6 @@ void VulkanDriver::mainLoop() {
 			//
 			//	Simulate Physics
 			_ndWorld->Update(deltaFrame);
-			//_ndWorld->Update(1.0 / 120.0f);
 			//
 			//	Update Shader Uniforms
 			updateUniformBufferComposition(currentFrame);
@@ -525,36 +517,34 @@ void VulkanDriver::Render()
 	//	Submit work
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
-
-	// Clear values for all attachments written in the fragment shader
-	
+	//
+	//	Setup renderpass	
 	VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
 	renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
 	renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffer;
 	renderPassBeginInfo1.renderArea.extent.width = frameBuffers.deferred->width;
 	renderPassBeginInfo1.renderArea.extent.height = frameBuffers.deferred->height;
-	renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues.size());
-	renderPassBeginInfo1.pClearValues = clearValues.data();
-
+	renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues_Deferred.size());
+	renderPassBeginInfo1.pClearValues = clearValues_Deferred.data();
+	//
+	//	Begin recording commandbuffer
 	VkCommandBufferBeginInfo cmdBufInfo1 = vks::initializers::commandBufferBeginInfo();
 	VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1));
 	vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
-
-	VkViewport viewport = vks::initializers::viewport((float)frameBuffers.deferred->width, (float)frameBuffers.deferred->height, 0.0f, 1.0f);
-	vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport);
-	VkRect2D scissor = vks::initializers::rect2D(frameBuffers.deferred->width, frameBuffers.deferred->height, 0, 0);
-	vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
-
+	vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport_Deferred);
+	vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor_Deferred);
 	vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline);
-
 	//
 	//	Update Camera Push Constants
 	const CameraPushConstant& CPC = _SceneGraph->GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 	vkCmdPushConstants(offscreenCommandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
-
+	//
+	//	Draw all SceneNodes
 	for (size_t i = 0; i < _SceneGraph->SceneNodes.size(); i++) {
 		_SceneGraph->SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 	}
+	//
+	//	End and submit
 	vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 	VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
 	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
@@ -572,17 +562,13 @@ void VulkanDriver::Render()
 	submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
 
 	std::vector<VkCommandBuffer> secondaryCommandBuffers;
-
-	VkClearValue clearValues2[2];
-	clearValues2[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
-	clearValues2[1].depthStencil = { 1.0f, 0 };
 	//
 	VkRenderPassBeginInfo renderPassBeginInfo2 = vks::initializers::renderPassBeginInfo();
 	renderPassBeginInfo2.renderPass = renderPass;
 	renderPassBeginInfo2.renderArea.offset = { 0, 0 };
 	renderPassBeginInfo2.renderArea.extent = swapChainExtent;
-	renderPassBeginInfo2.clearValueCount = 2;
-	renderPassBeginInfo2.pClearValues = clearValues2;
+	renderPassBeginInfo2.clearValueCount = static_cast<uint32_t>(clearValues_Main.size());;
+	renderPassBeginInfo2.pClearValues = clearValues_Main.data();
 	renderPassBeginInfo2.framebuffer = frameBuffers_Main[currentFrame];
 	//
 	//	Set target Primary Command Buffer
@@ -670,8 +656,8 @@ void VulkanDriver::Render()
 	currentFrame = (currentFrame + 1) % swapChain.imageCount;
 }
 
-void VulkanDriver::initLua() {
-
+void VulkanDriver::initLua()
+{
 	state = luaL_newstate();
 	luaL_openlibs(state);
 	try {
@@ -686,7 +672,8 @@ void VulkanDriver::initLua() {
 	}
 }
 
-void VulkanDriver::initWindow() {
+void VulkanDriver::initWindow()
+{
 	glfwInit();
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
@@ -694,7 +681,8 @@ void VulkanDriver::initWindow() {
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 }
 
-void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
+void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr)
+{
 	glfwSetWindowUserPointer(_Window, _EventRcvr);
 	glfwSetCharCallback(_Window, &EventReceiver::char_callback);
 	glfwSetKeyCallback(_Window, &EventReceiver::key_callback);
@@ -709,7 +697,8 @@ void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
 //	Vulkan Initialization
 //	Stage - 1
 //	Step - 1
-void VulkanDriver::createInstance() {
+void VulkanDriver::createInstance()
+{
 	VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 	appInfo.pApplicationName = "PhySim";
 	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -815,12 +804,12 @@ void VulkanDriver::createLogicalDevice()
 //
 //	Vulkan Initialization
 //	Stage - 2
-void VulkanDriver::createDepthResources() {
-
+void VulkanDriver::createDepthResources()
+{
 	VmaAllocationCreateInfo allocInfo = {};
 	allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-	VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+	VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.extent.width = WIDTH;
 	imageInfo.extent.height = HEIGHT;
@@ -837,7 +826,7 @@ void VulkanDriver::createDepthResources() {
 	VmaAllocationInfo imageBufferAllocInfo = {};
 	vmaCreateImage(allocator, &imageInfo, &allocInfo, &depthStencil.image, &depthStencil.allocation, nullptr);
 
-	VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+	VkImageViewCreateInfo textureImageViewInfo = vks::initializers::imageViewCreateInfo();
 	textureImageViewInfo.image = depthStencil.image;
 	textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	textureImageViewInfo.format = depthFormat;
@@ -912,8 +901,7 @@ void VulkanDriver::createRenderPass()
 	dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
 	dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-	VkRenderPassCreateInfo renderPassInfo = {};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	VkRenderPassCreateInfo renderPassInfo = vks::initializers::renderPassCreateInfo();
 	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 	renderPassInfo.pAttachments = attachments.data();
 	renderPassInfo.subpassCount = 1;
@@ -931,8 +919,7 @@ void VulkanDriver::createFrameBuffers()
 	// Depth/Stencil attachment is the same for all frame buffers
 	attachments[1] = depthStencil.view;
 
-	VkFramebufferCreateInfo frameBufferCreateInfo = {};
-	frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	VkFramebufferCreateInfo frameBufferCreateInfo = vks::initializers::framebufferCreateInfo();
 	frameBufferCreateInfo.pNext = NULL;
 	frameBufferCreateInfo.renderPass = renderPass;
 	frameBufferCreateInfo.attachmentCount = 2;
@@ -954,7 +941,7 @@ void VulkanDriver::createFrameBuffers()
 		VK_CHECK_RESULT(vkCreateFramebuffer(_VulkanDevice->logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers_Main[i]));
 		//
 		//	CommandPools
-		VkCommandPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
+		VkCommandPoolCreateInfo poolInfo = vks::initializers::commandPoolCreateInfo();
 		poolInfo.queueFamilyIndex = _VulkanDevice->queueFamilyIndices.graphics;
 		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		//
