@@ -74,6 +74,26 @@ public:
 		dynamicsWorld->rayTest(From, To, closestResults);
 		return closestResults;
 	}*/
+
+	/*void DrawDebugShapes()
+	{
+		const ndBodyList& bodyList = _Driver->_ndWorld->GetBodyList();
+		for (ndBodyList::ndNode* bodyNode = bodyList.GetFirst(); bodyNode; bodyNode = bodyNode->GetNext())
+		{
+			ndBodyKinematic* const body = bodyNode->GetInfo();
+			if (!body->GetAsBodyTriggerVolume())
+			{
+				
+				const ndShapeInstance& shapeInstance = body->GetCollisionShape();
+				dNode* const shapeNode = m_debugShapeCache.Find(shapeInstance.GetShape());
+				if (shapeNode)
+				{
+					dMatrix matrix(shapeInstance.GetScaledTransform(body->GetMatrix()));
+					shapeNode->GetInfo().m_flatShaded->Render(this, matrix);
+				}
+			}
+		}
+	}*/
 };
 
 #include "MaterialCache.hpp"
@@ -125,6 +145,15 @@ void SceneGraph::updateUniformBuffer(const uint32_t& currentImage)
 	}
 }
 
+class NewtonDebugDraw : public ndShapeDebugNotify
+{
+public:
+	void DrawPolygon(dInt32 vertexCount, const ndVector* const faceArray, const ndEdgeType* const edgeType)
+	{
+		printf("DRAW POLYGON\n");
+	}
+} NDD;
+
 //
 //	World Create Function
 WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
@@ -161,6 +190,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 	meshBuilder.End(false);
 
 	ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
+	//shape.DebugShape(dGetIdentityMatrix(), NDD);
 
 	ndMatrix matrix(dGetIdentityMatrix());
 	matrix.m_posit = ndVector(0, 0, 0, 0);

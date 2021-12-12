@@ -111,13 +111,7 @@ namespace Pipeline {
 			fragShaderStageInfo2.pName = "main";
 			shaderStages[1] = fragShaderStageInfo2;
 			//	Bind vertex input
-			auto bindingDescription = Vertex::getBindingDescription();
-			auto attributeDescriptions = Vertex::getAttributeDescriptions();
-			VkPipelineVertexInputStateCreateInfo vertexInputInfo = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-			vertexInputInfo.vertexBindingDescriptionCount = 1;
-			vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-			vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-			vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(Vertex::getBindingDescription(), Vertex::getAttributeDescriptions());
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			//	Separate render pass
 			pipelineCI.renderPass = _Driver->frameBuffers.deferred->renderPass;

@@ -438,19 +438,19 @@ namespace vks
 			return pipelineVertexInputStateCreateInfo;
 		}
 
-		//inline VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo(
-		//	const std::vector<VkVertexInputBindingDescription>& vertexBindingDescriptions,
-		//	const std::vector<VkVertexInputAttributeDescription>& vertexAttributeDescriptions
-		//)
-		//{
-		//	VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{};
-		//	pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		//	pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindingDescriptions.size());
-		//	pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = vertexBindingDescriptions.data();
-		//	pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributeDescriptions.size());
-		//	pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vertexAttributeDescriptions.data();
-		//	return pipelineVertexInputStateCreateInfo;
-		//}
+		inline VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo(
+			const std::vector<VkVertexInputBindingDescription>& vertexBindingDescriptions,
+			const std::vector<VkVertexInputAttributeDescription>& vertexAttributeDescriptions
+		)
+		{
+			VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo{};
+			pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+			pipelineVertexInputStateCreateInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexBindingDescriptions.size());
+			pipelineVertexInputStateCreateInfo.pVertexBindingDescriptions = vertexBindingDescriptions.data();
+			pipelineVertexInputStateCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexAttributeDescriptions.size());
+			pipelineVertexInputStateCreateInfo.pVertexAttributeDescriptions = vertexAttributeDescriptions.data();
+			return pipelineVertexInputStateCreateInfo;
+		}
 
 		inline VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo(
 			VkPrimitiveTopology topology,

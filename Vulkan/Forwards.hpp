@@ -25,17 +25,19 @@ struct Vertex {
 	glm::vec4 Weights{};
 	glm::vec4 Tangents{};
 
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription = {};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	static std::vector<VkVertexInputBindingDescription> getBindingDescription() {
+		std::vector < VkVertexInputBindingDescription> bindingDescription = {};
+		bindingDescription.resize(1);
+		bindingDescription[0].binding = 0;
+		bindingDescription[0].stride = sizeof(Vertex);
+		bindingDescription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 7> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 7> attributeDescriptions = {};
+	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions() {
+		std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
+		attributeDescriptions.resize(7);
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;

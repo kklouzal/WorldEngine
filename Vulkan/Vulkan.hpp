@@ -574,7 +574,7 @@ void VulkanDriver::Render()
 	std::vector<VkCommandBuffer> secondaryCommandBuffers;
 
 	VkClearValue clearValues2[2];
-	clearValues2[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	clearValues2[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
 	clearValues2[1].depthStencil = { 1.0f, 0 };
 	//
 	VkRenderPassBeginInfo renderPassBeginInfo2 = vks::initializers::renderPassBeginInfo();
