@@ -90,7 +90,7 @@ public:
 		Framebuffer* deferred;
 		// Framebuffer resources for the shadow pass
 		Framebuffer* shadow;
-	} frameBuffers[2];
+	} frameBuffers[3];
 
 public:
 	EventReceiver* _EventReceiver;	//	CLEANED
