@@ -40,9 +40,15 @@ class TriangleMeshSceneNodeNotify : public ndBodyNotify
 public:
 	TriangleMeshSceneNodeNotify(TriangleMeshSceneNode* Node)
 		: _Node(Node), ModelPtr(glm::value_ptr(Node->Model)), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
-	{}
+	{
+	}
 
-	virtual void OnApplyExternalForce(dInt32, dFloat32)
+	void* GetUserData() const
+	{
+		return (void*)_Node;
+	}
+
+	void OnApplyExternalForce(dInt32, dFloat32)
 	{
 		ndBodyDynamic* const dynamicBody = GetBody()->GetAsBodyDynamic();
 		if (dynamicBody)
@@ -54,7 +60,7 @@ public:
 		}
 	}
 
-	virtual void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
+	void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
 	{
 		// apply this transformation matrix to the application user data.
 		_Node->bNeedsUpdate[0] = true;
@@ -73,55 +79,13 @@ public:
 		//	[z][z][z][z]
 		//	[w][w][z][w]
 		//
-		/*ModelPtr[0] = matrix.m_right.m_x;
-		ModelPtr[1] = matrix.m_up.m_x;
-		ModelPtr[2] = matrix.m_front.m_x;
-		ModelPtr[3] = matrix.m_posit.m_x;
-
-		ModelPtr[4] = matrix.m_right.m_y;
-		ModelPtr[5] = matrix.m_up.m_y;
-		ModelPtr[6] = matrix.m_front.m_y;
-		ModelPtr[7] = matrix.m_posit.m_y;
-
-		ModelPtr[8] = matrix.m_right.m_z;
-		ModelPtr[9] = matrix.m_up.m_z;
-		ModelPtr[10] = matrix.m_front.m_z;
-		ModelPtr[11] = matrix.m_posit.m_z;
-
-		ModelPtr[12] = matrix.m_right.m_w;
-		ModelPtr[13] = matrix.m_up.m_w;
-		ModelPtr[14] = matrix.m_front.m_w;
-		ModelPtr[15] = matrix.m_posit.m_w;*/
-
 		//	Row Major
-		// 
-		//	[x][y][z][w]	Right
-		//	[x][y][z][w]	Up
-		//	[x][y][z][w]	Forward
-		//	[x][y][z][w]	Position
+		//	[x][y][z][w] Right
+		//	[x][y][z][w] Up
+		//	[x][y][z][w] Forward
+		//	[x][y][z][w] Position
 		//
-		/*ModelPtr[0] = matrix.m_right.m_x;
-		ModelPtr[1] = matrix.m_right.m_y;
-		ModelPtr[2] = matrix.m_right.m_z;
-		ModelPtr[3] = matrix.m_right.m_w;
 
-		ModelPtr[4] = matrix.m_up.m_x;
-		ModelPtr[5] = matrix.m_up.m_y;
-		ModelPtr[6] = matrix.m_up.m_z;
-		ModelPtr[7] = matrix.m_up.m_w;
-
-		ModelPtr[8] = matrix.m_front.m_x;
-		ModelPtr[9] = matrix.m_front.m_y;
-		ModelPtr[10] = matrix.m_front.m_z;
-		ModelPtr[11] = matrix.m_front.m_w;
-
-		ModelPtr[12] = matrix.m_posit.m_x;
-		ModelPtr[13] = matrix.m_posit.m_y;
-		ModelPtr[14] = matrix.m_posit.m_z;
-		ModelPtr[15] = matrix.m_posit.m_w;*/
-
-		//
-		//	And the one that seems to work
 		ModelPtr[0] = matrix.m_front.m_x;
 		ModelPtr[1] = matrix.m_front.m_y;
 		ModelPtr[2] = matrix.m_front.m_z;

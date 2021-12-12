@@ -20,20 +20,37 @@ public:
 	Weapon() {}
 	~Weapon() {}
 
-	/*void Primary(btCollisionWorld::ClosestRayResultCallback Ray) {
-		if (Ray.hasHit()) {
-			printf("Hit\n");
-			const btCollisionObject* HitObj = Ray.m_collisionObject;
+	void Primary(ndRayCastClosestHitCallback& CB) {
+
+		if (CB.m_contact.m_body0) {
+			printf("Hit1\n");
+			SceneNode* Node = (SceneNode*)(CB.m_contact.m_body0->GetNotifyCallback()->GetUserData());
+			printf("Node Name: %s\n", Node->Name.c_str());
+			/*const btCollisionObject* HitObj = Ray.m_collisionObject;
 			SceneNode* HitNode = (SceneNode*)HitObj->getUserPointer();
 			std::string HitName = HitNode->Name;
 			printf("\t%s\n", HitName.c_str());
 			HitNode->_RigidBody->activate(true);
-			HitNode->_RigidBody->applyCentralForce(Ray.m_hitNormalWorld * -500.0f);
+			HitNode->_RigidBody->applyCentralForce(Ray.m_hitNormalWorld * -500.0f);*/
 		}
 		else {
-			printf("No Hit\n");
+			printf("No Hit1\n");
 		}
-	}*/
+		if (CB.m_contact.m_body1) {
+			printf("Hit2\n");
+			SceneNode* Node = (SceneNode*)(CB.m_contact.m_body0->GetNotifyCallback()->GetUserData());
+			printf("Node Name: %s\n", Node->Name.c_str());
+			/*const btCollisionObject* HitObj = Ray.m_collisionObject;
+			SceneNode* HitNode = (SceneNode*)HitObj->getUserPointer();
+			std::string HitName = HitNode->Name;
+			printf("\t%s\n", HitName.c_str());
+			HitNode->_RigidBody->activate(true);
+			HitNode->_RigidBody->applyCentralForce(Ray.m_hitNormalWorld * -500.0f);*/
+		}
+		else {
+			printf("No Hit2\n");
+		}
+	}
 
 	void Secondary() {
 

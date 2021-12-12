@@ -41,7 +41,12 @@ public:
 		: _Node(Node), ModelPtr(glm::value_ptr(Node->Model)), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
 	{}
 
-	virtual void OnApplyExternalForce(dInt32, dFloat32)
+	void* GetUserData() const
+	{
+		return (void*)_Node;
+	}
+
+	void OnApplyExternalForce(dInt32, dFloat32)
 	{
 		ndBodyDynamic* const dynamicBody = GetBody()->GetAsBodyDynamic();
 		if (dynamicBody)
@@ -53,7 +58,7 @@ public:
 		}
 	}
 
-	virtual void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
+	void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
 	{
 		// apply this transformation matrix to the application user data.
 		_Node->bNeedsUpdate[0] = true;
@@ -64,10 +69,6 @@ public:
 			const ndVector Pos = matrix.m_posit;
 			_Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + _Node->_Camera->getOffset());
 		}
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
 
 		ModelPtr[0] = matrix.m_front.m_x;
 		ModelPtr[1] = matrix.m_front.m_y;

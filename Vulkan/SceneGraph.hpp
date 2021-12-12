@@ -67,13 +67,10 @@ public:
 
 	//
 	//	Raytest
-	/*btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To)
+	void castRay(const ndVector& From, const ndVector& To, ndRayCastClosestHitCallback& Results)
 	{
-		btCollisionWorld::ClosestRayResultCallback closestResults(From, To);
-		closestResults.m_flags |= btTriangleRaycastCallback::kF_FilterBackfaces;
-		dynamicsWorld->rayTest(From, To, closestResults);
-		return closestResults;
-	}*/
+		_Driver->_ndWorld->RayCast(Results, From, (To-From));
+	}
 
 	/*void DrawDebugShapes()
 	{

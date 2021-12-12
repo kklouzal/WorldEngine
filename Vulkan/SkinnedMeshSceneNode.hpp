@@ -193,7 +193,12 @@ public:
 		: _Node(Node), ModelPtr(glm::value_ptr(Node->Model)), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
 	{}
 
-	virtual void OnApplyExternalForce(dInt32, dFloat32)
+	void* GetUserData() const
+	{
+		return (void*)_Node;
+	}
+
+	void OnApplyExternalForce(dInt32, dFloat32)
 	{
 		ndBodyDynamic* const dynamicBody = GetBody()->GetAsBodyDynamic();
 		if (dynamicBody)
@@ -205,7 +210,7 @@ public:
 		}
 	}
 
-	virtual void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
+	void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
 	{
 		// apply this transformation matrix to the application user data.
 		_Node->bNeedsUpdate[0] = true;
