@@ -86,7 +86,7 @@ public:
 		Framebuffer* deferred;
 		// Framebuffer resources for the shadow pass
 		Framebuffer* shadow;
-	} frameBuffers;
+	} frameBuffers[2];
 
 public:
 	EventReceiver* _EventReceiver;	//	CLEANED
@@ -332,8 +332,8 @@ VulkanDriver::VulkanDriver()
 	_SceneGraph = new SceneGraph(this);
 	_MaterialCache = new MaterialCache(this);
 	//
-	viewport_Deferred = vks::initializers::viewport((float)frameBuffers.deferred->width, (float)frameBuffers.deferred->height, 0.0f, 1.0f);
-	scissor_Deferred = vks::initializers::rect2D(frameBuffers.deferred->width, frameBuffers.deferred->height, 0, 0);
+	viewport_Deferred = vks::initializers::viewport((float)FB_DIM, (float)FB_DIM, 0.0f, 1.0f);
+	scissor_Deferred = vks::initializers::rect2D(FB_DIM, FB_DIM, 0, 0);
 	clearValues_Deferred[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues_Deferred[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 	clearValues_Deferred[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -413,8 +413,8 @@ VulkanDriver::~VulkanDriver()
 		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.renderComplete, nullptr);
 		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.presentComplete, nullptr);
 	}
-	delete frameBuffers.deferred;
-	delete frameBuffers.shadow;
+	//delete frameBuffers.deferred;
+	//delete frameBuffers.shadow;
 	delete _MaterialCache;
 
 	delete _ndWorld;
@@ -520,10 +520,10 @@ void VulkanDriver::Render()
 	//
 	//	Setup renderpass	
 	VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
-	renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
-	renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffer;
-	renderPassBeginInfo1.renderArea.extent.width = frameBuffers.deferred->width;
-	renderPassBeginInfo1.renderArea.extent.height = frameBuffers.deferred->height;
+	renderPassBeginInfo1.renderPass = frameBuffers[0].deferred->renderPass;
+	renderPassBeginInfo1.framebuffer = frameBuffers[currentFrame].deferred->framebuffer;
+	renderPassBeginInfo1.renderArea.extent.width = frameBuffers[currentFrame].deferred->width;
+	renderPassBeginInfo1.renderArea.extent.height = frameBuffers[currentFrame].deferred->height;
 	renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues_Deferred.size());
 	renderPassBeginInfo1.pClearValues = clearValues_Deferred.data();
 	//
@@ -987,38 +987,41 @@ void VulkanDriver::prepareOffscreenFrameBuffer()
 	//
 	//
 	//	Deferred
-	frameBuffers.deferred = new Framebuffer(_VulkanDevice, allocator);
-	frameBuffers.deferred->width = FB_DIM;
-	frameBuffers.deferred->height = FB_DIM;
+	for (int i = 0; i < 3; i++)
+	{
+		frameBuffers[i].deferred = new Framebuffer(_VulkanDevice, allocator);
+		frameBuffers[i].deferred->width = FB_DIM;
+		frameBuffers[i].deferred->height = FB_DIM;
 
-	AttachmentCreateInfo attachmentInfo2 = {};
-	attachmentInfo2.width = FB_DIM;
-	attachmentInfo2.height = FB_DIM;
-	attachmentInfo2.layerCount = 1;
-	attachmentInfo2.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+		AttachmentCreateInfo attachmentInfo2 = {};
+		attachmentInfo2.width = FB_DIM;
+		attachmentInfo2.height = FB_DIM;
+		attachmentInfo2.layerCount = 1;
+		attachmentInfo2.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-	// Color attachments
-	// Attachment 0: (World space) Positions
-	attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-	frameBuffers.deferred->addAttachment(attachmentInfo2);
+		// Color attachments
+		// Attachment 0: (World space) Positions
+		attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
-	// Attachment 1: (World space) Normals
-	attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-	frameBuffers.deferred->addAttachment(attachmentInfo2);
+		// Attachment 1: (World space) Normals
+		attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
-	// Attachment 2: Albedo (color)
-	attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
-	frameBuffers.deferred->addAttachment(attachmentInfo2);
+		// Attachment 2: Albedo (color)
+		attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
+		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
-	attachmentInfo2.format = depthFormat;
-	attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	frameBuffers.deferred->addAttachment(attachmentInfo2);
+		attachmentInfo2.format = depthFormat;
+		attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
-	// Create sampler to sample from the color attachments
-	VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+		// Create sampler to sample from the color attachments
+		VK_CHECK_RESULT(frameBuffers[i].deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
-	// Create default renderpass for the framebuffer
-	VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass());
+		// Create default renderpass for the framebuffer
+		VK_CHECK_RESULT(frameBuffers[i].deferred->createRenderPass());
+	}
 }
 
 void VulkanDriver::createVmaAllocator() {
