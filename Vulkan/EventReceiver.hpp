@@ -14,6 +14,7 @@ class EventReceiver : public Gwen::Event::Handler {
 	static void char_callback(GLFWwindow* window, unsigned int codepoint);
 	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 	static void cursor_enter_callback(GLFWwindow* window, int entered);
 
@@ -43,25 +44,34 @@ class EventReceiver : public Gwen::Event::Handler {
 protected:
 	VulkanDriver* _Driver;
 
-	enum EventTypes {
+	enum EventTypes: uint_fast8_t {
 		Keyboard = 1,
 		Mouse = 2
 	};
 
-	enum EventActions {
+	enum EventActions: uint_fast8_t {
 		Press = 1,
 		Release = 2,
 		Repeat = 3,
-		Move = 4
+		Move = 4,
+		Scroll = 5
 	};
 
 	struct Event {
+		//	Keyboard/Mouse
 		EventTypes Type;
+		//	Press/Release/Repeat/Move/Scroll
 		EventActions Action;
-		int Key;
-		double mX;
-		double mY;
-		//	Other Event Related Values
+		//	GLFW Keyboard Keycode/Mouse Left-Right
+		uint_fast16_t Key = 0;
+		//	Mouse Move X
+		double mX = 0.f;
+		//	Mouse Move Y
+		double mY = 0.f;
+		//	Mouse Scroll X
+		double sX = 0.f;
+		//	Mouse Scroll Y
+		double sY = 0.f;
 	};
 
 	double m_PosX_New = 0;
@@ -300,6 +310,7 @@ void EventReceiver::mouse_button_callback(GLFWwindow* window, int button, int ac
 	}
 	Event NewEvent;
 	NewEvent.Type = EventTypes::Mouse;
+	NewEvent.Key = button;
 	if (action == GLFW_PRESS) {
 		NewEvent.Action = EventActions::Press;
 	}
@@ -309,6 +320,19 @@ void EventReceiver::mouse_button_callback(GLFWwindow* window, int button, int ac
 	else if (action == GLFW_REPEAT) {
 		NewEvent.Action = EventActions::Repeat;
 	}
+	Rcvr->OnEvent(NewEvent);
+}
+
+void EventReceiver::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
+	Rcvr->pCanvas->InputMouseWheel(yoffset);
+
+	Event NewEvent;
+	NewEvent.Type = EventTypes::Mouse;
+	NewEvent.Action = EventActions::Scroll;
+	NewEvent.sX = xoffset;
+	NewEvent.sY = yoffset;
 	Rcvr->OnEvent(NewEvent);
 }
 

@@ -158,36 +158,102 @@ public:
 			}
 		}
 		else if (NewEvent.Type == EventTypes::Mouse) {
-			if (NewEvent.Action == EventActions::Press) {
-				CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
-				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				if (Character && !IsMenuOpen()) {
-					auto CamPos = Cam->Pos;
-					ndVector From((dFloat32)CamPos.x, (dFloat32)CamPos.y, (dFloat32)CamPos.z, 0.f);
-					auto CamDir = CamPos + Cam->Ang * 1000.0f;
-					ndVector To((dFloat32)CamDir.x, (dFloat32)CamDir.y, (dFloat32)CamDir.z, 0.f);
+			//
+			//	if menus aren't open
+			if (!IsMenuOpen())
+			{
+				if (NewEvent.Action == EventActions::Press)
+				{
 					//
-					//	Raytest
-					ndRayCastClosestHitCallback CB;
-					_Driver->_SceneGraph->castRay(From, To, CB);
-					Character->_Weapon.Primary(CB);
+					//	If our character is valid
+					CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
+					if (Character)
+					{
+						//
+						//	If we have a valid selected item
+						Item* CurItem = Character->GetCurrentItem();
+						if (CurItem)
+						{
+							//
+							//	Calculate Ray
+							Camera* Cam = &_Driver->_SceneGraph->GetCamera();
+							auto CamPos = Cam->Pos;
+							ndVector From((dFloat32)CamPos.x, (dFloat32)CamPos.y, (dFloat32)CamPos.z, 0.f);
+							auto CamDir = CamPos + Cam->Ang * 1000.0f;
+							ndVector To((dFloat32)CamDir.x, (dFloat32)CamDir.y, (dFloat32)CamDir.z, 0.f);
+							//
+							//	Cast Ray
+							ndRayCastClosestHitCallback CB;
+							_Driver->_SceneGraph->castRay(From, To, CB);
+							//
+							//	Item Action
+							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
+							{
+								CurItem->StartPrimaryAction(CB);
+							}
+							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT) 
+							{
+								CurItem->StartSecondaryAction(CB);
+							}
+						}
+					}
 				}
-			}
-			else if (NewEvent.Action == EventActions::Release) {
-			}
-			else if (NewEvent.Action == EventActions::Repeat) {
-			}
-			else if (NewEvent.Action == EventActions::Move) {
-				CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
-				Camera* Cam = &_Driver->_SceneGraph->GetCamera();
-				if (Character && Character->_Camera && !IsMenuOpen()) {
-					Character->setYaw(Cam->getYaw());
+				else if (NewEvent.Action == EventActions::Release)
+				{
+					//
+					//	If our character is valid
+					CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
+					if (Character)
+					{
+						//
+						//	If we have a valid selected item
+						Item* CurItem = Character->GetCurrentItem();
+						if (CurItem)
+						{
+							//
+							//	Item Acton
+							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
+							{
+								CurItem->EndPrimaryAction();
+							}
+							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT)
+							{
+								CurItem->EndSecondaryAction();
+							}
+						}
+					}
 				}
-				//
-				//	Only mouse-move-camera when menus closed
-				if (!IsMenuOpen()) {
+				else if (NewEvent.Action == EventActions::Repeat)
+				{ }
+				else if (NewEvent.Action == EventActions::Scroll)
+				{
+					//
+					//	If our character is valid
+					CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
+					if (Character)
+					{
+						Character->ScrollItems(NewEvent.sY);
+					}
+				}
+				else if (NewEvent.Action == EventActions::Move)
+				{
+					//
+					//	Rotate the camera via mouse movement
+					Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 					Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
+					//
+					//	Rotate the character via camera movement
+					CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
+					if (Character && Character->_Camera)
+					{
+						Character->setYaw(Cam->getYaw());
+					}
 				}
+			}
+			//
+			//	Menus are open
+			else {
+				//	Do nothing special yet
 			}
 		}
 	}

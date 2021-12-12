@@ -7,6 +7,8 @@ public:
 	glm::vec3 Rot{};
 	std::string Name = "N/A";
 	Camera* _Camera = nullptr;
+	bool isFrozen = false;
+	bool canPhys = false;
 	//
 	//	per frame check
 	bool bNeedsUpdate[3];
@@ -26,7 +28,9 @@ public:
 SceneNode::~SceneNode() {
 	printf("\tDestroy Base SceneNode\n");
 }
-
+//
+#include "Item.hpp"
+//
 #include "WorldSceneNode.hpp"
 #include "CharacterSceneNode.hpp"
 #include "TriangleMeshSceneNode.hpp"

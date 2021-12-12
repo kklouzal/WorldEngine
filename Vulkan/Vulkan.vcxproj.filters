@@ -45,6 +45,9 @@
     <Filter Include="Header Files\Vulkan">
       <UniqueIdentifier>{57d7ea9b-c72f-4357-8675-1c52f408eeea}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Items">
+      <UniqueIdentifier>{cafdadac-7b05-488f-8326-728eb3f242b3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -141,9 +144,6 @@
     <ClInclude Include="CharacterSceneNode.hpp">
       <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
-    <ClInclude Include="Weapon.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MainMenu.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
@@ -191,6 +191,12 @@
     </ClInclude>
     <ClInclude Include="VulkanFrameBuffer.hpp">
       <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Item.hpp">
+      <Filter>Header Files\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="Item_Physgun.hpp">
+      <Filter>Header Files\Items</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -699,6 +699,7 @@ void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr) {
 	glfwSetCharCallback(_Window, &EventReceiver::char_callback);
 	glfwSetKeyCallback(_Window, &EventReceiver::key_callback);
 	glfwSetMouseButtonCallback(_Window, &EventReceiver::mouse_button_callback);
+	glfwSetScrollCallback(_Window, &EventReceiver::scroll_callback);
 	glfwSetCursorPosCallback(_Window, &EventReceiver::cursor_position_callback);
 	glfwSetCursorEnterCallback(_Window, &EventReceiver::cursor_enter_callback);
 	_EventReceiver = _EventRcvr;

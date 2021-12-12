@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Weapon.hpp"
-
 class CharacterSceneNode : public SceneNode, public ndBodyPlayerCapsule
 {
 	//
@@ -10,7 +8,8 @@ class CharacterSceneNode : public SceneNode, public ndBodyPlayerCapsule
 	UniformBufferObject ubo = {};
 public:
 	TriangleMesh* _Mesh = nullptr;
-	Weapon _Weapon;
+	std::vector<Item*> Items;
+	int CurItem = 0;
 	bool onGround = false;
 
 	class PlayerInputs
@@ -32,7 +31,40 @@ public:
 	PlayerInputs m_playerInput;
 public:
 	CharacterSceneNode(TriangleMesh* Mesh, ndMatrix localAxis, dFloat32 Mass, dFloat32 Radius, dFloat32 Height, dFloat32 StepHeight)
-		: _Mesh(Mesh), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight) {}
+		: _Mesh(Mesh), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight)
+	{
+		Name = "Character";
+		canPhys = false;
+		//	Reserve 10 item slots (hotbar slots currently)
+		for (int i = 0; i < 10; i++)
+		{
+			Items.push_back(nullptr);
+		}
+		//
+		//
+		//	Default Character Loadout
+		// 
+		//  -   PhysGun
+		Item_Physgun* Itm1 = new Item_Physgun();
+		//Itm1->SetInterface(_Interface);
+		//Itm1->SetPhysics(_Physics);
+		//Itm1->CreateGUI();
+		this->GiveItem(Itm1, 0);
+		//
+		//  -   ToolGun
+		/*Item_Tool* Itm2 = new Item_Tool();
+		Itm2->SetInterface(_Interface);
+		Itm2->SetPhysics(_Physics);
+		Itm2->SetNavMesh(_NavMesh);
+		Itm2->LoadTools();
+		Itm2->CreateGUI();
+		Player->GiveItem(Itm2, 1);*/
+		//
+		Item* Itm3 = new Item("Item 3");
+		this->GiveItem(Itm3, 2);
+		Item* Itm7 = new Item("Item 7");
+		this->GiveItem(Itm7, 6);
+	}
 
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
@@ -68,6 +100,73 @@ public:
 		SetForwardSpeed(m_playerInput.m_forwardSpeed);
 		SetLateralSpeed(m_playerInput.m_strafeSpeed);
 		SetHeadingAngle(m_playerInput.m_heading);
+	}
+
+	Item* GetCurrentItem() const
+	{
+		return Items[CurItem];
+	}
+
+	void ScrollItems(const double& Scrolled)
+	{
+		//
+		//	Switch out of our current item
+		if (Items[CurItem] != nullptr)
+		{
+			Items[CurItem]->onDeselectItem();
+			//Items[CurItem]->HideGUI();
+		}
+		//
+		//	Prepare GUI Icon to display empty
+		const char* Ico = "images/empty.png";
+		//
+		//	Increment/Decrement current item counter
+		if (Scrolled > 0)
+		{
+			CurItem++;
+		}
+		else if (Scrolled < 0)
+		{
+			CurItem--;
+		}
+		//
+		//	Wrap min/max
+		if (CurItem > 9)
+		{
+			CurItem = 0;
+		}
+		else if (CurItem < 0)
+		{
+			CurItem = 9;
+		}
+		//
+		//	Switch into our new item
+		if (Items[CurItem] != nullptr)
+		{
+			Items[CurItem]->onSelectItem();
+			//Items[CurItem]->ShowGUI();
+			//
+			//	New item exists, use its icon instead
+			Ico = Items[CurItem]->_Icon;
+		}
+		//
+		//	Update GUI
+		//_Interface->ChangeItemSelection(CurItem, Ico);
+		printf("Current Item %i\n", CurItem);
+	}
+
+	void GiveItem(Item* NewItem, unsigned int Slot)
+	{
+		Items[Slot] = NewItem;
+		const char* Ico = "images/empty.png";
+		if (Items[Slot] != nullptr) {
+			Ico = Items[Slot]->_Icon;
+		}
+		//_Interface->ChangeItemIcon(Slot, Ico);
+		if (Slot == CurItem && Items[CurItem] != nullptr)
+		{
+			//Items[CurItem]->ShowGUI();
+		}
 	}
 
 	void moveForward(const dFloat32& Speed) {

@@ -171,6 +171,7 @@
     <ClInclude Include="CharacterSceneNode.hpp" />
     <ClInclude Include="ConsoleMenu.hpp" />
     <ClInclude Include="ConvexDecomposition.hpp" />
+    <ClInclude Include="Item_Physgun.hpp" />
     <ClInclude Include="ozz_mesh.h" />
     <ClInclude Include="ozz_utils.h" />
     <ClInclude Include="stb_image.h" />
@@ -202,7 +203,7 @@
     <ClInclude Include="VulkanGWEN.hpp" />
     <ClInclude Include="VulkanInitializers.hpp" />
     <ClInclude Include="VulkanSwapChain.hpp" />
-    <ClInclude Include="Weapon.hpp" />
+    <ClInclude Include="Item.hpp" />
     <ClInclude Include="WorldSceneNode.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
