@@ -227,10 +227,10 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	_Driver->_ndWorld->Sync();
 
 	std::vector<ndVector> Verts;
-	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-		auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+	for (unsigned int i = 0; i < Infos->Indices.size(); i++) {
+		auto& V1 = Infos->Vertices[Infos->Indices[i]].pos;/*
 		auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+		auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;*/
 		Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
 	}
 	ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));

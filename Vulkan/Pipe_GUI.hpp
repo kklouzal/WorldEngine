@@ -92,7 +92,9 @@ namespace Pipeline {
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
 
-			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(Vertex::getBindingDescription(), Vertex::getAttributeDescriptions());
+			auto binding = Vertex::getBindingDescription();
+			auto description = Vertex::getAttributeDescriptions();
+			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
