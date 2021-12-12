@@ -1,5 +1,7 @@
 #pragma once
 #define WIN32_LEAN_AND_MEAN
+#pragma warning( disable : 4714 )
+#pragma warning( disable : 4267 )
 
 #include <Gwen/Gwen.h>
 #include <Gwen/Skins/TexturedBase.h>
@@ -334,16 +336,6 @@ VulkanDriver::VulkanDriver()
 	_SceneGraph = new SceneGraph(this);
 	_MaterialCache = new MaterialCache(this);
 	//
-	viewport_Deferred = vks::initializers::viewport((float)FB_DIM, (float)FB_DIM, 0.0f, 1.0f);
-	scissor_Deferred = vks::initializers::rect2D(FB_DIM, FB_DIM, 0, 0);
-	clearValues_Deferred[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues_Deferred[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues_Deferred[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-	clearValues_Deferred[3].depthStencil = { 1.0f, 0 };
-	viewport_Main = vks::initializers::viewport((float)WIDTH, (float)HEIGHT, 0.0f, 1.0f);
-	scissor_Main = vks::initializers::rect2D(WIDTH, HEIGHT, 0, 0);
-	clearValues_Main[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
-	clearValues_Main[1].depthStencil = { 1.0f, 0 };
 	//
 	commandBuffers.resize(frameBuffers_Main.size());
 	commandBuffers_GUI.resize(frameBuffers_Main.size());
@@ -484,6 +476,16 @@ void VulkanDriver::mainLoop()
 
 void VulkanDriver::Render()
 {
+	viewport_Deferred = vks::initializers::viewport((float)FB_DIM, (float)FB_DIM, 0.0f, 1.0f);
+	scissor_Deferred = vks::initializers::rect2D(FB_DIM, FB_DIM, 0, 0);
+	clearValues_Deferred[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues_Deferred[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues_Deferred[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+	clearValues_Deferred[3].depthStencil = { 1.0f, 0 };
+	viewport_Main = vks::initializers::viewport((float)WIDTH, (float)HEIGHT, 0.0f, 1.0f);
+	scissor_Main = vks::initializers::rect2D(WIDTH, HEIGHT, 0, 0);
+	clearValues_Main[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+	clearValues_Main[1].depthStencil = { 1.0f, 0 };
 	// 
 	//	Wait on this frame if it is still being used by the GPU
 	vkWaitForFences(_VulkanDevice->logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
