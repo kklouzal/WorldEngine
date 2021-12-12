@@ -78,7 +78,7 @@ public:
 		{
 			return 0.4f;
 		}
-		return dFloat32(2.0f);
+		return dFloat32(1.0f);
 	}
 
 	void ApplyInputs(dFloat32 timestep)
@@ -170,57 +170,57 @@ public:
 	}
 
 	void moveForward(const dFloat32& Speed) {
-		//dMatrix Trans = GetMatrix();
+		ndMatrix Trans = GetMatrix();
 
-		//Trans.m_posit.m_x += _Camera->front.x * Speed;
+		Trans.m_posit.m_x += _Camera->front.x * Speed;
 		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
-		//Trans.m_posit.m_z += _Camera->front.z * Speed;
+		Trans.m_posit.m_z += _Camera->front.z * Speed;
 
-		//SetMatrix(Trans);
+		SetMatrix(Trans);
 
-		m_playerInput.m_forwardSpeed = Speed;
+		//m_playerInput.m_forwardSpeed = Speed;
 
 	}
 
 	void moveBackward(const dFloat32& Speed) {
 
-		//dMatrix Trans = GetMatrix();
+		ndMatrix Trans = GetMatrix();
 
-		//Trans.m_posit.m_x += _Camera->front.x * -Speed;
-		////Trans.m_posit.m_y += _Camera->front.y * -Speed;
-		//Trans.m_posit.m_z += _Camera->front.z * -Speed;
+		Trans.m_posit.m_x += _Camera->front.x * -Speed;
+		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
+		Trans.m_posit.m_z += _Camera->front.z * -Speed;
 
-		//SetMatrix(Trans);
+		SetMatrix(Trans);
 
-		m_playerInput.m_forwardSpeed = -Speed;
+		//m_playerInput.m_forwardSpeed = -Speed;
 
 	}
 
 	void moveLeft(const dFloat32& Speed) {
 
-		//dMatrix Trans = GetMatrix();
+		ndMatrix Trans = GetMatrix();
 
-		//Trans.m_posit.m_x += _Camera->right.x * -Speed;
-		////Trans.m_posit.m_y += _Camera->right.y * -Speed;
-		//Trans.m_posit.m_z += _Camera->right.z * -Speed;
+		Trans.m_posit.m_x += _Camera->right.x * -Speed;
+		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
+		Trans.m_posit.m_z += _Camera->right.z * -Speed;
 
-		//SetMatrix(Trans);
+		SetMatrix(Trans);
 
-		m_playerInput.m_strafeSpeed = -Speed;
+		//m_playerInput.m_strafeSpeed = -Speed;
 
 	}
 
 	void moveRight(const dFloat32& Speed) {
 
-		//dMatrix Trans = GetMatrix();
-		//
-		//Trans.m_posit.m_x += _Camera->right.x * Speed;
-		////Trans.m_posit.m_y += _Camera->right.y * -Speed;
-		//Trans.m_posit.m_z += _Camera->right.z * Speed;
+		ndMatrix Trans = GetMatrix();
+		
+		Trans.m_posit.m_x += _Camera->right.x * Speed;
+		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
+		Trans.m_posit.m_z += _Camera->right.z * Speed;
 
-		//SetMatrix(Trans);
+		SetMatrix(Trans);
 
-		m_playerInput.m_strafeSpeed = Speed;
+		//m_playerInput.m_strafeSpeed = Speed;
 
 	}
 

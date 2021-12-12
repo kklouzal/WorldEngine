@@ -307,9 +307,9 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	localAxis[1] = ndVector(1.0, 0.0f, 0.0f, 0.0f);
 	localAxis[2] = localAxis[0].CrossProduct(localAxis[1]);
 
-	dFloat32 height = 1.9f;
+	dFloat32 height = 5.0f;
 	dFloat32 radius = 1.5f;
-	dFloat32 mass = 100.0f;
+	dFloat32 mass = 10.0f;
 	CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh, localAxis, mass, radius, height, height/4.0f);
 
 	_Driver->_ndWorld->Sync();

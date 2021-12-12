@@ -467,8 +467,8 @@ void VulkanDriver::mainLoop() {
 		{
 			//
 			//	Simulate Physics
-			//_ndWorld->Update(deltaFrame);
-			_ndWorld->Update(1.0 / 120.0f);
+			_ndWorld->Update(deltaFrame);
+			//_ndWorld->Update(1.0 / 120.0f);
 			//
 			//	Update Shader Uniforms
 			updateUniformBufferComposition(currentFrame);

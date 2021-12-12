@@ -20,52 +20,48 @@ public:
 			CharacterSceneNode* Character = _Driver->_SceneGraph->GetCharacter();
 			Camera* Cam = &_Driver->_SceneGraph->GetCamera();
 
-			Character->moveForward((dInt32(isW) - dInt32(isS)) * 10.0f);
-			Character->moveRight((dInt32(isD) - dInt32(isA)) * 10.0f);
+			//Character->moveForward((dInt32(isW) - dInt32(isS)) * 10.0f);
+			//Character->moveRight((dInt32(isD) - dInt32(isA)) * 10.0f);
 
 			if (isW) {
 				if (Character && Character->_Camera) {
 					
-					//Character->moveForward(3.0f * (_Driver->deltaFrame / 1000));
+					Character->moveForward(3.0f * (_Driver->deltaFrame));
 				}
 				else {
-					Cam->GoForward(10.0f * (_Driver->deltaFrame / 1000));
+					Cam->GoForward(5.0f * (_Driver->deltaFrame));
 				}
 			}
 			if (isS) {
 				if (Character && Character->_Camera) {
-					//Character->moveBackward(1.0f);
-					//Character->moveBackward(3.0f * (_Driver->deltaFrame / 1000));
+					Character->moveBackward(3.0f * (_Driver->deltaFrame));
 				}
 				else {
-					Cam->GoBackward(10.0f * (_Driver->deltaFrame / 300));
+					Cam->GoBackward(5.0f * (_Driver->deltaFrame));
 				}
 			}
 			if (isA) {
 				if (Character && Character->_Camera) {
-					//Character->moveLeft(1.0f);
-					//Character->moveLeft(3.0f * (_Driver->deltaFrame / 1000));
+					Character->moveLeft(3.0f * (_Driver->deltaFrame));
 				}
 				else {
-					Cam->GoLeft(10.0f * (_Driver->deltaFrame / 1000));
+					Cam->GoLeft(5.0f * (_Driver->deltaFrame));
 				}
 			}
 			if (isD) {
 				if (Character && Character->_Camera) {
 					
-					//Character->moveRight(3.0f * (_Driver->deltaFrame / 1000));
+					Character->moveRight(3.0f * (_Driver->deltaFrame));
 				}
 				else {
-					Cam->GoRight(10.0f * (_Driver->deltaFrame / 1000));
+					Cam->GoRight(5.0f * (_Driver->deltaFrame));
 				}
 			}
 			if (isSpace)
 			{
-
 				if (Character && Character->_Camera) {
-					Character->doJump(25.0f);
+					Character->doJump(35.0f);
 				}
-
 			}
 		}
 	}
