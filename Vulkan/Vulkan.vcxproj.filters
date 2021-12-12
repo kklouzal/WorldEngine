@@ -64,26 +64,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Fragment_GUI.frag">
-      <Filter>Source Files\Shaders\Frag</Filter>
-    </None>
-    <None Include="Fragment_Default.frag">
-      <Filter>Source Files\Shaders\Frag</Filter>
-    </None>
-    <None Include="Vertex_GUI.vert">
-      <Filter>Source Files\Shaders\Vert</Filter>
-    </None>
-    <None Include="Vertex_Default.vert">
-      <Filter>Source Files\Shaders\Vert</Filter>
-    </None>
-    <None Include="deferred.vert">
-      <Filter>Source Files\Shaders\Vert</Filter>
-    </None>
-    <None Include="deferred.frag">
-      <Filter>Source Files\Shaders\Frag</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="TriangleMesh.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -198,5 +178,25 @@
     <ClInclude Include="Vulkan.hpp">
       <Filter>Header Files\Vulkan</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\Fragment_Default.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
+    <None Include="shaders\Fragment_GUI.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
+    <None Include="shaders\deferred.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
+    <None Include="shaders\Vertex_GUI.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="shaders\deferred.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="shaders\Vertex_Default.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
   </ItemGroup>
 </Project>

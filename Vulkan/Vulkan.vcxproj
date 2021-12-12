@@ -158,14 +158,6 @@
     <ClCompile Include="ozz_utils.cc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="deferred.frag" />
-    <None Include="deferred.vert" />
-    <None Include="Fragment_Default.frag" />
-    <None Include="Fragment_GUI.frag" />
-    <None Include="Vertex_Default.vert" />
-    <None Include="Vertex_GUI.vert" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="CharacterSceneNode.hpp" />
     <ClInclude Include="ConsoleMenu.hpp" />
@@ -204,6 +196,14 @@
     <ClInclude Include="VulkanSwapChain.hpp" />
     <ClInclude Include="Item.hpp" />
     <ClInclude Include="WorldSceneNode.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\deferred.frag" />
+    <None Include="shaders\deferred.vert" />
+    <None Include="shaders\Fragment_Default.frag" />
+    <None Include="shaders\Fragment_GUI.frag" />
+    <None Include="shaders\Vertex_Default.vert" />
+    <None Include="shaders\Vertex_GUI.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
