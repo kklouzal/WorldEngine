@@ -203,6 +203,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 	MeshNode->SetCollisionShape(shape);
 	//MeshNode->SetMassMatrix(10.0f, shape);
 
+	_Driver->_ndWorld->Sync();
 	_Driver->_ndWorld->AddBody(MeshNode);
 
 	//
@@ -239,6 +240,7 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	MeshNode->SetCollisionShape(shape);
 	MeshNode->SetMassMatrix(1.0f, shape);
 
+	_Driver->_ndWorld->Sync();
 	_Driver->_ndWorld->AddBody(MeshNode);
 
 	//
@@ -275,6 +277,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	MeshNode->SetCollisionShape(shape);
 	MeshNode->SetMassMatrix(1.0f, shape);
 
+	_Driver->_ndWorld->Sync();
 	_Driver->_ndWorld->AddBody(MeshNode);
 
 	SceneNodes.push_back(MeshNode);
@@ -297,6 +300,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	dFloat32 height = 5.0f;
 	dFloat32 radius = 1.5f;
 	dFloat32 mass = 10.0f;
+
 	CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh, localAxis, mass, radius, height, height/4.0f);
 
 	//std::vector<dVector> Verts;
@@ -316,8 +320,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	//MeshNode->SetCollisionShape(shape);
 	//MeshNode->SetMassMatrix(1.0f, shape);
 
-	auto DN = MeshNode->GetAsBodyDynamic();
-
+	_Driver->_ndWorld->Sync();
 	_Driver->_ndWorld->AddBody(MeshNode);
 
 	//
