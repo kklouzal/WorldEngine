@@ -389,6 +389,9 @@ void VulkanDriver::mainLoop()
 
 void VulkanDriver::Render()
 {
+	//
+	//	Grab our CPC before doing any blocking/waiting calls
+	const CameraPushConstant& CPC = _SceneGraph->GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 	// 
 	//	Wait on this frame if it is still being used by the GPU
 	vkWaitForFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
@@ -443,7 +446,6 @@ void VulkanDriver::Render()
 	vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline);
 	//
 	//	Update Camera Push Constants
-	const CameraPushConstant& CPC = _SceneGraph->GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 	vkCmdPushConstants(offscreenCommandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 	//
 	//	Draw all SceneNodes

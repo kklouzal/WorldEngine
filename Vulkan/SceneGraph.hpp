@@ -127,8 +127,13 @@ void SceneGraph::cleanupWorld(const bool& bForce)
 	_Character = nullptr;
 	//
 	//	Cleanup SceneNodes
+	const ndBodyList& bodyList = _Driver->_ndWorld->GetBodyList();
+	for (ndBodyList::ndNode* bodyNode = bodyList.GetFirst(); bodyNode; bodyNode = bodyNode->GetNext())
+	{
+		_Driver->_ndWorld->RemoveBody(bodyNode->GetInfo());
+	}
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
-		//_Driver->_ndWorld->RemoveBody((ndBody*)SceneNodes[i]);
+		//_Driver->_ndWorld->RemoveBody(SceneNodes[i]);
 		//delete SceneNodes[i];
 	}
 	printf("try delete world\n");
@@ -199,14 +204,12 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 	matrix.m_posit = ndVector(0, 0, 0, 0);
 	matrix.m_posit.m_w = 1.0f;
 
-	ndBodyDynamic* const body2 = new ndBodyDynamic();
+	MeshNode->SetNotifyCallback(new WorldSceneNodeNotify(MeshNode));
+	MeshNode->SetMatrix(matrix);
+	MeshNode->SetCollisionShape(shape);
+	//MeshNode->SetMassMatrix(10.0f, shape);
 
-	body2->SetNotifyCallback(new WorldSceneNodeNotify(MeshNode));
-	body2->SetMatrix(matrix);
-	body2->SetCollisionShape(shape);
-	//body2->SetMassMatrix(10.0f, shape);
-
-	_Driver->_ndWorld->AddBody(body2);
+	_Driver->_ndWorld->AddBody(MeshNode);
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -242,14 +245,12 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	matrix.m_posit = Position;
 	matrix.m_posit.m_w = 1.0f;
 
-	ndBodyDynamic* const body2 = new ndBodyDynamic();
+	MeshNode->SetNotifyCallback(new TriangleMeshSceneNodeNotify(MeshNode));
+	MeshNode->SetMatrix(matrix);
+	MeshNode->SetCollisionShape(shape);
+	MeshNode->SetMassMatrix(1.0f, shape);
 
-	body2->SetNotifyCallback(new TriangleMeshSceneNodeNotify(MeshNode));
-	body2->SetMatrix(matrix);
-	body2->SetCollisionShape(shape);
-	body2->SetMassMatrix(1.0f, shape);
-
-	_Driver->_ndWorld->AddBody(body2);
+	_Driver->_ndWorld->AddBody(MeshNode);
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -285,14 +286,12 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	matrix.m_posit = ndVector(0, 0, 0, 0);
 	matrix.m_posit.m_w = 1.0f;
 
-	ndBodyDynamic* const body2 = new ndBodyDynamic();
+	MeshNode->SetNotifyCallback(new SkinnedMeshSceneNodeNotify(MeshNode));
+	MeshNode->SetMatrix(matrix);
+	MeshNode->SetCollisionShape(shape);
+	MeshNode->SetMassMatrix(1.0f, shape);
 
-	body2->SetNotifyCallback(new SkinnedMeshSceneNodeNotify(MeshNode));
-	body2->SetMatrix(matrix);
-	body2->SetCollisionShape(shape);
-	body2->SetMassMatrix(1.0f, shape);
-
-	_Driver->_ndWorld->AddBody(body2);
+	_Driver->_ndWorld->AddBody(MeshNode);
 
 	SceneNodes.push_back(MeshNode);
 	return MeshNode;
@@ -334,7 +333,7 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 
 	MeshNode->SetNotifyCallback(new CharacterSceneNodeNotify(MeshNode));
 	MeshNode->SetMatrix(matrix);
-	//body2->SetCollisionShape(shape);
+	//MeshNode->SetCollisionShape(shape);
 	//MeshNode->SetMassMatrix(1.0f, shape);
 
 	auto DN = MeshNode->GetAsBodyDynamic();

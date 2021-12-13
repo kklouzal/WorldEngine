@@ -28,7 +28,7 @@
 
 #include <ozz/options/options.h>
 
-class SkinnedMeshSceneNode : public SceneNode
+class SkinnedMeshSceneNode : public SceneNode, public ndBodyDynamic
 {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
@@ -55,7 +55,7 @@ public:
 	TriangleMesh* _Mesh = nullptr;
 public:
 	SkinnedMeshSceneNode(TriangleMesh* Mesh)
-		: SceneNode(), _Mesh(Mesh) {
+		: _Mesh(Mesh), SceneNode(), ndBodyDynamic() {
 		printf("Loading Skeleton\n");
 		ozz::io::File file_skel("media/models/skeleton.ozz", "rb");
 		if (!file_skel.opened()) {
@@ -101,6 +101,17 @@ public:
 
 	void preDelete(ndWorld* _ndWorld) {
 		//	ToDo: Remove physics object from newton world?
+	}
+	inline void IntegrateGyroSubstep(const ndVector&)
+	{
+	}
+
+	inline ndJacobian IntegrateForceAndToque(const ndVector&, const ndVector&, const ndVector&) const
+	{
+		ndJacobian step;
+		step.m_linear = ndVector::m_zero;
+		step.m_angular = ndVector::m_zero;
+		return step;
 	}
 
 	//

@@ -1,7 +1,7 @@
 #pragma once
 #include <filesystem>
 
-class WorldSceneNode : public SceneNode {
+class WorldSceneNode : public SceneNode, public ndBodyDynamic {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
@@ -9,7 +9,8 @@ class WorldSceneNode : public SceneNode {
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	WorldSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {
+	WorldSceneNode(TriangleMesh* Mesh)
+		: _Mesh(Mesh), SceneNode(), ndBodyDynamic() {
 		printf("Create WorldSceneNode\n");
 	}
 
@@ -31,6 +32,17 @@ public:
 		if (!Valid) {
 			_Mesh->draw(CommandBuffer, CurFrame);
 		}
+	}
+	inline void IntegrateGyroSubstep(const ndVector&)
+	{
+	}
+
+	inline ndJacobian IntegrateForceAndToque(const ndVector&, const ndVector&, const ndVector&) const
+	{
+		ndJacobian step;
+		step.m_linear = ndVector::m_zero;
+		step.m_angular = ndVector::m_zero;
+		return step;
 	}
 };
 
