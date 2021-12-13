@@ -10,7 +10,7 @@ struct PipelineObject {
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
-
+	
 	virtual ~PipelineObject() {
 		printf("\tDestroy Base PipelineObject\n");
 		for (auto Tex : _Textures) {

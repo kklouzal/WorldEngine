@@ -401,7 +401,7 @@ namespace Gwen
 			{
 				printf("GWEN Vulkan Renderer Initialize\n");
 				initFreeType();
-				const size_t SwapChainCount = _Driver->swapChain.images.size();
+				const size_t SwapChainCount = _Driver->swapChain->images.size();
 				ClipScissors.resize(SwapChainCount);
 
 				createIndirectBuffer();

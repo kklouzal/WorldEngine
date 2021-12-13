@@ -55,10 +55,10 @@ public:
 
 	void createUniformBuffers()
 	{
-		uniformBuffers.resize(_Driver->swapChain.images.size());
-		uniformAllocations.resize(_Driver->swapChain.images.size());
+		uniformBuffers.resize(_Driver->swapChain->images.size());
+		uniformAllocations.resize(_Driver->swapChain->images.size());
 
-		for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
+		for (size_t i = 0; i < _Driver->swapChain->images.size(); i++) {
 
 			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 			uniformBufferInfo.size = sizeof(UniformBufferObject);

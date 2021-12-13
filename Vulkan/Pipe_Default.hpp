@@ -10,7 +10,11 @@ namespace Pipeline {
 		VkDescriptorSetLayout descriptorSetLayout_Composition;
 		VkDescriptorPool DescriptorPool_Composition;
 
-		~Default() {}
+		~Default()
+		{
+			vkDestroyPipeline(_Driver->_VulkanDevice->logicalDevice, graphicsPipeline_Composition, nullptr);
+			vkDestroyDescriptorPool(_Driver->_VulkanDevice->logicalDevice, DescriptorPool_Composition, nullptr);
+		}
 
 		Default(VulkanDriver* Driver, VkPipelineCache PipelineCache)
 			: PipelineObject(Driver), _Driver(Driver)
@@ -139,15 +143,15 @@ namespace Pipeline {
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size() * 3),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()*3)
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain->images.size() * 3),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain->images.size()*3)
 			};
-			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size());
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain->images.size());
 			VK_CHECK_RESULT(vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &DescriptorPool_Composition));
 			//
 			//	Create and Update individual Descriptor sets
-			DescriptorSets_Composition.resize(_Driver->swapChain.images.size());
-			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++)
+			DescriptorSets_Composition.resize(_Driver->swapChain->images.size());
+			for (size_t i = 0; i < _Driver->swapChain->images.size(); i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool_Composition, &descriptorSetLayout, 1);
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &DescriptorSets_Composition[i]));
@@ -200,15 +204,15 @@ namespace Pipeline {
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain.images.size()*3),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain.images.size()*3)
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain->images.size()*3),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain->images.size()*3)
 			};
-			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain.images.size());
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain->images.size());
 			VK_CHECK_RESULT(vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool));
 			//
 			//	Create and Update individual Descriptor sets
-			NewDescriptor->DescriptorSets.resize(_Driver->swapChain.images.size());
-			for (size_t i = 0; i < _Driver->swapChain.images.size(); i++) {
+			NewDescriptor->DescriptorSets.resize(_Driver->swapChain->images.size());
+			for (size_t i = 0; i < _Driver->swapChain->images.size(); i++) {
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, &descriptorSetLayout, 1);
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]));
 				VkDescriptorBufferInfo bufferInfo = {};
