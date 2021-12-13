@@ -12,6 +12,7 @@ public:
 	TriangleMeshSceneNode(TriangleMesh* Mesh)
 		: _Mesh(Mesh), SceneNode(), ndBodyDynamic() {
 		printf("Create TriangleMeshSceneNode\n");
+		Name = "TriangleMeshSceneNode";
 	}
 
 	~TriangleMeshSceneNode() {

@@ -12,6 +12,7 @@ public:
 	WorldSceneNode(TriangleMesh* Mesh)
 		: _Mesh(Mesh), SceneNode(), ndBodyDynamic() {
 		printf("Create WorldSceneNode\n");
+		Name = "World";
 	}
 
 	~WorldSceneNode() {

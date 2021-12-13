@@ -136,7 +136,6 @@ void SceneGraph::cleanupWorld(const bool& bForce)
 		//_Driver->_ndWorld->RemoveBody(SceneNodes[i]);
 		//delete SceneNodes[i];
 	}
-	printf("try delete world\n");
 	delete _World;
 	//SceneNodes.clear();
 	//SceneNodes.shrink_to_fit();
@@ -167,9 +166,7 @@ public:
 WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
-
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
-
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
 
 	//}
@@ -178,9 +175,6 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 	//}
 
 	WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
-	MeshNode->Name = "World";
-
-	_Driver->_ndWorld->Sync();
 
 	ndPolygonSoupBuilder meshBuilder;
 	meshBuilder.Begin();
@@ -222,15 +216,10 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position)
 {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
-
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
-
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
-	MeshNode->Name = "TriangleMeshSceneNode";
-	printf("Create Triangle Mesh\n");
-	_Driver->_ndWorld->Sync();
 
 	std::vector<ndVector> Verts;
 	for (unsigned int i = 0; i < Infos->Indices.size(); i++) {
@@ -263,15 +252,10 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position)
 {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
-
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
-
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh);
-	MeshNode->Name = "SkinnedMeshSceneNode";
-
-	_Driver->_ndWorld->Sync();
 
 	std::vector<ndVector> Verts;
 	for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
@@ -302,9 +286,7 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const ndVector& Position)
 {
 	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
-
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
-
 	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	ndMatrix localAxis(dGetIdentityMatrix());
@@ -316,8 +298,6 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	dFloat32 radius = 1.5f;
 	dFloat32 mass = 10.0f;
 	CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh, localAxis, mass, radius, height, height/4.0f);
-
-	_Driver->_ndWorld->Sync();
 
 	//std::vector<dVector> Verts;
 	//for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {

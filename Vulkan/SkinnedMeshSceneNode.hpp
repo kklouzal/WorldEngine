@@ -56,6 +56,8 @@ public:
 public:
 	SkinnedMeshSceneNode(TriangleMesh* Mesh)
 		: _Mesh(Mesh), SceneNode(), ndBodyDynamic() {
+		printf("Create SkinnedMeshSceneNode\n");
+		Name = "SkinnedMeshSceneNode";
 		printf("Loading Skeleton\n");
 		ozz::io::File file_skel("media/models/skeleton.ozz", "rb");
 		if (!file_skel.opened()) {

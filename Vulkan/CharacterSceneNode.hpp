@@ -33,6 +33,7 @@ public:
 	CharacterSceneNode(TriangleMesh* Mesh, ndMatrix localAxis, dFloat32 Mass, dFloat32 Radius, dFloat32 Height, dFloat32 StepHeight)
 		: _Mesh(Mesh), SceneNode(), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight)
 	{
+		printf("Create CharacterSceneNode\n");
 		Name = "Character";
 		canPhys = false;
 		//	Reserve 10 item slots (hotbar slots currently)
@@ -64,7 +65,6 @@ public:
 		this->GiveItem(Itm3, 2);
 		Item* Itm7 = new Item("Item 7");
 		this->GiveItem(Itm7, 6);
-		printf("Create CharacterSceneNode\n");
 	}
 
 	~CharacterSceneNode() {
