@@ -64,6 +64,7 @@ public:
 		this->GiveItem(Itm3, 2);
 		Item* Itm7 = new Item("Item 7");
 		this->GiveItem(Itm7, 6);
+		printf("Create CharacterSceneNode\n");
 	}
 
 	~CharacterSceneNode() {

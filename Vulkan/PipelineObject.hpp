@@ -16,6 +16,9 @@ struct PipelineObject {
 		for (auto Tex : _Textures) {
 			delete Tex.second;
 		}
+		for (auto Tex : _Textures2) {
+			delete Tex;
+		}
 		vkDestroyPipeline(_Driver->_VulkanDevice->logicalDevice, graphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(_Driver->_VulkanDevice->logicalDevice, pipelineLayout, nullptr);
 		vkDestroyDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, descriptorSetLayout, nullptr);

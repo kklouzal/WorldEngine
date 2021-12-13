@@ -22,6 +22,7 @@ class SceneGraph
 	ImportGLTF* _ImportGLTF;
 	Camera _Camera;
 	CharacterSceneNode* _Character;
+	WorldSceneNode* _World;
 
 public:
 
@@ -35,8 +36,8 @@ public:
 	//	Destructor
 	~SceneGraph()
 	{
-		cleanupWorld();
 		printf("Destroy SceneGraph\n");
+		cleanupWorld(true);
 		delete _ImportGLTF;
 	}
 
@@ -59,7 +60,7 @@ public:
 	bool tryCleanupWorld;
 	bool isWorld;
 	void initWorld();
-	void cleanupWorld();
+	void cleanupWorld(const bool& bForce = false);
 	const bool& ShouldCleanupWorld()
 	{
 		return tryCleanupWorld;
@@ -107,17 +108,20 @@ void SceneGraph::initWorld()
 {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
-	createWorldSceneNode("media/models/CurrentWorld.gltf");
+	_World = createWorldSceneNode("media/models/CurrentWorld.gltf");
 	_Character = createCharacterSceneNode("media/models/box.gltf", ndVector(0, 15, 0, 0));
 	_Character->_Camera = &_Camera;
 
 	isWorld = true;
 }
 
-void SceneGraph::cleanupWorld()
+void SceneGraph::cleanupWorld(const bool& bForce)
 {
-	if (!isWorld) { printf("cleanupWorld: No world initialized to cleanup!\n"); return; }
-	else if (isWorld && !tryCleanupWorld) { tryCleanupWorld = true; return; }
+	if (!bForce)
+	{
+		if (!isWorld) { printf("cleanupWorld: No world initialized to cleanup!\n"); return; }
+		else if (isWorld && !tryCleanupWorld) { tryCleanupWorld = true; return; }
+	}
 	isWorld = false;
 	tryCleanupWorld = false;
 	_Character = nullptr;
@@ -127,6 +131,8 @@ void SceneGraph::cleanupWorld()
 		//_Driver->_ndWorld->RemoveBody((ndBody*)SceneNodes[i]);
 		//delete SceneNodes[i];
 	}
+	printf("try delete world\n");
+	delete _World;
 	//SceneNodes.clear();
 	//SceneNodes.shrink_to_fit();
 
@@ -205,7 +211,7 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 	//
 	//	Push new SceneNode into the SceneGraph
 	SceneNodes.push_back(MeshNode);
-	return nullptr;
+	return MeshNode;
 }
 
 //

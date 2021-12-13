@@ -283,9 +283,9 @@ VulkanDriver::VulkanDriver()
 VulkanDriver::~VulkanDriver()
 {
 	//
-	delete _MaterialCache;
-	//
 	delete _SceneGraph;
+	//
+	delete _MaterialCache;
 	//
 	lua_close(state);
 	//

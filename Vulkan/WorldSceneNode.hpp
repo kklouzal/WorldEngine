@@ -9,7 +9,9 @@ class WorldSceneNode : public SceneNode {
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	WorldSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {}
+	WorldSceneNode(TriangleMesh* Mesh) : _Mesh(Mesh) {
+		printf("Create WorldSceneNode\n");
+	}
 
 	~WorldSceneNode() {
 		printf("Destroy WorldSceneNode\n");

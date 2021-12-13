@@ -10,7 +10,9 @@ public:
 	TriangleMesh* _Mesh = nullptr;
 public:
 	TriangleMeshSceneNode(TriangleMesh* Mesh)
-		: SceneNode(), _Mesh(Mesh) {}
+		: SceneNode(), _Mesh(Mesh) {
+		printf("Create TriangleMeshSceneNode\n");
+	}
 
 	~TriangleMeshSceneNode() {
 		printf("Destroy TriangleMeshSceneNode\n");

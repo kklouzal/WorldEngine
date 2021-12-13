@@ -19,15 +19,15 @@ public:
 		bNeedsUpdate[1] = true;
 		bNeedsUpdate[2] = true;
 	}
-	virtual ~SceneNode() = 0;
+	virtual ~SceneNode()
+	{
+		printf("Destroy Base SceneNode\n");
+	}
 	virtual void updateUniformBuffer(const uint32_t &currentImage) = 0;
 	virtual void drawFrame(const VkCommandBuffer &CommandBuffer, const uint32_t &CurFrame) = 0;
 
 };
 
-SceneNode::~SceneNode() {
-	printf("\tDestroy Base SceneNode\n");
-}
 //
 #include "Item.hpp"
 //
