@@ -1,12 +1,12 @@
 #version 450
 
-layout (binding = 1) uniform sampler2D samplerposition;
-layout (binding = 2) uniform sampler2D samplerNormal;
-layout (binding = 3) uniform sampler2D samplerAlbedo;
+layout(binding = 1) uniform sampler2D samplerposition;
+layout(binding = 2) uniform sampler2D samplerNormal;
+layout(binding = 3) uniform sampler2D samplerAlbedo;
 
-layout (location = 0) in vec2 inUV;
+layout(location = 0) in vec2 inUV;
 
-layout (location = 0) out vec4 outFragcolor;
+layout(location = 0) out vec4 outFragcolor;
 
 struct DLight {
 	vec4 position;
@@ -14,7 +14,7 @@ struct DLight {
 	float radius;
 };
 
-layout (binding = 4) uniform DComposition
+layout(std140, binding = 4) uniform DComposition
 {
 	DLight lights[6];
 	vec4 viewPos;

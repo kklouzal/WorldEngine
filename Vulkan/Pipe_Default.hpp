@@ -196,7 +196,7 @@ namespace Pipeline {
 		//
 		//
 		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& UniformBuffers) {
-			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
+			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver->_VulkanDevice->logicalDevice);
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -256,7 +256,7 @@ namespace Pipeline {
 				return _Textures[File];
 			}
 			else {
-				auto Tex = _Textures.emplace(File, new TextureObject(_Driver)).first->second;
+				auto Tex = _Textures.emplace(File, new TextureObject(_Driver->_VulkanDevice->logicalDevice, _Driver->allocator)).first->second;
 				//printf("\tLoad New Texture: %s\n", File.c_str());
 				const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
@@ -382,7 +382,7 @@ namespace Pipeline {
 		TextureObject* createTextureImage2(tinygltf::Image& ImgData) {
 			//printf("[Pipe][Default]: CreateTextureImage (%s)\n", File.c_str());
 
-			auto Tex = new TextureObject(_Driver);
+			auto Tex = new TextureObject(_Driver->_VulkanDevice->logicalDevice, _Driver->allocator);
 			Tex->Width = ImgData.width;
 			Tex->Height = ImgData.height;
 			Tex->Pixels = ImgData.image;

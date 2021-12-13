@@ -8,30 +8,27 @@ layout(location = 4) in vec4 inBones;
 layout(location = 5) in vec4 inWeights;
 layout(location = 6) in vec3 inTangent;
 
-layout (location = 0) out vec3 outNormal;
-layout (location = 1) out vec2 outUV;
-layout (location = 2) out vec3 outColor;
-layout (location = 3) out vec3 outWorldPos;
-layout (location = 4) out vec3 outTangent;
+layout(location = 0) out vec3 outNormal;
+layout(location = 1) out vec2 outUV;
+layout(location = 2) out vec3 outColor;
+layout(location = 3) out vec4 outWorldPos;
+layout(location = 4) out vec3 outTangent;
 
-layout(push_constant) uniform constants
-{
+layout(std140, push_constant) uniform CameraPushConstant {
     mat4 view;
     mat4 proj;
 } PushConstants;
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(std140, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 bones[128];
 } ubo;
 
 void main() {
-	vec4 vertPos = ubo.model * vec4(inPosition, 1.0);
-    gl_Position = PushConstants.proj * PushConstants.view * vertPos;
+    outWorldPos = ubo.model * vec4(inPosition, 1.0);
+    gl_Position = PushConstants.proj * PushConstants.view * outWorldPos;
     
     outUV = inTexCoord;
-
-	outWorldPos = vertPos.xyz;
     
 	mat3 mNormal = transpose(inverse(mat3(ubo.model)));
 	outNormal = mNormal * normalize(inNormal);

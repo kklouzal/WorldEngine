@@ -58,8 +58,8 @@ namespace Pipeline {
 			VkViewport viewport = {};
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
-			viewport.width = (float)_Driver->swapChainExtent.width;
-			viewport.height = (float)_Driver->swapChainExtent.height;
+			viewport.width = (float)_Driver->WIDTH;
+			viewport.height = (float)_Driver->HEIGHT;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
 			viewportState.pViewports = &viewport;
@@ -110,7 +110,7 @@ namespace Pipeline {
 		//
 		//
 		DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers = std::vector<VkBuffer>()) {
-			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
+			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver->_VulkanDevice->logicalDevice);
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
@@ -154,7 +154,7 @@ namespace Pipeline {
 		}
 
 		DescriptorObject* createRawDescriptor(const VkImageView Image, const VkSampler Sampler) {
-			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver);
+			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver->_VulkanDevice->logicalDevice);
 
 			std::array<VkDescriptorPoolSize, 1> poolSizes = {};
 			poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -216,7 +216,7 @@ namespace Pipeline {
 				return _Textures[File];
 			}
 			else {
-				auto Tex = _Textures.emplace(File, new TextureObject(_Driver)).first->second;
+				auto Tex = _Textures.emplace(File, new TextureObject(_Driver->_VulkanDevice->logicalDevice, _Driver->allocator)).first->second;
 
 				const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 

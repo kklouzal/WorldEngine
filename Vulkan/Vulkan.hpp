@@ -1,123 +1,50 @@
 #pragma once
-#define WIN32_LEAN_AND_MEAN
-#pragma warning( disable : 4714 )
-#pragma warning( disable : 4267 )
 
-#include <Gwen/Gwen.h>
-#include <Gwen/Skins/TexturedBase.h>
-#include <Gwen/Input/Windows.h>
-#include <Gwen/Controls.h>
-#include <Gwen/Controls/WindowControl.h>
-
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define GLM_FORCE_INLINE
-#define GLM_FORCE_INTRINSICS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/hash.hpp>
-
-#define _D_CORE_DLL
-#define _D_NEWTON_DLL
-#define _D_COLLISION_DLL
-#include <ndNewton.h>
-
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
-
-#include "LuaScripting.hpp"
-
-#include <functional>
-#include <algorithm>
-#include <optional>
-#include <set>
-#include <array>
-#include <fstream>
-#include <deque>
-#include <string>
-
-//
-//	Include Vulkan Helpers
-#include <iostream>
-#include <vector>
-#include "VulkanInitializers.hpp"
-#include "VulkanDevice.hpp"
-#include "VulkanFrameBuffer.hpp"
-#include "VulkanSwapChain.hpp"
-
-// Texture properties
-#define TEX_DIM 2048
-#define TEX_FILTER VK_FILTER_LINEAR
-#define SHADOWMAP_DIM 2048
-#define SHADOWMAP_FORMAT VK_FORMAT_D32_SFLOAT_S8_UINT
-#define LIGHT_COUNT 6
-
-// Offscreen frame buffer properties
-#define FB_DIM TEX_DIM
-
-class EventReceiver;
-class MaterialCache;
-class SceneGraph;
-namespace Gwen { namespace Renderer { class Vulkan; } }
-
-struct DLight {
-	glm::vec4 position;
-	glm::vec4 color;
-	glm::f32 radius;
-};
-struct DComposition {
-	DLight lights[6];
-	glm::vec4 viewPos;
-	glm::i32 debugDisplayTarget = 0;
-};
+#include "Forwards.hpp"
 
 class VulkanDriver {
 public:
-	VulkanDriver();
-	~VulkanDriver();
-	void mainLoop();
-
-	DComposition uboComposition;
-
-	struct {
-		// Framebuffer resources for the deferred pass
-		Framebuffer* deferred;
-		// Framebuffer resources for the shadow pass
-		Framebuffer* shadow;
-	} frameBuffers[3];
-
-public:
-	EventReceiver* _EventReceiver;	//	CLEANED
-	GLFWwindow* _Window = nullptr;
 	uint32_t WIDTH = 1024;
 	uint32_t HEIGHT = 768;
 	bool VSYNC = false;
-	VkInstance instance = VK_NULL_HANDLE;
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;
+
+	VulkanDriver();
+	~VulkanDriver();
+
+	DComposition uboComposition;
+
 	//
-	//	SwapChain Semaphores
+	//	Framebuffer Resources
 	struct {
-		// Swap chain image presentation
-		VkSemaphore presentComplete;
-		// Command buffer submission and execution
-		VkSemaphore renderComplete;
-		// Offscreen synchronization
-		VkSemaphore offscreenSync;
-	} semaphores[3];
+		Framebuffer* deferred;
+		Framebuffer* shadow;
+	} frameBuffers[3];										//	Cleaned Up
 	//
-	//	DepthStencil Data
+	//	DepthStencil Resources
 	struct {
 		VkImage image;
 		VmaAllocation allocation;
 		VkImageView view;
-	} depthStencil;													//	Cleaned Up
+	} depthStencil;
+	//
+	//	Per-Frame Synchronization Object Resources
+	struct {
+		VkSemaphore presentComplete;
+		VkSemaphore renderComplete;
+		VkSemaphore offscreenSync;
+		VkFence inFlightFence;
+	} semaphores[3];										//	Cleaned Up
+	//
+	//	Frames-In-Flight
+	std::vector<VkFence> imagesInFlight;					//	Doesnt Need Cleanup
+	uint32_t currentImage = 0;
+	uint32_t currentFrame = 0;
+
+	EventReceiver* _EventReceiver;							//	Cleaned Up
+	GLFWwindow* _Window = nullptr;
+	VkInstance instance = VK_NULL_HANDLE;
+	uint32_t glfwExtensionCount = 0;
+	const char** glfwExtensions;							//	Cleaned Up
 
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	VkPhysicalDeviceProperties deviceProperties;
@@ -130,91 +57,66 @@ public:
 	VkQueue presentQueue = VK_NULL_HANDLE;
 	VulkanSwapChain swapChain;
 	VkSubmitInfo submitInfo;
-	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	std::vector<VkFramebuffer>frameBuffers_Main;					//	Cleaned Up
+	std::vector<VkFramebuffer>frameBuffers_Main;			//	Cleaned Up
 	//
-	//	Frames-In-Flight
-	std::vector<VkFence> inFlightFences;							//	Cleaned Up
-	std::vector<VkFence> imagesInFlight;							//	Doesnt Need Cleanup
-	uint32_t currentImage = 0;
-	uint32_t currentFrame = 0;
-	//
-	VkFormat depthFormat;										//
+	VkFormat depthFormat;									//
 	//
 	//	MAYBE only need a single pool and primary buffer..
-	std::vector <VkCommandPool> commandPools;						//	Cleaned Up
-	std::vector <VkCommandBuffer> primaryCommandBuffers;			//	Doesnt Need Cleanup
-	std::vector <VkCommandBuffer> offscreenCommandBuffers;			//	Doesnt Need Cleanup
+	std::vector <VkCommandPool> commandPools;				//	Cleaned Up
+	std::vector <VkCommandBuffer> primaryCommandBuffers;	//	Doesnt Need Cleanup
+	std::vector <VkCommandBuffer> offscreenCommandBuffers;	//	Doesnt Need Cleanup
 
-	VkExtent2D swapChainExtent;									//
-	VkRenderPass renderPass = VK_NULL_HANDLE;						//	Cleaned Up
+	VkRenderPass renderPass = VK_NULL_HANDLE;				//	Cleaned Up
 
-
-	VkViewport viewport_Deferred;								//
-	VkRect2D scissor_Deferred;									//
-	VkViewport viewport_Main;									//
-	VkRect2D scissor_Main;										//
-	std::array<VkClearValue, 4> clearValues_Deferred;			//
-	std::array<VkClearValue, 2> clearValues_Main;				//
+	VkViewport viewport_Deferred;							//
+	VkRect2D scissor_Deferred;								//
+	VkViewport viewport_Main;								//
+	VkRect2D scissor_Main;									//
+	std::array<VkClearValue, 4> clearValues_Deferred;		//
+	std::array<VkClearValue, 2> clearValues_Main;			//
 
 	// VMA
-	VmaAllocator allocator = VMA_NULL;								//	Cleaned Up
+	VmaAllocator allocator = VMA_NULL;						//	Cleaned Up
 	//
 
-	ndWorld* _ndWorld;												//	Cleaned Up
+	ndWorld* _ndWorld;										//	Cleaned Up
 
-	MaterialCache* _MaterialCache;									//	Cleaned Up
-	SceneGraph* _SceneGraph;										//	Cleaned Up
+	MaterialCache* _MaterialCache;							//	Cleaned Up
+	SceneGraph* _SceneGraph;								//	Cleaned Up
 
-	std::vector<VkCommandBuffer> commandBuffers;					//	Doesnt Need Cleanup
-	std::vector<VkCommandBuffer> commandBuffers_GUI;				//	Doesnt Need Cleanup
+	std::vector<VkCommandBuffer> commandBuffers;			//	Doesnt Need Cleanup
+	std::vector<VkCommandBuffer> commandBuffers_GUI;		//	Doesnt Need Cleanup
 
-	std::vector<VkBuffer> uboCompositionBuff = {};					//	Cleaned Up
-	std::vector<VmaAllocation> uboCompositionAlloc = {};			//	Cleaned Up
-
-	void createUniformBuffersDeferred()
-	{
-		uboCompositionBuff.resize(swapChain.images.size());
-		uboCompositionAlloc.resize(swapChain.images.size());
-		for (size_t i = 0; i < swapChain.images.size(); i++)
-		{
-			VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DComposition));
-			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			VmaAllocationCreateInfo uniformAllocInfo = {};
-			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-			vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
-		}
-	}
-
-	void updateUniformBufferComposition(const size_t &CurFrame);
+	std::vector<VkBuffer> uboCompositionBuff = {};			//	Cleaned Up
+	std::vector<VmaAllocation> uboCompositionAlloc = {};	//	Cleaned Up
 
 	//
 	//	Lua
 	lua_State* state;
-	//
-
 	void initLua();
-	void initWindow();
+	//
+	//	Main Loop
+	void mainLoop();
 	void drawFrame();
+	void Render();
+	void updateUniformBufferComposition(const size_t& CurFrame, const glm::vec3& CamPosition);
 	//
 	//	Vulkan Initialization Stage 1
 	void createInstance();
 	void createLogicalDevice();
-	void createVmaAllocator();
 	//
 	//	Vulkan Initialization Stage 2
 	void createDepthResources();
 	void createRenderPass();
 	void createFrameBuffers();
 	//
-	//	Check Physical Device Support
-	//
-
+	//	Deferred Rendering
 	void prepareOffscreenFrameBuffer();
-
+	//
+	//	Event Handling
 	void setEventReceiver(EventReceiver* _EventRcvr);
-
+	//
+	//	Time Keeping
 	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
 	float deltaFrame = 0;
@@ -226,7 +128,6 @@ public:
 			Frames.pop_front();
 		}
 	}
-
 	const float GetDeltaFrames() const {
 		float DF = 0;
 		for (auto &F : Frames) {
@@ -259,11 +160,10 @@ public:
 		vkQueueWaitIdle(graphicsQueue);
 		vkFreeCommandBuffers(_VulkanDevice->logicalDevice, commandPools[currentFrame], 1, &commandBuffer);
 	}
-
-	void Render();
 };
 
-#include "Forwards.hpp"
+#include "PipelineObject.hpp"
+#include "Import_GLTF.hpp"
 
 #include "SceneGraph.hpp"
 
@@ -271,71 +171,38 @@ public:
 
 #include "EventReceiver.hpp"
 
-// Update lights and parameters passed to the composition shaders
-void VulkanDriver::updateUniformBufferComposition(const size_t &CurFrame)
-{
-	// White
-	uboComposition.lights[0].position = glm::vec4(-50.0f, 10.0f, -50.0f, 0.0f);
-	uboComposition.lights[0].color = glm::vec4(1.5f);
-	uboComposition.lights[0].radius = 100.0f;
-	// Red
-	uboComposition.lights[1].position = glm::vec4(-50.0f, 10.0f, 0.0f, 0.0f);
-	uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-	uboComposition.lights[1].radius = 100.0f;
-	// Blue
-	uboComposition.lights[2].position = glm::vec4(50.0f, 10.0f, 0.0f, 0.0f);
-	uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
-	uboComposition.lights[2].radius = 100.0f;
-	// Yellow
-	uboComposition.lights[3].position = glm::vec4(0.0f, 10.0f, -50.0f, 0.0f);
-	uboComposition.lights[3].color = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
-	uboComposition.lights[3].radius = 100.0f;
-	// Green
-	uboComposition.lights[4].position = glm::vec4(0.0f, 10.0f, 50.0f, 0.0f);
-	uboComposition.lights[4].color = glm::vec4(0.0f, 1.0f, 0.2f, 0.0f);
-	uboComposition.lights[4].radius = 100.0f;
-	// Yellow
-	uboComposition.lights[5].position = glm::vec4(50.0f, 10.0f, 50.0f, 0.0f);
-	uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
-	uboComposition.lights[5].radius = 100.0f;
-
-	// Current view position
-	uboComposition.viewPos = glm::vec4(_SceneGraph->GetCamera().Pos, 0.0f) * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-
-	memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
-}
-
 //
 //	Initialize
 VulkanDriver::VulkanDriver()
 {
-	swapChainExtent.width = WIDTH;
-	swapChainExtent.height = HEIGHT;
-	initLua();
-	initWindow();
 	//
-	//	Initialize Vulkan - Main
+	//	GLFW Window Initialization
+	glfwInit();
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	_Window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	//
+	//	Initialize Vulkan - First Stage
 	createInstance();
 	createLogicalDevice();
-	createVmaAllocator();
 	//
-	//	Initialize Vulkan - Sub
+	//	VMA Allocator
+	VmaAllocatorCreateInfo allocatorInfo = {};
+	allocatorInfo.physicalDevice = physicalDevice;
+	allocatorInfo.device = _VulkanDevice->logicalDevice;
+	allocatorInfo.instance = instance;
+	vmaCreateAllocator(&allocatorInfo, &allocator);
+	//
+	//	Initialize Vulkan - Second Stage
 	swapChain.initSurface(_Window);				//	SwapChain init
 	swapChain.create(&WIDTH, &HEIGHT, VSYNC);	//	SwapChain setup
 	createDepthResources();						//	Depth Stencil setup
 	createRenderPass();
 	createFrameBuffers();
-	createUniformBuffersDeferred();
 	prepareOffscreenFrameBuffer();
-
-	_ndWorld = new ndWorld();
-	_ndWorld->SetThreadCount(std::thread::hardware_concurrency()-2);
-	_ndWorld->SetSubSteps(3);
-	_ndWorld->SetSolverIterations(2);
-
-	_SceneGraph = new SceneGraph(this);
-	_MaterialCache = new MaterialCache(this);
 	//
+	//	Rendering Viewports and Clear Values
 	viewport_Deferred = vks::initializers::viewport((float)FB_DIM, (float)FB_DIM, 0.0f, 1.0f);
 	scissor_Deferred = vks::initializers::rect2D(FB_DIM, FB_DIM, 0, 0);
 	clearValues_Deferred[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
@@ -347,6 +214,20 @@ VulkanDriver::VulkanDriver()
 	clearValues_Main[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
 	clearValues_Main[1].depthStencil = { 1.0f, 0 };
 	//
+	//	Per-Frame Deferred Rendering Uniform Buffer Objects
+	uboCompositionBuff.resize(swapChain.images.size());
+	uboCompositionAlloc.resize(swapChain.images.size());
+	for (size_t i = 0; i < swapChain.images.size(); i++)
+	{
+		VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DComposition));
+		uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		VmaAllocationCreateInfo uniformAllocInfo = {};
+		uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
+	}
+	//
+	//	Per-Frame Primary Command Buffers
 	commandBuffers.resize(frameBuffers_Main.size());
 	commandBuffers_GUI.resize(frameBuffers_Main.size());
 	for (int i = 0; i < frameBuffers_Main.size(); i++)
@@ -355,7 +236,7 @@ VulkanDriver::VulkanDriver()
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
 	}
 	//
-	//	Create GUI CommandBuffers
+	//	Per-Frame Secondary GUI Command Buffers
 	commandBuffers.resize(frameBuffers_Main.size());
 	for (int i = 0; i < frameBuffers_Main.size(); i++)
 	{
@@ -363,10 +244,9 @@ VulkanDriver::VulkanDriver()
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
 	}
 	//
-	//	Create synchronization objects
+	//	Per-Frame Synchronization Objects
 	VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 	VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-	inFlightFences.resize(swapChain.imageCount);
 	imagesInFlight.resize(swapChain.imageCount, VK_NULL_HANDLE);
 	for (uint32_t i = 0; i < swapChain.imageCount; i++)
 	{
@@ -381,54 +261,72 @@ VulkanDriver::VulkanDriver()
 		VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].offscreenSync));
 		// Create a fence used to synchronize cpu/gpu access per frame
 		// Ensures a frame completely finishes on the gpu before being used again on the cpu
-		VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &inFlightFences[i]));
+		VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &semaphores[i].inFlightFence));
 	}
+	//
+	//	Physics Initialization
+	_ndWorld = new ndWorld();
+	_ndWorld->SetThreadCount(std::thread::hardware_concurrency() - 2);
+	_ndWorld->SetSubSteps(3);
+	_ndWorld->SetSolverIterations(2);
+	//
+	//	LUA Initialization
+	initLua();
+	//
+	//	Core Classes
+	_SceneGraph = new SceneGraph(this);
+	_MaterialCache = new MaterialCache(this);
 }
 
 //
 //	Deinitialize
 VulkanDriver::~VulkanDriver()
 {
-	lua_close(state);
 	//
-	delete _EventReceiver;
+	delete _MaterialCache;
 	//
 	delete _SceneGraph;
 	//
-	for (auto commandpool : commandPools) {
-		vkDestroyCommandPool(_VulkanDevice->logicalDevice, commandpool, nullptr);
+	lua_close(state);
+	//
+	delete _ndWorld;
+	//
+	delete _EventReceiver;
+	//	Destroy Synchronization Objects
+	for (auto& sync : semaphores)
+	{
+		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.offscreenSync, nullptr);
+		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.renderComplete, nullptr);
+		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.presentComplete, nullptr);
+		vkDestroyFence(_VulkanDevice->logicalDevice, sync.inFlightFence, nullptr);
 	}
-	for (auto framebuffer : frameBuffers_Main) {
-		vkDestroyFramebuffer(_VulkanDevice->logicalDevice, framebuffer, nullptr);
+	//
+	for (int i = 0; i < uboCompositionBuff.size(); i++)
+	{
+		vmaDestroyBuffer(allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
+	}
+	//
+	for (auto& commandpool : commandPools) {
+		vkDestroyCommandPool(_VulkanDevice->logicalDevice, commandpool, nullptr);
 	}
 	//	Destroy Depth Buffer
 	vkDestroyImageView(_VulkanDevice->logicalDevice, depthStencil.view, nullptr);
 	vmaDestroyImage(allocator, depthStencil.image, depthStencil.allocation);
 	//	Destroy Render Pass
 	vkDestroyRenderPass(_VulkanDevice->logicalDevice, renderPass, nullptr);
-	//	Destroy Synchronization Objects
-	for (auto sync : inFlightFences)
-	{
-		vkDestroyFence(_VulkanDevice->logicalDevice, sync, nullptr);
+	//	Destroy Framebuffer Resources
+	for (auto& framebuffer : frameBuffers_Main) {
+		vkDestroyFramebuffer(_VulkanDevice->logicalDevice, framebuffer, nullptr);
 	}
-	for (auto sync : semaphores)
+	for (auto& framebuffer : frameBuffers)
 	{
-		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.offscreenSync, nullptr);
-		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.renderComplete, nullptr);
-		vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.presentComplete, nullptr);
+		delete framebuffer.deferred;
+		delete framebuffer.shadow;
 	}
-	//delete frameBuffers.deferred;
-	//delete frameBuffers.shadow;
-	delete _MaterialCache;
-
-	delete _ndWorld;
-	for (int i = 0; i < uboCompositionBuff.size(); i++)
-	{
-		vmaDestroyBuffer(allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
-	}
-
 	//	Destroy VMA Allocator
 	vmaDestroyAllocator(allocator);
+	//	Destroy VulkanDevice
+	delete _VulkanDevice;
 	//
 	vkDestroyInstance(instance, nullptr);
 	glfwDestroyWindow(_Window);
@@ -467,7 +365,7 @@ void VulkanDriver::mainLoop()
 			_ndWorld->Update(deltaFrame);
 			//
 			//	Update Shader Uniforms
-			updateUniformBufferComposition(currentFrame);
+			updateUniformBufferComposition(currentFrame, _SceneGraph->GetCamera().Pos);
 			_SceneGraph->updateUniformBuffer(currentFrame);
 			//
 			//	Draw Frame
@@ -488,7 +386,7 @@ void VulkanDriver::Render()
 {
 	// 
 	//	Wait on this frame if it is still being used by the GPU
-	vkWaitForFences(_VulkanDevice->logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+	vkWaitForFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
 	// 
 	// Acquire the next image from the swap chain
 	VkResult result = swapChain.acquireNextImage(semaphores[currentFrame].presentComplete, &currentImage);
@@ -499,7 +397,7 @@ void VulkanDriver::Render()
 	}
 	//
 	//	Mark this image as being used by the GPU for this frame
-	imagesInFlight[currentImage] = inFlightFences[currentFrame];
+	imagesInFlight[currentImage] = semaphores[currentFrame].inFlightFence;
 	//
 	// Recreate the swapchain if it's no longer compatible with the surface (OUT_OF_DATE) or no longer optimal for presentation (SUBOPTIMAL)
 	if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
@@ -570,7 +468,7 @@ void VulkanDriver::Render()
 	VkRenderPassBeginInfo renderPassBeginInfo2 = vks::initializers::renderPassBeginInfo();
 	renderPassBeginInfo2.renderPass = renderPass;
 	renderPassBeginInfo2.renderArea.offset = { 0, 0 };
-	renderPassBeginInfo2.renderArea.extent = swapChainExtent;
+	renderPassBeginInfo2.renderArea.extent = { WIDTH, HEIGHT };
 	renderPassBeginInfo2.clearValueCount = static_cast<uint32_t>(clearValues_Main.size());;
 	renderPassBeginInfo2.pClearValues = clearValues_Main.data();
 	renderPassBeginInfo2.framebuffer = frameBuffers_Main[currentFrame];
@@ -638,8 +536,8 @@ void VulkanDriver::Render()
 	vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
 	VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentFrame]));
 
-	vkResetFences(_VulkanDevice->logicalDevice, 1, &inFlightFences[currentFrame]);
-	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]));
+	vkResetFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence);
+	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, semaphores[currentFrame].inFlightFence));
 
 	//
 	//		PRESENT TO SCREEN
@@ -660,6 +558,40 @@ void VulkanDriver::Render()
 	currentFrame = (currentFrame + 1) % swapChain.imageCount;
 }
 
+// Update lights and parameters passed to the composition shaders
+void VulkanDriver::updateUniformBufferComposition(const size_t& CurFrame, const glm::vec3& CamPosition)
+{
+	// White
+	uboComposition.lights[0].position = glm::vec4(-50.0f, 10.0f, -50.0f, 0.0f);
+	uboComposition.lights[0].color = glm::vec4(1.5f);
+	uboComposition.lights[0].radius = 100.0f;
+	// Red
+	uboComposition.lights[1].position = glm::vec4(-50.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+	uboComposition.lights[1].radius = 100.0f;
+	// Blue
+	uboComposition.lights[2].position = glm::vec4(50.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
+	uboComposition.lights[2].radius = 100.0f;
+	// Yellow
+	uboComposition.lights[3].position = glm::vec4(0.0f, 10.0f, -50.0f, 0.0f);
+	uboComposition.lights[3].color = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
+	uboComposition.lights[3].radius = 100.0f;
+	// Green
+	uboComposition.lights[4].position = glm::vec4(0.0f, 10.0f, 50.0f, 0.0f);
+	uboComposition.lights[4].color = glm::vec4(0.0f, 1.0f, 0.2f, 0.0f);
+	uboComposition.lights[4].radius = 100.0f;
+	// Yellow
+	uboComposition.lights[5].position = glm::vec4(50.0f, 10.0f, 50.0f, 0.0f);
+	uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
+	uboComposition.lights[5].radius = 100.0f;
+
+	// Current view position
+	uboComposition.viewPos = glm::vec4(CamPosition, 0.0f) * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
+}
+
 void VulkanDriver::initLua()
 {
 	state = luaL_newstate();
@@ -676,15 +608,6 @@ void VulkanDriver::initLua()
 	}
 }
 
-void VulkanDriver::initWindow()
-{
-	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	_Window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-}
-
 void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr)
 {
 	glfwSetWindowUserPointer(_Window, _EventRcvr);
@@ -698,9 +621,7 @@ void VulkanDriver::setEventReceiver(EventReceiver* _EventRcvr)
 }
 
 //
-//	Vulkan Initialization
-//	Stage - 1
-//	Step - 1
+//	Vulkan Initialization - Stage 1 - Step 1
 void VulkanDriver::createInstance()
 {
 	VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
@@ -740,9 +661,7 @@ void VulkanDriver::createInstance()
 }
 
 //
-//	Vulkan Initialization
-//	Stage - 1
-//	Step - 2
+//	Vulkan Initialization - Stage 1 - Step 2
 void VulkanDriver::createLogicalDevice()
 {
 	uint32_t deviceCount = 0;
@@ -770,15 +689,32 @@ void VulkanDriver::createLogicalDevice()
 	//	Set enabled features
 	if (deviceFeatures.samplerAnisotropy) {
 		enabledFeatures.samplerAnisotropy = VK_TRUE;
+		printf("[VULKAN] - Sampler Anisotrophy Enabled!\n");
 	}
 	else {
 		printf("[VULKAN][WARNING] - Sampler Anisotrophy unavailable!\n");
 	}
 	if (deviceFeatures.geometryShader) {
 		enabledFeatures.geometryShader = VK_TRUE;
+		printf("[VULKAN] - Geometry Shaders Enabled!\n");
 	}
 	else {
 		printf("[VULKAN][WARNING] - Geometry Shader unavailable!\n");
+	}
+	if (deviceFeatures.textureCompressionBC) {
+		enabledFeatures.textureCompressionBC = VK_TRUE;
+		printf("[VULKAN] - Texture Compression BC Enabled!\n");
+	}
+	else if (deviceFeatures.textureCompressionASTC_LDR) {
+		enabledFeatures.textureCompressionASTC_LDR = VK_TRUE;
+		printf("[VULKAN] - Texture Compression ASTC_LDR Enabled!\n");
+	}
+	else if (deviceFeatures.textureCompressionETC2) {
+		enabledFeatures.textureCompressionETC2 = VK_TRUE;
+		printf("[VULKAN] - Texture Compression ETC2 Enabled!\n");
+	}
+	else {
+		printf("[VULKAN][WARNING] - Texture Compression unavailable!\n");
 	}
 	//
 	//	Create logical device
@@ -797,6 +733,7 @@ void VulkanDriver::createLogicalDevice()
 	swapChain.connect(instance, physicalDevice, _VulkanDevice->logicalDevice);
 	//
 	//	Submit Information
+	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 	submitInfo = vks::initializers::submitInfo();
 	submitInfo.pWaitDstStageMask = &submitPipelineStages;
 	submitInfo.waitSemaphoreCount = 1;
@@ -806,8 +743,7 @@ void VulkanDriver::createLogicalDevice()
 }
 
 //
-//	Vulkan Initialization
-//	Stage - 2
+//	Vulkan Initialization - Stage 2 - Step 1
 void VulkanDriver::createDepthResources()
 {
 	VmaAllocationCreateInfo allocInfo = {};
@@ -815,15 +751,13 @@ void VulkanDriver::createDepthResources()
 
 	VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = WIDTH;
-	imageInfo.extent.height = HEIGHT;
-	imageInfo.extent.depth = 1;
+	imageInfo.extent = { WIDTH, HEIGHT, 1 };
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
 	imageInfo.format = depthFormat;
 	imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	imageInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
@@ -845,6 +779,8 @@ void VulkanDriver::createDepthResources()
 	VK_CHECK_RESULT(vkCreateImageView(_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &depthStencil.view));
 }
 
+//
+//	Vulkan Initialization - Stage 2 - Step 2
 void VulkanDriver::createRenderPass()
 {
 	std::array<VkAttachmentDescription, 2> attachments = {};
@@ -916,6 +852,8 @@ void VulkanDriver::createRenderPass()
 	VK_CHECK_RESULT(vkCreateRenderPass(_VulkanDevice->logicalDevice, &renderPassInfo, nullptr, &renderPass));
 }
 
+//
+//	Vulkan Initialization - Stage 2 - Step 3
 void VulkanDriver::createFrameBuffers() 
 {
 	VkImageView attachments[2];
@@ -947,7 +885,7 @@ void VulkanDriver::createFrameBuffers()
 		//	CommandPools
 		VkCommandPoolCreateInfo poolInfo = vks::initializers::commandPoolCreateInfo();
 		poolInfo.queueFamilyIndex = _VulkanDevice->queueFamilyIndices.graphics;
-		poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+		//poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 		//
 		VK_CHECK_RESULT(vkCreateCommandPool(_VulkanDevice->logicalDevice, &poolInfo, nullptr, &commandPools[i]));
 		//
@@ -959,7 +897,8 @@ void VulkanDriver::createFrameBuffers()
 	}
 }
 
-// Prepare a new framebuffer and attachments for offscreen rendering (G-Buffer)
+//
+//	Vulkan Initialization - Stage 2 - Step 4
 void VulkanDriver::prepareOffscreenFrameBuffer()
 {
 	////
@@ -1026,12 +965,4 @@ void VulkanDriver::prepareOffscreenFrameBuffer()
 		// Create default renderpass for the framebuffer
 		VK_CHECK_RESULT(frameBuffers[i].deferred->createRenderPass());
 	}
-}
-
-void VulkanDriver::createVmaAllocator() {
-	VmaAllocatorCreateInfo allocatorInfo = {};
-	allocatorInfo.physicalDevice = physicalDevice;
-	allocatorInfo.device = _VulkanDevice->logicalDevice;
-	allocatorInfo.instance = instance;
-	vmaCreateAllocator(&allocatorInfo, &allocator);
 }
