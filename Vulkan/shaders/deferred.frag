@@ -25,7 +25,7 @@ void main()
 {
 	// Get G-Buffer values
 	vec3 fragPos = texture(samplerposition, inUV).rgb;
-	vec3 normal = texture(samplerNormal, inUV).rgb;
+	vec4 normal = texture(samplerNormal, inUV);
 	vec4 albedo = texture(samplerAlbedo, inUV);
 	
 	// Debug display
@@ -35,7 +35,7 @@ void main()
 				outFragcolor.rgb = fragPos;
 				break;
 			case 2:
-				outFragcolor.rgb = normal;
+				outFragcolor.rgb = normal.rgb;
 				break;
 			case 3:
 				outFragcolor.rgb = albedo.rgb;
@@ -76,7 +76,7 @@ void main()
 			float atten = ubo.lights[i].radius / (pow(dist, 2.0) + 1.0);
 
 			// Diffuse part
-			vec3 N = normalize(normal);
+			vec3 N = normalize(normal).xyz;
 			float NdotL = max(0.0, dot(N, L));
 			vec3 diff = ubo.lights[i].color.xyz * albedo.rgb * NdotL * atten;
 

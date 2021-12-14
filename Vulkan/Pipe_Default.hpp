@@ -488,7 +488,6 @@ namespace Pipeline {
 			textureImageViewInfo.image = Tex->Image;
 			textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			textureImageViewInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
-			textureImageViewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
 			textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 			textureImageViewInfo.subresourceRange.baseMipLevel = 0;
 			textureImageViewInfo.subresourceRange.levelCount = 1;

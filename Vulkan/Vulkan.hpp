@@ -12,10 +12,9 @@ public:
 	VulkanDriver();
 	~VulkanDriver();
 
-	DComposition uboComposition;
-
 	//
 	//	Framebuffer Resources
+	std::vector<VkFramebuffer>frameBuffers_Main;			//	Cleaned Up
 	struct {
 		Framebuffer* deferred;
 		Framebuffer* shadow;
@@ -26,7 +25,7 @@ public:
 		VkImage image;
 		VmaAllocation allocation;
 		VkImageView view;
-	} depthStencil;
+	} depthStencil;											//	Cleaned Up
 	//
 	//	Per-Frame Synchronization Object Resources
 	struct {
@@ -38,27 +37,23 @@ public:
 	//
 	//	Frames-In-Flight
 	std::vector<VkFence> imagesInFlight;					//	Doesnt Need Cleanup
-	uint32_t currentImage = 0;
-	uint32_t currentFrame = 0;
+	uint32_t currentImage = 0;								//
+	uint32_t currentFrame = 0;								//
 
-	EventReceiver* _EventReceiver;							//	Cleaned Up
-	GLFWwindow* _Window = nullptr;
-	VkInstance instance = VK_NULL_HANDLE;
-	uint32_t glfwExtensionCount = 0;
-	const char** glfwExtensions;							//	Cleaned Up
+	GLFWwindow* _Window = nullptr;							//
+	uint32_t glfwExtensionCount = 0;						//
+	const char** glfwExtensions;							//
+	VkInstance instance = VK_NULL_HANDLE;					//	Cleaned Up
 
-	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-	VkPhysicalDeviceProperties deviceProperties;
-	VkPhysicalDeviceFeatures deviceFeatures;
-	VkPhysicalDeviceFeatures enabledFeatures {};
-	std::vector<const char*> enabledDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-	std::vector<const char*> enabledInstanceExtensions;
-	VulkanDevice* _VulkanDevice;
-	VkQueue graphicsQueue = VK_NULL_HANDLE;
-	VkQueue presentQueue = VK_NULL_HANDLE;
-	VulkanSwapChain* swapChain;
-	VkSubmitInfo submitInfo;
-	std::vector<VkFramebuffer>frameBuffers_Main;			//	Cleaned Up
+	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;		//	Cleaned Up
+	VkPhysicalDeviceProperties deviceProperties;			//
+	VkPhysicalDeviceFeatures deviceFeatures;				//
+	VkPhysicalDeviceFeatures enabledFeatures {};			//
+	std::vector<const char*> enabledDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };	//
+	std::vector<const char*> enabledInstanceExtensions;		//
+	VkQueue graphicsQueue = VK_NULL_HANDLE;					//
+	VkQueue presentQueue = VK_NULL_HANDLE;					//
+	VkSubmitInfo submitInfo;								//
 	//
 	VkFormat depthFormat;									//
 	//
@@ -76,20 +71,21 @@ public:
 	std::array<VkClearValue, 4> clearValues_Deferred;		//
 	std::array<VkClearValue, 2> clearValues_Main;			//
 
-	// VMA
-	VmaAllocator allocator = VMA_NULL;						//	Cleaned Up
-	//
-
-	ndWorld* _ndWorld;										//	Cleaned Up
-
-	MaterialCache* _MaterialCache;							//	Cleaned Up
-	SceneGraph* _SceneGraph;								//	Cleaned Up
-
 	std::vector<VkCommandBuffer> commandBuffers;			//	Doesnt Need Cleanup
 	std::vector<VkCommandBuffer> commandBuffers_GUI;		//	Doesnt Need Cleanup
 
+	DComposition uboComposition;							//	Doesnt Need Cleanup
 	std::vector<VkBuffer> uboCompositionBuff = {};			//	Cleaned Up
 	std::vector<VmaAllocation> uboCompositionAlloc = {};	//	Cleaned Up
+
+	// Core Classes
+	VmaAllocator allocator = VMA_NULL;						//	Cleaned Up
+	VulkanSwapChain* swapChain;								//	Cleaned Up
+	VulkanDevice* _VulkanDevice;							//	Cleaned Up
+	EventReceiver* _EventReceiver;							//	Cleaned Up
+	MaterialCache* _MaterialCache;							//	Cleaned Up
+	SceneGraph* _SceneGraph;								//	Cleaned Up
+	ndWorld* _ndWorld;										//	Cleaned Up
 
 	//
 	//	Lua
@@ -955,11 +951,11 @@ void VulkanDriver::prepareOffscreenFrameBuffer()
 		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
 		// Attachment 1: (World space) Normals
-		attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+		attachmentInfo2.format = VK_FORMAT_B8G8R8A8_UNORM;
 		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
 		// Attachment 2: Albedo (color)
-		attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
+		attachmentInfo2.format = VK_FORMAT_B8G8R8A8_UNORM;
 		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
 		attachmentInfo2.format = depthFormat;
