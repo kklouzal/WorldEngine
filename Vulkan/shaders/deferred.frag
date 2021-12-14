@@ -76,7 +76,7 @@ void main()
 			float atten = ubo.lights[i].radius / (pow(dist, 2.0) + 1.0);
 
 			// Diffuse part
-			vec3 N = normalize(normal).xyz;
+			vec3 N = normalize(normal.xyz);
 			float NdotL = max(0.0, dot(N, L));
 			vec3 diff = ubo.lights[i].color.xyz * albedo.rgb * NdotL * atten;
 
