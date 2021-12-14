@@ -951,11 +951,11 @@ void VulkanDriver::prepareOffscreenFrameBuffer()
 		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
 		// Attachment 1: (World space) Normals
-		attachmentInfo2.format = VK_FORMAT_B8G8R8A8_UNORM;
+		attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
 		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
 		// Attachment 2: Albedo (color)
-		attachmentInfo2.format = VK_FORMAT_B8G8R8A8_UNORM;
+		attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
 		frameBuffers[i].deferred->addAttachment(attachmentInfo2);
 
 		attachmentInfo2.format = depthFormat;

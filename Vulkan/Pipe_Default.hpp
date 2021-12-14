@@ -144,7 +144,7 @@ namespace Pipeline {
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain->images.size() * 3),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain->images.size()*3)
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain->images.size() * 3)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain->images.size());
 			VK_CHECK_RESULT(vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &DescriptorPool_Composition));
@@ -179,16 +179,14 @@ namespace Pipeline {
 				bufferInfo_composition.offset = 0;
 				bufferInfo_composition.range = sizeof(DComposition);
 
-				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-
-				writeDescriptorSets = {
-					// Binding 2 : Position texture target
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					// Binding 1 : Position texture target
 					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texDescriptorPosition),
-					// Binding 3 : Normals texture target
+					// Binding 2 : Normals texture target
 					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &texDescriptorNormal),
-					// Binding 4 : Albedo texture target
+					// Binding 3 : Albedo texture target
 					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texDescriptorAlbedo),
-					// Binding 1 : Fragment shader uniform buffer
+					// Binding 4 : Fragment shader uniform buffer
 					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &bufferInfo_composition)
 				};
 				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
@@ -204,8 +202,8 @@ namespace Pipeline {
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain->images.size()*3),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain->images.size()*3)
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, _Driver->swapChain->images.size() * 3),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain->images.size() * 3)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain->images.size());
 			VK_CHECK_RESULT(vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool));
@@ -232,9 +230,7 @@ namespace Pipeline {
 						TextureNormal->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-				std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-
-				writeDescriptorSets = {
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 					// Binding 0 : vertex data
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo),
 					// Binding 1 : color
@@ -304,7 +300,7 @@ namespace Pipeline {
 				imageInfo.extent.depth = 1;
 				imageInfo.mipLevels = 1;
 				imageInfo.arrayLayers = 1;
-				imageInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
+				imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
 				imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 				imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
@@ -369,14 +365,11 @@ namespace Pipeline {
 				vmaDestroyBuffer(_Driver->allocator, stagingImageBuffer, stagingImageBufferAlloc);
 
 				VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-				textureImageViewInfo.image = Tex->Image;
 				textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-				textureImageViewInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
-				textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				textureImageViewInfo.subresourceRange.baseMipLevel = 0;
-				textureImageViewInfo.subresourceRange.levelCount = 1;
-				textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
-				textureImageViewInfo.subresourceRange.layerCount = 1;
+				textureImageViewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+				textureImageViewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+				textureImageViewInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+				textureImageViewInfo.image = Tex->Image;
 				vkCreateImageView(_Driver->_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Tex->ImageView);
 
 				return Tex;

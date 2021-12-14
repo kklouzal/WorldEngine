@@ -57,10 +57,10 @@ protected:
 		samplerInfo1.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
 		samplerInfo1.anisotropyEnable = VK_TRUE;
 		samplerInfo1.maxAnisotropy = 16;
-		samplerInfo1.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo1.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		samplerInfo1.unnormalizedCoordinates = VK_FALSE;
 		samplerInfo1.compareEnable = VK_FALSE;
-		samplerInfo1.compareOp = VK_COMPARE_OP_ALWAYS;
+		samplerInfo1.compareOp = VK_COMPARE_OP_NEVER;
 		samplerInfo1.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 		samplerInfo1.mipLodBias = 0.0f;
 		samplerInfo1.minLod = 0.0f;
