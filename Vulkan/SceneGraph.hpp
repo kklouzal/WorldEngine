@@ -108,7 +108,7 @@ void SceneGraph::initWorld()
 {
 	if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 
-	_World = createWorldSceneNode("media/models/CurrentWorld.gltf");
+	_World = createWorldSceneNode("media/models/deferred_floor.gltf");
 	_Character = createCharacterSceneNode("media/models/box.gltf", ndVector(0, 15, 0, 0));
 	_Character->_Camera = &_Camera;
 

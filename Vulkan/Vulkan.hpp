@@ -573,7 +573,8 @@ void VulkanDriver::updateUniformBufferComposition(const size_t& CurFrame, const 
 	uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 	uboComposition.lights[1].radius = 100.0f;
 	// Blue
-	uboComposition.lights[2].position = glm::vec4(50.0f, 10.0f, 0.0f, 0.0f);
+	//uboComposition.lights[2].position = glm::vec4(50.0f, 10.0f, 0.0f, 0.0f);
+	uboComposition.lights[2].position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
 	uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
 	uboComposition.lights[2].radius = 100.0f;
 	// Yellow

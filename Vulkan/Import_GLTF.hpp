@@ -118,6 +118,50 @@ public:
                                 }
                             }
                         }
+                        else if (_Attribute.first == "TANGENT")
+                        {
+
+#ifdef _DEBUG
+                            printf("[GLTF]: TANGENT\n");
+                            printf("\tAccessor ID %i\n", AccessorID);
+                            printf("\tBufferView ID %i\n", Accessor.bufferView);
+                            printf("\tBuffer ID %i\n", BufferNum);
+                            printf("\tData Start Position %zu\n", DataStart);
+                            printf("\tData Stride %i\n", DataStride);
+                            printf("\t\tAccessor Type %i\n", Accessor.type);
+                            printf("\t\tAccessor Count %zu\n", Accessor.count);
+                            printf("\t\tAccessor Component Type %i\n", Accessor.componentType);
+#endif
+                            
+                            if (Accessor.type == TINYGLTF_TYPE_VEC4)
+                            {
+                                if (Accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT)
+                                {
+                                    size_t DataPos = DataStart;
+
+                                    for (size_t VertexID = 0; VertexID < Accessor.count; VertexID++)
+                                    {
+                                        if (Infos->Vertices.size() == VertexID)
+                                        {
+                                            Infos->Vertices.emplace_back();
+                                        }
+                                        Vertex& Vert = Infos->Vertices[VertexID];
+                                        //
+                                        // Parse buffer returning Vector3_Float's
+                                        // Vec3(float, float, float)
+                                        Vert.Tangents.x = *reinterpret_cast<const float*>(&Buffer.data()[DataPos]);
+                                        DataPos += sizeof(const float);
+                                        Vert.Tangents.y = *reinterpret_cast<const float*>(&Buffer.data()[DataPos]);
+                                        DataPos += sizeof(const float);
+                                        Vert.Tangents.z = *reinterpret_cast<const float*>(&Buffer.data()[DataPos]);
+                                        DataPos += sizeof(const float);
+                                        Vert.Tangents.w = *reinterpret_cast<const float*>(&Buffer.data()[DataPos]);
+                                        DataPos += sizeof(const float);// +DataStride;
+                                        //printf("\tPosition: Vec3(%f, %f, %f)\n", positions[VertexID], positions[VertexID+1], positions[VertexID+2]);
+                                    }
+                                }
+                            }
+                        }
                         else if (_Attribute.first == "JOINTS_0")
                         {
 
@@ -344,16 +388,25 @@ public:
                     //  Load Textures
                     //
                     //  TODO: Implement default/missing textures
-                    const tinygltf::Material& _Material = model.materials[_Primitive.material];
-                    int ColorTex = _Material.pbrMetallicRoughness.baseColorTexture.index;
-                    int NormalTex = _Material.normalTexture.index;
 
-                    printf("MODEL.IMAGES COLOR NAME %s\n", model.images[ColorTex].name.c_str());
-                    Infos->DiffuseTex = Pipe->createTextureImage2(model.images[ColorTex]);
-                    if (NormalTex >= 0)
+                    if (model.materials.size() <= 0)
                     {
-                        printf("MODEL.IMAGES NORMAL NAME %s\n", model.images[NormalTex].name.c_str());
-                        Infos->NormalTex = Pipe->createTextureImage2(model.images[NormalTex]);
+                        Infos->DiffuseTex = Pipe->createTextureImage("NA");
+                        Infos->NormalTex = Pipe->createTextureImage("NA");
+                    }
+                    else
+                    {
+                        const tinygltf::Material& _Material = model.materials[_Primitive.material];
+                        int ColorTex = _Material.pbrMetallicRoughness.baseColorTexture.index;
+                        int NormalTex = _Material.normalTexture.index;
+
+                        printf("MODEL.IMAGES COLOR NAME %s\n", model.images[ColorTex].name.c_str());
+                        Infos->DiffuseTex = Pipe->createTextureImage2(model.images[ColorTex]);
+                        if (NormalTex >= 0)
+                        {
+                            printf("MODEL.IMAGES NORMAL NAME %s\n", model.images[NormalTex].name.c_str());
+                            Infos->NormalTex = Pipe->createTextureImage2(model.images[NormalTex]);
+                        }
                     }
                 }
             }
