@@ -2,9 +2,8 @@
 
 #include "lodepng.h"
 
-struct PipelineObject {
-	VulkanDriver* _Driver;
-
+struct PipelineObject
+{
 	VkSampler Sampler = VK_NULL_HANDLE;
 	VkSampler DeferredSampler = VK_NULL_HANDLE;
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
@@ -19,11 +18,11 @@ struct PipelineObject {
 		for (auto Tex : _Textures2) {
 			delete Tex;
 		}
-		vkDestroyPipeline(_Driver->_VulkanDevice->logicalDevice, graphicsPipeline, nullptr);
-		vkDestroyPipelineLayout(_Driver->_VulkanDevice->logicalDevice, pipelineLayout, nullptr);
-		vkDestroyDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
-		vkDestroySampler(_Driver->_VulkanDevice->logicalDevice, Sampler, nullptr);
-		vkDestroySampler(_Driver->_VulkanDevice->logicalDevice, DeferredSampler, nullptr);
+		vkDestroyPipeline(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, graphicsPipeline, nullptr);
+		vkDestroyPipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, pipelineLayout, nullptr);
+		vkDestroyDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
+		vkDestroySampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, Sampler, nullptr);
+		vkDestroySampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, DeferredSampler, nullptr);
 	}
 
 	virtual TextureObject* createTextureImage(const std::string& File) = 0;
@@ -45,7 +44,7 @@ protected:
 	std::unordered_map<std::string, TextureObject*> _Textures;
 	std::deque<TextureObject*> _Textures2;
 
-	PipelineObject(VulkanDriver* Driver) : _Driver(Driver)
+	PipelineObject()
 	{
 		//
 		//	Image Sampler For Entire Pipeline
@@ -65,7 +64,7 @@ protected:
 		samplerInfo1.mipLodBias = 0.0f;
 		samplerInfo1.minLod = 0.0f;
 		samplerInfo1.maxLod = 0.0f;
-		if (vkCreateSampler(_Driver->_VulkanDevice->logicalDevice, &samplerInfo1, nullptr, &Sampler) != VK_SUCCESS) {
+		if (vkCreateSampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &samplerInfo1, nullptr, &Sampler) != VK_SUCCESS) {
 #ifdef _DEBUG
 			throw std::runtime_error("failed to create texture sampler!");
 #endif
@@ -83,7 +82,7 @@ protected:
 		samplerInfo2.minLod = 0.0f;
 		samplerInfo2.maxLod = 1.0f;
 		samplerInfo2.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		if (vkCreateSampler(_Driver->_VulkanDevice->logicalDevice, &samplerInfo2, nullptr, &DeferredSampler) != VK_SUCCESS) {
+		if (vkCreateSampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &samplerInfo2, nullptr, &DeferredSampler) != VK_SUCCESS) {
 			#ifdef _DEBUG
 			throw std::runtime_error("failed to create texture sampler!");
 			#endif
@@ -116,7 +115,7 @@ protected:
 		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
 		VkShaderModule shaderModule;
-		if (vkCreateShaderModule(_Driver->_VulkanDevice->logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+		if (vkCreateShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
 #ifdef _DEBUG
 			throw std::runtime_error("failed to create shader module!");
 #endif

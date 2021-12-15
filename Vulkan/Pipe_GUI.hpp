@@ -1,11 +1,9 @@
 #pragma once
 
 namespace Pipeline {
-	struct GUI : public PipelineObject {
-
-		VulkanDriver* _Driver;
-
-		GUI(VulkanDriver* Driver, VkPipelineCache PipelineCache) : PipelineObject(Driver), _Driver(Driver)
+	struct GUI : public PipelineObject
+	{
+		GUI(VkPipelineCache PipelineCache) : PipelineObject()
 		{
 			//
 			//	DescriptorSetLayout
@@ -13,7 +11,7 @@ namespace Pipeline {
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
-			if (vkCreateDescriptorSetLayout(_Driver->_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout) != VK_SUCCESS)
+			if (vkCreateDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout) != VK_SUCCESS)
 			{
 				#ifdef _DEBUG
 				throw std::runtime_error("failed to create descriptor set layout!");
@@ -23,7 +21,7 @@ namespace Pipeline {
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			if (vkCreatePipelineLayout(_Driver->_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
+			if (vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
 			{
 				#ifdef _DEBUG
 				throw std::runtime_error("failed to create pipeline layout!");
@@ -58,8 +56,8 @@ namespace Pipeline {
 			VkViewport viewport = {};
 			viewport.x = 0.0f;
 			viewport.y = 0.0f;
-			viewport.width = (float)_Driver->WIDTH;
-			viewport.height = (float)_Driver->HEIGHT;
+			viewport.width = (float)WorldEngine::VulkanDriver::WIDTH;
+			viewport.height = (float)WorldEngine::VulkanDriver::HEIGHT;
 			viewport.minDepth = 0.0f;
 			viewport.maxDepth = 1.0f;
 			viewportState.pViewports = &viewport;
@@ -81,7 +79,7 @@ namespace Pipeline {
 			blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 			blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 
-			VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, _Driver->renderPass);
+			VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, WorldEngine::VulkanDriver::renderPass);
 			pipelineCI.pInputAssemblyState = &inputAssemblyState;
 			pipelineCI.pRasterizationState = &rasterizationState;
 			pipelineCI.pColorBlendState = &colorBlendState;
@@ -98,11 +96,11 @@ namespace Pipeline {
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 
-			vkCreateGraphicsPipelines(_Driver->_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline);
+			vkCreateGraphicsPipelines(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline);
 			//
 			//	Cleanup Shader Modules
-			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, vertShaderStageInfo.module, nullptr);
-			vkDestroyShaderModule(_Driver->_VulkanDevice->logicalDevice, fragShaderStageInfo.module, nullptr);
+			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, vertShaderStageInfo.module, nullptr);
+			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, fragShaderStageInfo.module, nullptr);
 		}
 		//
 		//
@@ -110,31 +108,31 @@ namespace Pipeline {
 		//
 		//
 		DescriptorObject* createDescriptor(const TextureObject* Texture, const std::vector<VkBuffer>& UniformBuffers = std::vector<VkBuffer>()) {
-			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver->_VulkanDevice->logicalDevice);
+			DescriptorObject* NewDescriptor = new DescriptorObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice);
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, _Driver->swapChain->images.size())
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, WorldEngine::VulkanDriver::swapChain->images.size())
 			};
-			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, _Driver->swapChain->images.size());
-			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, WorldEngine::VulkanDriver::swapChain->images.size());
+			if (vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
 				#ifdef _DEBUG
 				throw std::runtime_error("failed to create descriptor pool!");
 				#endif
 			}
 			//
 			//	Create Descriptor Sets
-			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChain->images.size(), descriptorSetLayout);
-			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, layouts.data(), _Driver->swapChain->images.size());
-			NewDescriptor->DescriptorSets.resize(_Driver->swapChain->images.size());
-			if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfo, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
+			std::vector<VkDescriptorSetLayout> layouts(WorldEngine::VulkanDriver::swapChain->images.size(), descriptorSetLayout);
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, layouts.data(), WorldEngine::VulkanDriver::swapChain->images.size());
+			NewDescriptor->DescriptorSets.resize(WorldEngine::VulkanDriver::swapChain->images.size());
+			if (vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
 				#ifdef _DEBUG
 				throw std::runtime_error("failed to allocate descriptor sets!");
 				#endif
 			}
 			//
 			//	Update individual sets
-			for (size_t i = 0; i < _Driver->swapChain->images.size(); i++)
+			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain->images.size(); i++)
 			{
 				VkDescriptorImageInfo textureImage =
 					vks::initializers::descriptorImageInfo(
@@ -147,44 +145,44 @@ namespace Pipeline {
 					// Binding 1 : texture
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &textureImage)
 				};
-				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 			}
 
 			return NewDescriptor;
 		}
 
 		DescriptorObject* createRawDescriptor(const VkImageView Image, const VkSampler Sampler) {
-			DescriptorObject* NewDescriptor = new DescriptorObject(_Driver->_VulkanDevice->logicalDevice);
+			DescriptorObject* NewDescriptor = new DescriptorObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice);
 
 			std::array<VkDescriptorPoolSize, 1> poolSizes = {};
 			poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSizes[0].descriptorCount = static_cast<uint32_t>(_Driver->swapChain->images.size());
+			poolSizes[0].descriptorCount = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain->images.size());
 
 			VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 			poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 			poolInfo.pPoolSizes = poolSizes.data();
-			poolInfo.maxSets = static_cast<uint32_t>(_Driver->swapChain->images.size());
+			poolInfo.maxSets = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain->images.size());
 
-			if (vkCreateDescriptorPool(_Driver->_VulkanDevice->logicalDevice, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
+			if (vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
 #ifdef _DEBUG
 				throw std::runtime_error("failed to create descriptor pool!");
 #endif
 			}
 
-			std::vector<VkDescriptorSetLayout> layouts(_Driver->swapChain->images.size(), descriptorSetLayout);
+			std::vector<VkDescriptorSetLayout> layouts(WorldEngine::VulkanDriver::swapChain->images.size(), descriptorSetLayout);
 			VkDescriptorSetAllocateInfo allocInfoDS = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 			allocInfoDS.descriptorPool = NewDescriptor->DescriptorPool;
-			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(_Driver->swapChain->images.size());
+			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain->images.size());
 			allocInfoDS.pSetLayouts = layouts.data();
 
-			NewDescriptor->DescriptorSets.resize(_Driver->swapChain->images.size());
-			if (vkAllocateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, &allocInfoDS, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
+			NewDescriptor->DescriptorSets.resize(WorldEngine::VulkanDriver::swapChain->images.size());
+			if (vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfoDS, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
 #ifdef _DEBUG
 				throw std::runtime_error("failed to allocate descriptor sets!");
 #endif
 			}
 
-			for (size_t i = 0; i < _Driver->swapChain->images.size(); i++) {
+			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain->images.size(); i++) {
 
 				VkDescriptorImageInfo imageInfo = {};
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -200,7 +198,7 @@ namespace Pipeline {
 				descriptorWrites[0].descriptorCount = 1;
 				descriptorWrites[0].pImageInfo = &imageInfo;
 
-				vkUpdateDescriptorSets(_Driver->_VulkanDevice->logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 			}
 
 			return NewDescriptor;
@@ -216,7 +214,7 @@ namespace Pipeline {
 				return _Textures[File];
 			}
 			else {
-				auto Tex = _Textures.emplace(File, new TextureObject(_Driver->_VulkanDevice->logicalDevice, _Driver->allocator)).first->second;
+				auto Tex = _Textures.emplace(File, new TextureObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, WorldEngine::VulkanDriver::allocator)).first->second;
 
 				const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
@@ -246,7 +244,7 @@ namespace Pipeline {
 
 				VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
 				VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
-				vmaCreateBuffer(_Driver->allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
 
 				memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
 
@@ -266,10 +264,10 @@ namespace Pipeline {
 
 				allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-				vmaCreateImage(_Driver->allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
+				vmaCreateImage(WorldEngine::VulkanDriver::allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
 				//
 				//	CPU->GPU Copy
-				VkCommandBuffer commandBuffer = _Driver->beginSingleTimeCommands();
+				VkCommandBuffer commandBuffer = WorldEngine::VulkanDriver::beginSingleTimeCommands();
 				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -317,9 +315,9 @@ namespace Pipeline {
 					0, nullptr,
 					1, &imgMemBarrier);
 
-				_Driver->endSingleTimeCommands(commandBuffer);
+				WorldEngine::VulkanDriver::endSingleTimeCommands(commandBuffer);
 
-				vmaDestroyBuffer(_Driver->allocator, stagingImageBuffer, stagingImageBufferAlloc);
+				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingImageBuffer, stagingImageBufferAlloc);
 
 				VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 				textureImageViewInfo.image = Tex->Image;
@@ -330,7 +328,7 @@ namespace Pipeline {
 				textureImageViewInfo.subresourceRange.levelCount = 1;
 				textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
 				textureImageViewInfo.subresourceRange.layerCount = 1;
-				vkCreateImageView(_Driver->_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Tex->ImageView);
+				vkCreateImageView(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Tex->ImageView);
 
 				return Tex;
 			}

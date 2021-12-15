@@ -18,7 +18,6 @@ class SkinnedMeshSceneNode;
 
 class SceneGraph
 {
-	VulkanDriver* _Driver = VK_NULL_HANDLE;
 	ImportGLTF* _ImportGLTF;
 	Camera _Camera;
 	CharacterSceneNode* _Character;
@@ -30,7 +29,7 @@ public:
 
 	//
 	//	Constructor
-	SceneGraph(VulkanDriver* Driver) : _Driver(Driver), _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), isWorld(false)
+	SceneGraph() : _ImportGLTF(new ImportGLTF), tryCleanupWorld(false), isWorld(false)
 	{}
 	//
 	//	Destructor
@@ -70,7 +69,7 @@ public:
 	//	Raytest
 	void castRay(const ndVector& From, const ndVector& To, ndRayCastClosestHitCallback& Results)
 	{
-		_Driver->_ndWorld->RayCast(Results, From, (To-From));
+		WorldEngine::VulkanDriver::_ndWorld->RayCast(Results, From, (To-From));
 	}
 
 	/*void DrawDebugShapes()
@@ -127,10 +126,10 @@ void SceneGraph::cleanupWorld(const bool& bForce)
 	_Character = nullptr;
 	//
 	//	Cleanup SceneNodes
-	const ndBodyList& bodyList = _Driver->_ndWorld->GetBodyList();
+	const ndBodyList& bodyList = WorldEngine::VulkanDriver::_ndWorld->GetBodyList();
 	for (ndBodyList::ndNode* bodyNode = bodyList.GetFirst(); bodyNode; bodyNode = bodyNode->GetNext())
 	{
-		_Driver->_ndWorld->RemoveBody(bodyNode->GetInfo());
+		WorldEngine::VulkanDriver::_ndWorld->RemoveBody(bodyNode->GetInfo());
 	}
 	for (size_t i = 0; i < SceneNodes.size(); i++) {
 		//_Driver->_ndWorld->RemoveBody(SceneNodes[i]);
@@ -140,7 +139,7 @@ void SceneGraph::cleanupWorld(const bool& bForce)
 	//SceneNodes.clear();
 	//SceneNodes.shrink_to_fit();
 
-	_Driver->_MaterialCache->GetPipe_Default()->EmptyCache();
+	WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default()->EmptyCache();
 }
 
 void SceneGraph::updateUniformBuffer(const uint32_t& currentImage)
@@ -165,9 +164,9 @@ public:
 //	World Create Function
 WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 {
-	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
+	Pipeline::Default* Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default();
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
+	TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
 
 	//}
 	//else {
@@ -203,8 +202,8 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 	MeshNode->SetCollisionShape(shape);
 	//MeshNode->SetMassMatrix(10.0f, shape);
 
-	_Driver->_ndWorld->Sync();
-	_Driver->_ndWorld->AddBody(MeshNode);
+	WorldEngine::VulkanDriver::_ndWorld->Sync();
+	WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -216,9 +215,9 @@ WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 //	TriangleMesh Create Function
 TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position)
 {
-	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
+	Pipeline::Default* Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default();
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 
@@ -240,8 +239,8 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 	MeshNode->SetCollisionShape(shape);
 	MeshNode->SetMassMatrix(1.0f, shape);
 
-	_Driver->_ndWorld->Sync();
-	_Driver->_ndWorld->AddBody(MeshNode);
+	WorldEngine::VulkanDriver::_ndWorld->Sync();
+	WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
 
 	//
 	//	Push new SceneNode into the SceneGraph
@@ -253,9 +252,9 @@ TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileF
 //	SkinnedMesh Create Function
 SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32 &Mass, const ndVector &Position)
 {
-	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
+	Pipeline::Default* Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default();
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh);
 
@@ -277,8 +276,8 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 	MeshNode->SetCollisionShape(shape);
 	MeshNode->SetMassMatrix(1.0f, shape);
 
-	_Driver->_ndWorld->Sync();
-	_Driver->_ndWorld->AddBody(MeshNode);
+	WorldEngine::VulkanDriver::_ndWorld->Sync();
+	WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
 
 	SceneNodes.push_back(MeshNode);
 	return MeshNode;
@@ -288,9 +287,9 @@ SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX
 //	Character Create Function
 CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const ndVector& Position)
 {
-	Pipeline::Default* Pipe = _Driver->_MaterialCache->GetPipe_Default();
+	Pipeline::Default* Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default();
 	GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
-	TriangleMesh* Mesh = new TriangleMesh(_Driver, Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
+	TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 	ndMatrix localAxis(dGetIdentityMatrix());
 	localAxis[0] = ndVector(0.0, 1.0f, 0.0f, 0.0f);
@@ -320,8 +319,8 @@ CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, co
 	//MeshNode->SetCollisionShape(shape);
 	//MeshNode->SetMassMatrix(1.0f, shape);
 
-	_Driver->_ndWorld->Sync();
-	_Driver->_ndWorld->AddBody(MeshNode);
+	WorldEngine::VulkanDriver::_ndWorld->Sync();
+	WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
 
 	//
 	//	Push new SceneNode into the SceneGraph

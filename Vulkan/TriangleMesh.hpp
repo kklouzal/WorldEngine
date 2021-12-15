@@ -8,7 +8,6 @@ class TriangleMesh {
 
 public:
 
-	VulkanDriver* _Driver = VK_NULL_HANDLE;
 	Pipeline::Default* Pipe;
 
 	GLTFInfo* _GLTF;
@@ -31,8 +30,8 @@ public:
 
 public:
 	
-	TriangleMesh(VulkanDriver* Driver, Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
-		: _Driver(Driver), Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
+	TriangleMesh(Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
+		: Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
 		createUniformBuffers();
 		Texture_Albedo = Albedo;
@@ -43,11 +42,11 @@ public:
 	~TriangleMesh() {
 		printf("Destroy TriangleMesh\n");
 		//	Destroy VMA Buffers
-		vmaDestroyBuffer(_Driver->allocator, vertexBuffer, vertexAllocation);
-		vmaDestroyBuffer(_Driver->allocator, indexBuffer, indexAllocation);
+		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, vertexBuffer, vertexAllocation);
+		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, indexBuffer, indexAllocation);
 		//	Destroy VMA Buffers
 		for (size_t i = 0; i < uniformBuffers.size(); i++) {
-			vmaDestroyBuffer(_Driver->allocator, uniformBuffers[i], uniformAllocations[i]);
+			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, uniformBuffers[i], uniformAllocations[i]);
 		}
 		delete Descriptor;
 	}
@@ -55,10 +54,10 @@ public:
 
 	void createUniformBuffers()
 	{
-		uniformBuffers.resize(_Driver->swapChain->images.size());
-		uniformAllocations.resize(_Driver->swapChain->images.size());
+		uniformBuffers.resize(WorldEngine::VulkanDriver::swapChain->images.size());
+		uniformAllocations.resize(WorldEngine::VulkanDriver::swapChain->images.size());
 
-		for (size_t i = 0; i < _Driver->swapChain->images.size(); i++) {
+		for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain->images.size(); i++) {
 
 			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 			uniformBufferInfo.size = sizeof(UniformBufferObject);
@@ -69,7 +68,7 @@ public:
 			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			vmaCreateBuffer(_Driver->allocator, &uniformBufferInfo, &uniformAllocInfo, &uniformBuffers[i], &uniformAllocations[i], nullptr);
+			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &uniformBufferInfo, &uniformAllocInfo, &uniformBuffers[i], &uniformAllocations[i], nullptr);
 		}
 	}
 
@@ -87,14 +86,14 @@ public:
 
 		VkBuffer stagingVertexBuffer = VK_NULL_HANDLE;
 		VmaAllocation stagingVertexBufferAlloc = VK_NULL_HANDLE;
-		vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &stagingVertexBuffer, &stagingVertexBufferAlloc, nullptr);
+		vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &vertexBufferInfo, &vertexAllocInfo, &stagingVertexBuffer, &stagingVertexBufferAlloc, nullptr);
 
 		memcpy(stagingVertexBufferAlloc->GetMappedData(), _GLTF->Vertices.data(), vertexBufferSize);
 
 		vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		vertexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		vertexAllocInfo.flags = 0;
-		vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &vertexBuffer, &vertexAllocation, nullptr);
+		vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &vertexBufferInfo, &vertexAllocInfo, &vertexBuffer, &vertexAllocation, nullptr);
 
 		//
 		//	Index Buffer
@@ -109,18 +108,18 @@ public:
 
 		VkBuffer stagingIndexBuffer = VK_NULL_HANDLE;
 		VmaAllocation stagingIndexBufferAlloc = VK_NULL_HANDLE;
-		vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &stagingIndexBuffer, &stagingIndexBufferAlloc, nullptr);
+		vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &indexBufferInfo, &indexAllocInfo, &stagingIndexBuffer, &stagingIndexBufferAlloc, nullptr);
 
 		memcpy(stagingIndexBufferAlloc->GetMappedData(), _GLTF->Indices.data(), indexBufferSize);
 
 		indexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		indexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 		indexAllocInfo.flags = 0;
-		vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &indexBuffer, &indexAllocation, nullptr);
+		vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &indexBufferInfo, &indexAllocInfo, &indexBuffer, &indexAllocation, nullptr);
 
 		//
 		//	CPU->GPU Copy
-		VkCommandBuffer commandBuffer = _Driver->beginSingleTimeCommands();
+		VkCommandBuffer commandBuffer = WorldEngine::VulkanDriver::beginSingleTimeCommands();
 
 		VkBufferCopy vertexCopyRegion = {};
 		vertexCopyRegion.size = vertexBufferSize;
@@ -130,12 +129,12 @@ public:
 		indexCopyRegion.size = indexBufferInfo.size;
 		vkCmdCopyBuffer(commandBuffer, stagingIndexBuffer, indexBuffer, 1, &indexCopyRegion);
 
-		_Driver->endSingleTimeCommands(commandBuffer);
+		WorldEngine::VulkanDriver::endSingleTimeCommands(commandBuffer);
 
 		//
 		//	Destroy Staging Buffers
-		vmaDestroyBuffer(_Driver->allocator, stagingVertexBuffer, stagingVertexBufferAlloc);
-		vmaDestroyBuffer(_Driver->allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
+		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingVertexBuffer, stagingVertexBufferAlloc);
+		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
 	}
 
 	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame)

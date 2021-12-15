@@ -8,16 +8,8 @@ class SpawnMenu;
 
 //
 //	EventReceiver Declaration
-class EventReceiver : public Gwen::Event::Handler {
-	//
-	//	Static GLFW Callbacks
-	static void char_callback(GLFWwindow* window, unsigned int codepoint);
-	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
-	static void cursor_enter_callback(GLFWwindow* window, int entered);
-
+class EventReceiver : public Gwen::Event::Handler
+{
 	//
 	//	GWEN
 	Gwen::Renderer::Vulkan* pRenderer;
@@ -28,21 +20,10 @@ class EventReceiver : public Gwen::Event::Handler {
 	//bool isMenuOpen = true;
 	bool isWorldInitialized = false;
 	//
-	//	Menus
-	MainMenu* _MainMenu = nullptr;
-	ConsoleMenu* _ConsoleMenu = nullptr;
-	SpawnMenu* _SpawnMenu = nullptr;
-	//
-
-	void drawGWEN(const VkCommandBuffer& Buff) {
-		pRenderer->SetBuffer(Buff);
-		pCanvas->RenderCanvas();
-	}
 
 	void OnPress(Gwen::Controls::Base* pControl);
 
 protected:
-	VulkanDriver* _Driver;
 
 	enum EventTypes: uint_fast8_t {
 		Keyboard = 1,
@@ -89,7 +70,27 @@ protected:
 	}
 	Gwen::Controls::ImagePanel* Crosshair;
 public:
-	EventReceiver(VulkanDriver* Driver);
+
+	//
+	//	Static GLFW Callbacks
+	static void char_callback(GLFWwindow* window, unsigned int codepoint);
+	static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+	static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
+	static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
+	static void cursor_enter_callback(GLFWwindow* window, int entered);
+
+	void drawGWEN(const VkCommandBuffer& Buff) {
+		pRenderer->SetBuffer(Buff);
+		pCanvas->RenderCanvas();
+	}
+	//
+	//	Menus
+	MainMenu* _MainMenu = nullptr;
+	ConsoleMenu* _ConsoleMenu = nullptr;
+	SpawnMenu* _SpawnMenu = nullptr;
+
+	EventReceiver();
 	virtual ~EventReceiver();
 
 	virtual void OnUpdate() = 0;
@@ -112,16 +113,16 @@ public:
 
 //
 //	Define EventReceiver Implementations
-EventReceiver::EventReceiver(VulkanDriver* Driver) :_Driver(Driver) {
+EventReceiver::EventReceiver() {
 	printf("Create EventReceiver\n");
-	pRenderer = new Gwen::Renderer::Vulkan(_Driver);
+	pRenderer = new Gwen::Renderer::Vulkan();
 
 	pRenderer->Init();
 	pSkin = new Gwen::Skin::TexturedBase(pRenderer);
 	pSkin->Init("media/DefaultSkin.png");
 
 	pCanvas = new Gwen::Controls::Canvas(pSkin);
-	pCanvas->SetSize(_Driver->WIDTH, _Driver->HEIGHT);
+	pCanvas->SetSize(WorldEngine::VulkanDriver::WIDTH, WorldEngine::VulkanDriver::HEIGHT);
 	pCanvas->SetDrawBackground(false);
 	pCanvas->SetBackgroundColor(Gwen::Color(150, 170, 170, 255));
 	pCanvas->SetKeyboardInputEnabled(false);
@@ -135,7 +136,7 @@ EventReceiver::EventReceiver(VulkanDriver* Driver) :_Driver(Driver) {
 
 	Crosshair = new Gwen::Controls::ImagePanel(pCanvas);
 	Crosshair->SetImage("media/crosshairs/focus1.png");
-	Crosshair->SetPos(_Driver->WIDTH / 2 - 16, _Driver->HEIGHT / 2 - 16);
+	Crosshair->SetPos(WorldEngine::VulkanDriver::WIDTH / 2 - 16, WorldEngine::VulkanDriver::HEIGHT / 2 - 16);
 	Crosshair->SetSize(32, 32);
 	Crosshair->Hide();
 
@@ -161,15 +162,15 @@ const bool& EventReceiver::IsMenuOpen() const {
 
 void EventReceiver::EnableCursor() {
 	if (glfwRawMouseMotionSupported()) {
-		glfwSetInputMode(_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
+		glfwSetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
 	}
-	glfwSetInputMode(_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	glfwSetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 void EventReceiver::DisableCursor() {
-	glfwSetInputMode(_Driver->_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	glfwSetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	if (glfwRawMouseMotionSupported()) {
-		glfwSetInputMode(_Driver->_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+		glfwSetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 	}
 	m_Pos_First = true;
 }
@@ -180,11 +181,11 @@ void EventReceiver::OnPress(Gwen::Controls::Base* pControl) {
 	Gwen::String ControlName = pControl->GetName();
 	printf("Press %s\n", ControlName.c_str());
 	if (ControlName == "Quit") {
-		glfwSetWindowShouldClose(_Driver->_Window, GLFW_TRUE);
+		glfwSetWindowShouldClose(WorldEngine::VulkanDriver::_Window, GLFW_TRUE);
 	}
 	else if (ControlName == "Play") {
-		if (!isWorldInitialized && !_Driver->_SceneGraph->isWorld) {
-			_Driver->_SceneGraph->initWorld();
+		if (!isWorldInitialized && !WorldEngine::VulkanDriver::_SceneGraph->isWorld) {
+			WorldEngine::VulkanDriver::_SceneGraph->initWorld();
 			isWorldInitialized = true;
 			((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Disconnect"));
 
@@ -194,7 +195,7 @@ void EventReceiver::OnPress(Gwen::Controls::Base* pControl) {
 			Crosshair->Show();
 		}
 		else {
-			_Driver->_SceneGraph->cleanupWorld();
+			WorldEngine::VulkanDriver::_SceneGraph->cleanupWorld();
 			isWorldInitialized = false;
 			((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Play"));
 			Crosshair->Hide();

@@ -36,7 +36,6 @@ namespace Gwen
 	{
 		class Vulkan : public Gwen::Renderer::Base
 		{
-			VulkanDriver* _Driver;
 			Pipeline::GUI* Pipe;
 
 			size_t currentBuffer = 0;
@@ -152,12 +151,12 @@ namespace Gwen
 						startOfLine += Bit->pitch;
 						const unsigned int dstY = (y - Bit->top + (PenY + Face1Rec->height));
 						//	Check if Y position is within image bounds and clip rect
-						if (dstY <= static_cast<uint32_t>(clipOld.y) || dstY >= _Driver->HEIGHT || dstY >= static_cast<uint32_t>(clipOld.h)) { continue; }
+						if (dstY <= static_cast<uint32_t>(clipOld.y) || dstY >= WorldEngine::VulkanDriver::HEIGHT || dstY >= static_cast<uint32_t>(clipOld.h)) { continue; }
 						for (unsigned int x = 0; x < Bit->width; ++x) {
 							const unsigned int dstX = x + PenX + dst_Cursor_X;
 							const uint8_t value = *src++;
 							//	Check if X position is within image bounds and clip rect
-							if (dstX <= static_cast<uint32_t>(clipOld.x) || dstX >= _Driver->WIDTH || dstX >= static_cast<uint32_t>(clipOld.w)) { continue; }
+							if (dstX <= static_cast<uint32_t>(clipOld.x) || dstX >= WorldEngine::VulkanDriver::WIDTH || dstX >= static_cast<uint32_t>(clipOld.w)) { continue; }
 							//	y * dst_Pitch	== Image Row Destination Bit
 							//	x * 4			== Image Column Destination Bit
 							const unsigned int dstBit = (dstY * dst_Pitch) + (dstX * 4);
@@ -212,7 +211,7 @@ namespace Gwen
 				vertexAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 				vertexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-				vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &GUI_VertexBuffer, &GUI_VertexAllocation, nullptr);
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &vertexBufferInfo, &vertexAllocInfo, &GUI_VertexBuffer, &GUI_VertexAllocation, nullptr);
 				//	Vertex Buffer
 				VkBufferCreateInfo indexBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 				indexBufferInfo.size = vertexBufferSize;
@@ -223,7 +222,7 @@ namespace Gwen
 				indexAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 				indexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-				vmaCreateBuffer(_Driver->allocator, &indexBufferInfo, &indexAllocInfo, &GUI_IndexBuffer, &GUI_IndexAllocation, nullptr);
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &indexBufferInfo, &indexAllocInfo, &GUI_IndexBuffer, &GUI_IndexAllocation, nullptr);
 			}
 			//
 			//	Font Texture
@@ -251,32 +250,32 @@ namespace Gwen
 				vertexAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 				vertexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-				vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &Font_VertexBuffer_Stage, &Font_VertexAllocation_Stage, nullptr);
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &vertexBufferInfo, &vertexAllocInfo, &Font_VertexBuffer_Stage, &Font_VertexAllocation_Stage, nullptr);
 
 				vertexBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 
 				vertexAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 				vertexAllocInfo.flags = 0;
 				
-				vmaCreateBuffer(_Driver->allocator, &vertexBufferInfo, &vertexAllocInfo, &Font_VertexBuffer, &Font_VertexAllocation, nullptr);
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &vertexBufferInfo, &vertexAllocInfo, &Font_VertexBuffer, &Font_VertexAllocation, nullptr);
 
 				VkBufferCopy copyRegion = {};
 				copyRegion.size = vertexBufferInfo.size;
 
 				memcpy(Font_VertexAllocation_Stage->GetMappedData(), Font_TextureVertices.data(), vertexBufferInfo.size);
 
-				auto CB = _Driver->beginSingleTimeCommands();
+				auto CB = WorldEngine::VulkanDriver::beginSingleTimeCommands();
 				vkCmdCopyBuffer(CB, Font_VertexBuffer_Stage, Font_VertexBuffer, 1, &copyRegion);
-				_Driver->endSingleTimeCommands(CB);
+				WorldEngine::VulkanDriver::endSingleTimeCommands(CB);
 
-				vmaDestroyBuffer(_Driver->allocator, Font_VertexBuffer_Stage, Font_VertexAllocation_Stage);
+				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, Font_VertexBuffer_Stage, Font_VertexAllocation_Stage);
 			}
 			void createFontTextureBuffer()
 			{
 				VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 				imageInfo.imageType = VK_IMAGE_TYPE_2D;
-				imageInfo.extent.width = static_cast<uint32_t>(_Driver->WIDTH);
-				imageInfo.extent.height = static_cast<uint32_t>(_Driver->HEIGHT);
+				imageInfo.extent.width = static_cast<uint32_t>(WorldEngine::VulkanDriver::WIDTH);
+				imageInfo.extent.height = static_cast<uint32_t>(WorldEngine::VulkanDriver::HEIGHT);
 				imageInfo.extent.depth = 1;
 				imageInfo.mipLevels = 1;
 				imageInfo.arrayLayers = 1;
@@ -291,7 +290,7 @@ namespace Gwen
 				textureAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 				textureAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-				vmaCreateImage(_Driver->allocator, &imageInfo, &textureAllocInfo, &Font_TextureImage, &Font_TextureAllocation, nullptr);
+				vmaCreateImage(WorldEngine::VulkanDriver::allocator, &imageInfo, &textureAllocInfo, &Font_TextureImage, &Font_TextureAllocation, nullptr);
 
 				VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 				textureImageViewInfo.image = Font_TextureImage;
@@ -302,11 +301,11 @@ namespace Gwen
 				textureImageViewInfo.subresourceRange.levelCount = 1;
 				textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
 				textureImageViewInfo.subresourceRange.layerCount = 1;
-				vkCreateImageView(_Driver->_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Font_TextureImageView);
+				vkCreateImageView(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Font_TextureImageView);
 
 				//
 				//	Transition image from initial state to workable state
-				auto CB = _Driver->beginSingleTimeCommands();
+				auto CB = WorldEngine::VulkanDriver::beginSingleTimeCommands();
 				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -330,7 +329,7 @@ namespace Gwen
 					0, nullptr,
 					1, &imgMemBarrier);
 
-				_Driver->endSingleTimeCommands(CB);
+				WorldEngine::VulkanDriver::endSingleTimeCommands(CB);
 
 				Font_Descriptor = Pipe->createRawDescriptor(Font_TextureImageView, Pipe->Sampler);
 			}
@@ -348,15 +347,15 @@ namespace Gwen
 				indirectAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 				indirectAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-				vmaCreateBuffer(_Driver->allocator, &indirectBufferInfo, &indirectAllocInfo, &indirectBuffer, &indirectAllocation, nullptr);
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &indirectBufferInfo, &indirectAllocInfo, &indirectBuffer, &indirectAllocation, nullptr);
 			}
 
 			void AddVert(const int x, const int y, const float u = 0.0f, const float v = 0.0f)
 			{
 				Vertex NewVertex{};
 
-				NewVertex.pos.x = ((float)x / (_Driver->WIDTH/2)) - 1.f;
-				NewVertex.pos.y = ((float)y / (_Driver->HEIGHT/2)) - 1.f;
+				NewVertex.pos.x = ((float)x / (WorldEngine::VulkanDriver::WIDTH/2)) - 1.f;
+				NewVertex.pos.y = ((float)y / (WorldEngine::VulkanDriver::HEIGHT/2)) - 1.f;
 				NewVertex.texCoord.x = u;
 				NewVertex.texCoord.y = v;
 				NewVertex.color.r = m_Color.r / 128;
@@ -379,21 +378,21 @@ namespace Gwen
 				commandBuffer = Buff;
 			}
 
-			Vulkan(VulkanDriver* Driver)
-				: _Driver(Driver), dst_Size((_Driver->WIDTH* _Driver->HEIGHT) * 4), dst_Pitch(_Driver->WIDTH * 4)
+			Vulkan()
+				: dst_Size((WorldEngine::VulkanDriver::WIDTH* WorldEngine::VulkanDriver::HEIGHT) * 4), dst_Pitch(WorldEngine::VulkanDriver::WIDTH * 4)
 			{
-				Pipe = _Driver->_MaterialCache->GetPipe_GUI();
+				Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_GUI();
 			}
 
 			~Vulkan()
 			{
 				printf("Destroy GWEN\n");
-				vmaDestroyBuffer(_Driver->allocator, indirectBuffer, indirectAllocation);
-				vmaDestroyBuffer(_Driver->allocator, GUI_VertexBuffer, GUI_VertexAllocation);
-				vmaDestroyBuffer(_Driver->allocator, GUI_IndexBuffer, GUI_IndexAllocation);
-				vmaDestroyBuffer(_Driver->allocator, Font_VertexBuffer, Font_VertexAllocation);
-				vkDestroyImageView(_Driver->_VulkanDevice->logicalDevice, Font_TextureImageView, nullptr);
-				vmaDestroyImage(_Driver->allocator, Font_TextureImage, Font_TextureAllocation);
+				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, indirectBuffer, indirectAllocation);
+				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, GUI_VertexBuffer, GUI_VertexAllocation);
+				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, GUI_IndexBuffer, GUI_IndexAllocation);
+				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, Font_VertexBuffer, Font_VertexAllocation);
+				vkDestroyImageView(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, Font_TextureImageView, nullptr);
+				vmaDestroyImage(WorldEngine::VulkanDriver::allocator, Font_TextureImage, Font_TextureAllocation);
 				delete Font_Descriptor;
 			}
 
@@ -401,7 +400,7 @@ namespace Gwen
 			{
 				printf("GWEN Vulkan Renderer Initialize\n");
 				initFreeType();
-				const size_t SwapChainCount = _Driver->swapChain->images.size();
+				const size_t SwapChainCount = WorldEngine::VulkanDriver::swapChain->images.size();
 				ClipScissors.resize(SwapChainCount);
 
 				createIndirectBuffer();
@@ -481,7 +480,7 @@ namespace Gwen
 
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
 
-				const VkCommandBuffer &CB = _Driver->beginSingleTimeCommands();
+				const VkCommandBuffer &CB = WorldEngine::VulkanDriver::beginSingleTimeCommands();
 				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
 				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -519,7 +518,7 @@ namespace Gwen
 					0, nullptr,
 					0, nullptr,
 					1, &imgMemBarrier);
-				_Driver->endSingleTimeCommands(CB);
+				WorldEngine::VulkanDriver::endSingleTimeCommands(CB);
 
 				VkDeviceSize offsets2[] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &Font_VertexBuffer, offsets2);
