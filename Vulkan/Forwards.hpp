@@ -67,10 +67,8 @@
 // Offscreen frame buffer properties
 #define FB_DIM TEX_DIM
 
-class VulkanDriver;
 class EventReceiver;
 class MaterialCache;
-class SceneGraph;
 namespace Gwen { namespace Renderer { class Vulkan; } }
 
 //

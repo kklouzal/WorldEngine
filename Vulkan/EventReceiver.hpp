@@ -184,8 +184,8 @@ void EventReceiver::OnPress(Gwen::Controls::Base* pControl) {
 		glfwSetWindowShouldClose(WorldEngine::VulkanDriver::_Window, GLFW_TRUE);
 	}
 	else if (ControlName == "Play") {
-		if (!isWorldInitialized && !WorldEngine::VulkanDriver::_SceneGraph->isWorld) {
-			WorldEngine::VulkanDriver::_SceneGraph->initWorld();
+		if (!isWorldInitialized && !WorldEngine::SceneGraph::isWorld) {
+			WorldEngine::SceneGraph::initWorld();
 			isWorldInitialized = true;
 			((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Disconnect"));
 
@@ -195,7 +195,7 @@ void EventReceiver::OnPress(Gwen::Controls::Base* pControl) {
 			Crosshair->Show();
 		}
 		else {
-			WorldEngine::VulkanDriver::_SceneGraph->cleanupWorld();
+			WorldEngine::SceneGraph::cleanupWorld();
 			isWorldInitialized = false;
 			((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Play"));
 			Crosshair->Hide();

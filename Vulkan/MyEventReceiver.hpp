@@ -17,8 +17,8 @@ public:
 		//
 		//	Only keyboard-move-camera when menus closed and world initialized
 		if (!IsMenuOpen() && IsWorldInitialized()) {
-			CharacterSceneNode* Character = WorldEngine::VulkanDriver::_SceneGraph->GetCharacter();
-			Camera* Cam = &WorldEngine::VulkanDriver::_SceneGraph->GetCamera();
+			CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
+			Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
 
 			//Character->moveForward((dInt32(isW) - dInt32(isS)) * 10.0f);
 			//Character->moveRight((dInt32(isD) - dInt32(isA)) * 10.0f);
@@ -79,7 +79,7 @@ public:
 						isSpace = true;
 					}
 					else if (NewEvent.Key == GLFW_KEY_C) {
-						WorldEngine::VulkanDriver::_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
 					}
 				}
 				if (NewEvent.Key == GLFW_KEY_W) {
@@ -140,7 +140,7 @@ public:
 					float X = (rand() % 100) - 50.0f;
 					float Z = (rand() % 100) - 50.0f;
 					float Y = (rand() % 70) + 30.0f;
-					WorldEngine::VulkanDriver::_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
+					WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
 				}
 				else if (NewEvent.Key == GLFW_KEY_X) {
 					for (int i = 0; i < 5; i++)
@@ -148,7 +148,7 @@ public:
 						float X = (rand() % 100) - 50.0f;
 						float Z = (rand() % 100) - 50.0f;
 						float Y = (rand() % 70) + 30.0f;
-						WorldEngine::VulkanDriver::_SceneGraph->createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
+						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
 					}
 				}
 			}
@@ -162,7 +162,7 @@ public:
 				{
 					//
 					//	If our character is valid
-					CharacterSceneNode* Character = WorldEngine::VulkanDriver::_SceneGraph->GetCharacter();
+					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 					if (Character)
 					{
 						//
@@ -172,7 +172,7 @@ public:
 						{
 							//
 							//	Calculate Ray
-							Camera* Cam = &WorldEngine::VulkanDriver::_SceneGraph->GetCamera();
+							Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
 							auto CamPos = Cam->Pos;
 							ndVector From((dFloat32)CamPos.x, (dFloat32)CamPos.y, (dFloat32)CamPos.z, 0.f);
 							auto CamDir = CamPos + Cam->Ang * 1000.0f;
@@ -180,7 +180,7 @@ public:
 							//
 							//	Cast Ray
 							ndRayCastClosestHitCallback CB;
-							WorldEngine::VulkanDriver::_SceneGraph->castRay(From, To, CB);
+							WorldEngine::SceneGraph::castRay(From, To, CB);
 							//
 							//	Item Action
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
@@ -198,7 +198,7 @@ public:
 				{
 					//
 					//	If our character is valid
-					CharacterSceneNode* Character = WorldEngine::VulkanDriver::_SceneGraph->GetCharacter();
+					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 					if (Character)
 					{
 						//
@@ -225,7 +225,7 @@ public:
 				{
 					//
 					//	If our character is valid
-					CharacterSceneNode* Character = WorldEngine::VulkanDriver::_SceneGraph->GetCharacter();
+					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 					if (Character)
 					{
 						Character->ScrollItems(NewEvent.sY);
@@ -235,11 +235,11 @@ public:
 				{
 					//
 					//	Rotate the camera via mouse movement
-					Camera* Cam = &WorldEngine::VulkanDriver::_SceneGraph->GetCamera();
+					Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
 					Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
 					//
 					//	Rotate the character via camera movement
-					CharacterSceneNode* Character = WorldEngine::VulkanDriver::_SceneGraph->GetCharacter();
+					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 					if (Character && Character->_Camera)
 					{
 						Character->setYaw(Cam->getYaw());

@@ -82,7 +82,6 @@ namespace WorldEngine
 		VulkanDevice* _VulkanDevice;							//	Cleaned Up
 		EventReceiver* _EventReceiver;							//	Cleaned Up
 		MaterialCache* _MaterialCache;							//	Cleaned Up
-		SceneGraph* _SceneGraph;								//	Cleaned Up
 		ndWorld* _ndWorld;										//	Cleaned Up
 
 		void Initialize();
@@ -279,7 +278,7 @@ namespace WorldEngine
 			initLua();
 			//
 			//	Core Classes
-			_SceneGraph = new SceneGraph();
+			SceneGraph::Initialize();
 			_MaterialCache = new MaterialCache();
 		}
 
@@ -288,7 +287,7 @@ namespace WorldEngine
 		void Deinitialize()
 		{
 			//
-			delete _SceneGraph;
+			SceneGraph::Deinitialize();
 			//
 			delete _MaterialCache;
 			//
@@ -354,7 +353,7 @@ namespace WorldEngine
 				float FPS = (1.0f / DF);
 
 				if (_EventReceiver) {
-					_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Stats (60 Frame Average) - FPS: %f - Frame Time: %f - Physics Time: %f - Scene Nodes: %i", FPS, DF, _ndWorld->GetUpdateTime(), _SceneGraph->SceneNodes.size()));
+					_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Stats (60 Frame Average) - FPS: %f - Frame Time: %f - Physics Time: %f - Scene Nodes: %i", FPS, DF, _ndWorld->GetUpdateTime(), SceneGraph::SceneNodes.size()));
 				}
 				//
 				//	Handle and perform Inputs
@@ -362,9 +361,9 @@ namespace WorldEngine
 				_EventReceiver->OnUpdate();
 				//
 				//	We trying to cleanup?
-				if (_SceneGraph->ShouldCleanupWorld())
+				if (SceneGraph::ShouldCleanupWorld())
 				{
-					_SceneGraph->cleanupWorld();
+					SceneGraph::cleanupWorld();
 				}
 				else
 				{
@@ -373,8 +372,8 @@ namespace WorldEngine
 					_ndWorld->Update(deltaFrame);
 					//
 					//	Update Shader Uniforms
-					updateUniformBufferComposition(currentFrame, _SceneGraph->GetCamera().Pos);
-					_SceneGraph->updateUniformBuffer(currentFrame);
+					updateUniformBufferComposition(currentFrame, SceneGraph::GetCamera().Pos);
+					SceneGraph::updateUniformBuffer(currentFrame);
 					//
 					//	Draw Frame
 					Render();
@@ -394,7 +393,7 @@ namespace WorldEngine
 		{
 			//
 			//	Grab our CPC before doing any blocking/waiting calls
-			const CameraPushConstant& CPC = _SceneGraph->GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
+			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 			// 
 			//	Wait on this frame if it is still being used by the GPU
 			vkWaitForFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
@@ -452,8 +451,8 @@ namespace WorldEngine
 			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
-			for (size_t i = 0; i < _SceneGraph->SceneNodes.size(); i++) {
-				_SceneGraph->SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
+			for (size_t i = 0; i < SceneGraph::SceneNodes.size(); i++) {
+				SceneGraph::SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 			}
 			//
 			//	End and submit
