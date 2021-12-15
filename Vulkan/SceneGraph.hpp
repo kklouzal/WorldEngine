@@ -154,7 +154,7 @@ namespace WorldEngine
 			//SceneNodes.clear();
 			//SceneNodes.shrink_to_fit();
 
-			WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default()->EmptyCache();
+			WorldEngine::MaterialCache::GetPipe_Default()->EmptyCache();
 		}
 
 		void SceneGraph::updateUniformBuffer(const uint32_t& currentImage)
@@ -179,7 +179,7 @@ namespace WorldEngine
 		//	World Create Function
 		WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
 		{
-			Pipeline::Default* Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default();
+			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
 
@@ -230,7 +230,7 @@ namespace WorldEngine
 		//	TriangleMesh Create Function
 		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32& Mass, const ndVector& Position)
 		{
-			Pipeline::Default* Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default();
+			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
@@ -267,7 +267,7 @@ namespace WorldEngine
 		//	SkinnedMesh Create Function
 		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32& Mass, const ndVector& Position)
 		{
-			Pipeline::Default* Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default();
+			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
@@ -302,7 +302,7 @@ namespace WorldEngine
 		//	Character Create Function
 		CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const ndVector& Position)
 		{
-			Pipeline::Default* Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_Default();
+			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 

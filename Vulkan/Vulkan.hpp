@@ -81,7 +81,6 @@ namespace WorldEngine
 		VulkanSwapChain* swapChain;								//	Cleaned Up
 		VulkanDevice* _VulkanDevice;							//	Cleaned Up
 		EventReceiver* _EventReceiver;							//	Cleaned Up
-		MaterialCache* _MaterialCache;							//	Cleaned Up
 		ndWorld* _ndWorld;										//	Cleaned Up
 
 		void Initialize();
@@ -279,7 +278,7 @@ namespace WorldEngine
 			//
 			//	Core Classes
 			SceneGraph::Initialize();
-			_MaterialCache = new MaterialCache();
+			MaterialCache::Initialize();
 		}
 
 		//
@@ -289,7 +288,7 @@ namespace WorldEngine
 			//
 			SceneGraph::Deinitialize();
 			//
-			delete _MaterialCache;
+			MaterialCache::Deinitialize();
 			//
 			lua_close(state);
 			//
@@ -445,10 +444,10 @@ namespace WorldEngine
 			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport_Deferred);
 			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor_Deferred);
-			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline);
+			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline);
 			//
 			//	Update Camera Push Constants
-			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
 			for (size_t i = 0; i < SceneGraph::SceneNodes.size(); i++) {
@@ -505,9 +504,9 @@ namespace WorldEngine
 			vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
 			//
 			//	Draw our combined image view over the entire screen
-			vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->graphicsPipeline_Composition);
-			vkCmdPushConstants(commandBuffers[currentFrame], _MaterialCache->GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
-			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, _MaterialCache->GetPipe_Default()->pipelineLayout, 0, 1, &_MaterialCache->GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
+			vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline_Composition);
+			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 			vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
 			//
 			//

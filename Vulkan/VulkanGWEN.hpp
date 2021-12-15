@@ -381,7 +381,7 @@ namespace Gwen
 			Vulkan()
 				: dst_Size((WorldEngine::VulkanDriver::WIDTH* WorldEngine::VulkanDriver::HEIGHT) * 4), dst_Pitch(WorldEngine::VulkanDriver::WIDTH * 4)
 			{
-				Pipe = WorldEngine::VulkanDriver::_MaterialCache->GetPipe_GUI();
+				Pipe = WorldEngine::MaterialCache::GetPipe_GUI();
 			}
 
 			~Vulkan()

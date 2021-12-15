@@ -68,7 +68,6 @@
 #define FB_DIM TEX_DIM
 
 class EventReceiver;
-class MaterialCache;
 namespace Gwen { namespace Renderer { class Vulkan; } }
 
 //
