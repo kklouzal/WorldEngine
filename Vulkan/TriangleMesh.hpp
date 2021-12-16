@@ -54,10 +54,10 @@ public:
 
 	void createUniformBuffers()
 	{
-		uniformBuffers.resize(WorldEngine::VulkanDriver::swapChain->images.size());
-		uniformAllocations.resize(WorldEngine::VulkanDriver::swapChain->images.size());
+		uniformBuffers.resize(WorldEngine::VulkanDriver::swapChain.images.size());
+		uniformAllocations.resize(WorldEngine::VulkanDriver::swapChain.images.size());
 
-		for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain->images.size(); i++) {
+		for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
 
 			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 			uniformBufferInfo.size = sizeof(UniformBufferObject);

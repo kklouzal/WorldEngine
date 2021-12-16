@@ -112,9 +112,9 @@ namespace Pipeline {
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, WorldEngine::VulkanDriver::swapChain->images.size())
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, WorldEngine::VulkanDriver::swapChain.images.size())
 			};
-			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, WorldEngine::VulkanDriver::swapChain->images.size());
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, WorldEngine::VulkanDriver::swapChain.images.size());
 			if (vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
 				#ifdef _DEBUG
 				throw std::runtime_error("failed to create descriptor pool!");
@@ -122,9 +122,9 @@ namespace Pipeline {
 			}
 			//
 			//	Create Descriptor Sets
-			std::vector<VkDescriptorSetLayout> layouts(WorldEngine::VulkanDriver::swapChain->images.size(), descriptorSetLayout);
-			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, layouts.data(), WorldEngine::VulkanDriver::swapChain->images.size());
-			NewDescriptor->DescriptorSets.resize(WorldEngine::VulkanDriver::swapChain->images.size());
+			std::vector<VkDescriptorSetLayout> layouts(WorldEngine::VulkanDriver::swapChain.images.size(), descriptorSetLayout);
+			VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, layouts.data(), WorldEngine::VulkanDriver::swapChain.images.size());
+			NewDescriptor->DescriptorSets.resize(WorldEngine::VulkanDriver::swapChain.images.size());
 			if (vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
 				#ifdef _DEBUG
 				throw std::runtime_error("failed to allocate descriptor sets!");
@@ -132,7 +132,7 @@ namespace Pipeline {
 			}
 			//
 			//	Update individual sets
-			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain->images.size(); i++)
+			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++)
 			{
 				VkDescriptorImageInfo textureImage =
 					vks::initializers::descriptorImageInfo(
@@ -156,12 +156,12 @@ namespace Pipeline {
 
 			std::array<VkDescriptorPoolSize, 1> poolSizes = {};
 			poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			poolSizes[0].descriptorCount = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain->images.size());
+			poolSizes[0].descriptorCount = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain.images.size());
 
 			VkDescriptorPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
 			poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 			poolInfo.pPoolSizes = poolSizes.data();
-			poolInfo.maxSets = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain->images.size());
+			poolInfo.maxSets = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain.images.size());
 
 			if (vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &poolInfo, nullptr, &NewDescriptor->DescriptorPool) != VK_SUCCESS) {
 #ifdef _DEBUG
@@ -169,20 +169,20 @@ namespace Pipeline {
 #endif
 			}
 
-			std::vector<VkDescriptorSetLayout> layouts(WorldEngine::VulkanDriver::swapChain->images.size(), descriptorSetLayout);
+			std::vector<VkDescriptorSetLayout> layouts(WorldEngine::VulkanDriver::swapChain.images.size(), descriptorSetLayout);
 			VkDescriptorSetAllocateInfo allocInfoDS = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
 			allocInfoDS.descriptorPool = NewDescriptor->DescriptorPool;
-			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain->images.size());
+			allocInfoDS.descriptorSetCount = static_cast<uint32_t>(WorldEngine::VulkanDriver::swapChain.images.size());
 			allocInfoDS.pSetLayouts = layouts.data();
 
-			NewDescriptor->DescriptorSets.resize(WorldEngine::VulkanDriver::swapChain->images.size());
+			NewDescriptor->DescriptorSets.resize(WorldEngine::VulkanDriver::swapChain.images.size());
 			if (vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfoDS, NewDescriptor->DescriptorSets.data()) != VK_SUCCESS) {
 #ifdef _DEBUG
 				throw std::runtime_error("failed to allocate descriptor sets!");
 #endif
 			}
 
-			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain->images.size(); i++) {
+			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
 
 				VkDescriptorImageInfo imageInfo = {};
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

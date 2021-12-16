@@ -78,7 +78,7 @@ namespace WorldEngine
 
 		// Core Classes
 		VmaAllocator allocator = VMA_NULL;						//	Cleaned Up
-		VulkanSwapChain* swapChain;								//	Cleaned Up
+		VulkanSwapChain swapChain;								//	Cleaned Up
 		VulkanDevice* _VulkanDevice;							//	Cleaned Up
 		EventReceiver* _EventReceiver;							//	Cleaned Up
 		ndWorld* _ndWorld;										//	Cleaned Up
@@ -186,7 +186,6 @@ namespace WorldEngine
 			glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 			//
 			//	Initialize Vulkan - First Stage
-			swapChain = new VulkanSwapChain();
 			createInstance();
 			createLogicalDevice();
 			//
@@ -198,8 +197,8 @@ namespace WorldEngine
 			vmaCreateAllocator(&allocatorInfo, &allocator);
 			//
 			//	Initialize Vulkan - Second Stage
-			swapChain->initSurface(_Window);			//	SwapChain init
-			swapChain->create(&WIDTH, &HEIGHT, VSYNC);	//	SwapChain setup
+			swapChain.initSurface(_Window);			//	SwapChain init
+			swapChain.create(&WIDTH, &HEIGHT, VSYNC);	//	SwapChain setup
 			createDepthResources();						//	Depth Stencil setup
 			createRenderPass();
 			createFrameBuffers();
@@ -218,9 +217,9 @@ namespace WorldEngine
 			clearValues_Main[1].depthStencil = { 1.0f, 0 };
 			//
 			//	Per-Frame Deferred Rendering Uniform Buffer Objects
-			uboCompositionBuff.resize(swapChain->images.size());
-			uboCompositionAlloc.resize(swapChain->images.size());
-			for (size_t i = 0; i < swapChain->images.size(); i++)
+			uboCompositionBuff.resize(swapChain.images.size());
+			uboCompositionAlloc.resize(swapChain.images.size());
+			for (size_t i = 0; i < swapChain.images.size(); i++)
 			{
 				VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DComposition));
 				uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -250,8 +249,8 @@ namespace WorldEngine
 			//	Per-Frame Synchronization Objects
 			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
-			imagesInFlight.resize(swapChain->imageCount, VK_NULL_HANDLE);
-			for (uint32_t i = 0; i < swapChain->imageCount; i++)
+			imagesInFlight.resize(swapChain.imageCount, VK_NULL_HANDLE);
+			for (uint32_t i = 0; i < swapChain.imageCount; i++)
 			{
 				// Create a semaphore used to synchronize image presentation
 				// Ensures that the image is displayed before we start submitting new commands to the queue
@@ -324,8 +323,7 @@ namespace WorldEngine
 			delete frameBuffers.deferred;
 			delete frameBuffers.shadow;
 			//	Destroy Swapchain
-			swapChain->cleanup();
-			delete swapChain;
+			swapChain.cleanup();
 			//	Destroy VMA Allocator
 			vmaDestroyAllocator(allocator);
 			//	Destroy VulkanDevice
@@ -395,7 +393,7 @@ namespace WorldEngine
 			vkWaitForFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
 			// 
 			// Acquire the next image from the swap chain
-			VkResult result = swapChain->acquireNextImage(semaphores[currentFrame].presentComplete, &currentImage);
+			VkResult result = swapChain.acquireNextImage(semaphores[currentFrame].presentComplete, &currentImage);
 			//
 			//	Check again if this image is currently being used by the GPU
 			if (imagesInFlight[currentImage] != VK_NULL_HANDLE) {
@@ -547,7 +545,7 @@ namespace WorldEngine
 			//
 			//		PRESENT TO SCREEN
 			//
-			result = swapChain->queuePresent(graphicsQueue, currentFrame, semaphores[currentFrame].renderComplete);
+			result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores[currentFrame].renderComplete);
 			if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
 				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 					// Swap chain is no longer compatible with the surface and needs to be recreated
@@ -560,7 +558,7 @@ namespace WorldEngine
 			}
 			//
 			//	Submit this frame to the GPU and increment our currentFrame identifier
-			currentFrame = (currentFrame + 1) % swapChain->imageCount;
+			currentFrame = (currentFrame + 1) % swapChain.imageCount;
 		}
 
 		// Update lights and parameters passed to the composition shaders
@@ -736,7 +734,7 @@ namespace WorldEngine
 
 			//
 			//	Connect the swapchain
-			swapChain->connect(instance, physicalDevice, _VulkanDevice->logicalDevice);
+			swapChain.connect(instance, physicalDevice, _VulkanDevice->logicalDevice);
 			//
 			//	Submit Information
 			submitInfo = vks::initializers::submitInfo();
@@ -786,7 +784,7 @@ namespace WorldEngine
 		{
 			std::array<VkAttachmentDescription, 2> attachments = {};
 			// Color attachment
-			attachments[0].format = swapChain->colorFormat;
+			attachments[0].format = swapChain.colorFormat;
 			attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
 			attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -872,15 +870,15 @@ namespace WorldEngine
 			frameBufferCreateInfo.layers = 1;
 
 			// Create per-frame resources
-			frameBuffers_Main.resize(swapChain->imageCount);
-			commandPools.resize(swapChain->imageCount);
-			primaryCommandBuffers.resize(swapChain->imageCount);
-			offscreenCommandBuffers.resize(swapChain->imageCount);
-			for (uint32_t i = 0; i < swapChain->imageCount; i++)
+			frameBuffers_Main.resize(swapChain.imageCount);
+			commandPools.resize(swapChain.imageCount);
+			primaryCommandBuffers.resize(swapChain.imageCount);
+			offscreenCommandBuffers.resize(swapChain.imageCount);
+			for (uint32_t i = 0; i < swapChain.imageCount; i++)
 			{
 				//
 				//	FrameBuffers
-				attachments[0] = swapChain->buffers[i].view;
+				attachments[0] = swapChain.buffers[i].view;
 				VK_CHECK_RESULT(vkCreateFramebuffer(_VulkanDevice->logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers_Main[i]));
 				//
 				//	CommandPools
@@ -963,7 +961,7 @@ namespace WorldEngine
 				VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 				
 				// Create default renderpass for the framebuffer
-				VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain->imageCount));
+				VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
 		}
 	}
 }
