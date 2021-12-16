@@ -87,7 +87,7 @@ private:
 	VmaAllocator vmaAllocator;
 public:
 	uint32_t width, height;
-	VkFramebuffer framebuffer;
+	std::deque<VkFramebuffer> framebuffers;
 	VkRenderPass renderPass;
 	VkSampler sampler;
 	std::vector<FramebufferAttachment> attachments;
@@ -118,7 +118,10 @@ public:
 		}
 		vkDestroySampler(vulkanDevice->logicalDevice, sampler, nullptr);
 		vkDestroyRenderPass(vulkanDevice->logicalDevice, renderPass, nullptr);
-		vkDestroyFramebuffer(vulkanDevice->logicalDevice, framebuffer, nullptr);
+		for (auto& framebuffer : framebuffers)
+		{
+			vkDestroyFramebuffer(vulkanDevice->logicalDevice, framebuffer, nullptr);
+		}
 	}
 
 	/**
@@ -248,7 +251,7 @@ public:
 	*
 	* @return VK_SUCCESS if all resources have been created successfully
 	*/
-	VkResult createRenderPass()
+	VkResult createRenderPass(uint8_t FrameBufferCount)
 	{
 		std::vector<VkAttachmentDescription> attachmentDescriptions;
 		for (auto& attachment : attachments)
@@ -341,16 +344,20 @@ public:
 			}
 		}
 
-		VkFramebufferCreateInfo framebufferInfo = {};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass;
-		framebufferInfo.pAttachments = attachmentViews.data();
-		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachmentViews.size());
-		framebufferInfo.width = width;
-		framebufferInfo.height = height;
-		framebufferInfo.layers = maxLayers;
-		VK_CHECK_RESULT(vkCreateFramebuffer(vulkanDevice->logicalDevice, &framebufferInfo, nullptr, &framebuffer));
-
+		for (uint8_t i = 0; i < FrameBufferCount; i++)
+		{
+			VkFramebuffer framebuffer;
+			VkFramebufferCreateInfo framebufferInfo = {};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = renderPass;
+			framebufferInfo.pAttachments = attachmentViews.data();
+			framebufferInfo.attachmentCount = static_cast<uint32_t>(attachmentViews.size());
+			framebufferInfo.width = width;
+			framebufferInfo.height = height;
+			framebufferInfo.layers = maxLayers;
+			VK_CHECK_RESULT(vkCreateFramebuffer(vulkanDevice->logicalDevice, &framebufferInfo, nullptr, &framebuffer));
+			framebuffers.push_back(framebuffer);
+		}
 		return VK_SUCCESS;
 	}
 };

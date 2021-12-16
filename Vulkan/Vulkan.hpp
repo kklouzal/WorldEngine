@@ -16,7 +16,7 @@ namespace WorldEngine
 		struct {
 			Framebuffer* deferred;
 			Framebuffer* shadow;
-		} frameBuffers[3];										//	Cleaned Up
+		} frameBuffers;											//	Cleaned Up
 		//
 		//	DepthStencil Resources
 		struct {
@@ -321,11 +321,8 @@ namespace WorldEngine
 			for (auto& framebuffer : frameBuffers_Main) {
 				vkDestroyFramebuffer(_VulkanDevice->logicalDevice, framebuffer, nullptr);
 			}
-			for (auto& framebuffer : frameBuffers)
-			{
-				delete framebuffer.deferred;
-				delete framebuffer.shadow;
-			}
+			delete frameBuffers.deferred;
+			delete frameBuffers.shadow;
 			//	Destroy Swapchain
 			swapChain->cleanup();
 			delete swapChain;
@@ -431,10 +428,10 @@ namespace WorldEngine
 			//
 			//	Setup renderpass	
 			VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
-			renderPassBeginInfo1.renderPass = frameBuffers[0].deferred->renderPass;
-			renderPassBeginInfo1.framebuffer = frameBuffers[currentFrame].deferred->framebuffer;
-			renderPassBeginInfo1.renderArea.extent.width = frameBuffers[currentFrame].deferred->width;
-			renderPassBeginInfo1.renderArea.extent.height = frameBuffers[currentFrame].deferred->height;
+			renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
+			renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffers[currentFrame];
+			renderPassBeginInfo1.renderArea.extent.width = frameBuffers.deferred->width;
+			renderPassBeginInfo1.renderArea.extent.height = frameBuffers.deferred->height;
 			renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues_Deferred.size());
 			renderPassBeginInfo1.pClearValues = clearValues_Deferred.data();
 			//
@@ -776,11 +773,7 @@ namespace WorldEngine
 			textureImageViewInfo.image = depthStencil.image;
 			textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 			textureImageViewInfo.format = depthFormat;
-			textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-			textureImageViewInfo.subresourceRange.baseMipLevel = 0;
-			textureImageViewInfo.subresourceRange.levelCount = 1;
-			textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
-			textureImageViewInfo.subresourceRange.layerCount = 1;
+			textureImageViewInfo.subresourceRange = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
 			if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
 				textureImageViewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 			}
@@ -939,11 +932,9 @@ namespace WorldEngine
 			//
 			//
 			//	Deferred
-			for (int i = 0; i < 3; i++)
-			{
-				frameBuffers[i].deferred = new Framebuffer(_VulkanDevice, allocator);
-				frameBuffers[i].deferred->width = FB_DIM;
-				frameBuffers[i].deferred->height = FB_DIM;
+				frameBuffers.deferred = new Framebuffer(_VulkanDevice, allocator);
+				frameBuffers.deferred->width = FB_DIM;
+				frameBuffers.deferred->height = FB_DIM;
 
 				AttachmentCreateInfo attachmentInfo2 = {};
 				attachmentInfo2.width = FB_DIM;
@@ -954,26 +945,25 @@ namespace WorldEngine
 				// Color attachments
 				// Attachment 0: (World space) Positions
 				attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-				frameBuffers[i].deferred->addAttachment(attachmentInfo2);
+				frameBuffers.deferred->addAttachment(attachmentInfo2);
 
 				// Attachment 1: (World space) Normals
 				attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
-				frameBuffers[i].deferred->addAttachment(attachmentInfo2);
+				frameBuffers.deferred->addAttachment(attachmentInfo2);
 
 				// Attachment 2: Albedo (color)
 				attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
-				frameBuffers[i].deferred->addAttachment(attachmentInfo2);
+				frameBuffers.deferred->addAttachment(attachmentInfo2);
 
 				attachmentInfo2.format = depthFormat;
 				attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-				frameBuffers[i].deferred->addAttachment(attachmentInfo2);
+				frameBuffers.deferred->addAttachment(attachmentInfo2);
 
 				// Create sampler to sample from the color attachments
-				VK_CHECK_RESULT(frameBuffers[i].deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
-
+				VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+				
 				// Create default renderpass for the framebuffer
-				VK_CHECK_RESULT(frameBuffers[i].deferred->createRenderPass());
-			}
+				VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain->imageCount));
 		}
 	}
 }

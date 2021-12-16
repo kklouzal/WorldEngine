@@ -118,7 +118,7 @@ namespace Pipeline {
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			//	Separate render pass
-			pipelineCI.renderPass = WorldEngine::VulkanDriver::frameBuffers[0].deferred->renderPass;
+			pipelineCI.renderPass = WorldEngine::VulkanDriver::frameBuffers.deferred->renderPass;
 			//	Blend attachment states required for all color attachments
 			std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
@@ -157,19 +157,19 @@ namespace Pipeline {
 				VkDescriptorImageInfo texDescriptorPosition =
 					vks::initializers::descriptorImageInfo(
 						DeferredSampler,
-						WorldEngine::VulkanDriver::frameBuffers[i].deferred->attachments[0].view,
+						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[0].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorNormal =
 					vks::initializers::descriptorImageInfo(
 						DeferredSampler,
-						WorldEngine::VulkanDriver::frameBuffers[i].deferred->attachments[1].view,
+						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[1].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorAlbedo =
 					vks::initializers::descriptorImageInfo(
 						DeferredSampler,
-						WorldEngine::VulkanDriver::frameBuffers[i].deferred->attachments[2].view,
+						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[2].view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorBufferInfo bufferInfo_composition = {};
