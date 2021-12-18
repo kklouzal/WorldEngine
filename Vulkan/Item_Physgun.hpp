@@ -5,6 +5,7 @@ class Item_Physgun : public Item, public Gwen::Event::Handler
 public:
 	ndBodyNotify* SelectedNotify = nullptr;
 	SceneNode* SelectedNode = nullptr;
+	ndBody* SelectedBody = nullptr;
 	ndVector OldFireAng = {};
 	dFloat32 TgtDistance = -1.0f;
 	ndVector OldGravity = {};
@@ -25,37 +26,66 @@ public:
 
 	void StartPrimaryAction(ndRayCastClosestHitCallback& CB)
 	{
+
 		printf("Start Item Primary - %s", _Name);
 		
 		if (CB.m_contact.m_body0)
 		{
+
 			printf(" - Hit\n");
 			//
 			//	Store a pointer to our hit SceneNode
 			SelectedNotify = CB.m_contact.m_body0->GetNotifyCallback();
 			SelectedNode = (SceneNode*)SelectedNotify->GetUserData();
-			((ndBody*)SelectedNode)->GetAsBodyDynamic()->SetVelocity(ndVector(0.f, 10.f, 0.f, 0.f));
-			if (SelectedNode)
+			//SelectedBody = SelectedNotify->GetBody();
+			//SelectedBody->GetNotifyCallback()->GetUserData();
+
+			if (SelectedNode != nullptr)
 			{
+				//SelectedNotify->GetBody()->SetVelocity(ndVector(0.f, 100.f, 0.f, 0.f));
+				//((ndBody*)SelectedNode)->GetAsBodyDynamic()->SetVelocity(ndVector(0.f, 10.f, 0.f, 0.f));
+
+
 				if (SelectedNode->canPhys == false)
 				{
+					
 					SelectedNode = nullptr;
+
 				}
-				else {
-					OldGravity = SelectedNotify->GetGravity();
-					SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
-					AddDistance = 0.0f;
-					IsPrimary = true;
+				else 
+				{
+					
 					if (SelectedNode->isFrozen)
 					{
+						
 						SelectedNode->isFrozen = false;
+						SelectedNotify->SetGravity(OldGravity);
+
 					}
+					else
+					{
+						
+						OldGravity = SelectedNotify->GetGravity();
+						//printf("%i, %i, %i, %i\n\n", OldGravity.GetX(), OldGravity.GetY(), OldGravity.GetZ(), OldGravity.GetW());
+						//SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
+						SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
+						AddDistance = 0.0f;
+						IsPrimary = true;
+
+					}
+
 				}
+
 			}
+
 		}
-		else {
+		else 
+		{
+
 			printf(" - Miss\n");
+
 		}
+
 	}
 
 	void StartSecondaryAction(ndRayCastClosestHitCallback& CB)
