@@ -83,11 +83,10 @@ struct DComposition {
 };
 
 //
-//	Camera Push Constant
+//	Camera Push Constant (can only hold a maximum of 2 mat4's which is 8 vec4's)
 struct CameraPushConstant {
-	glm::mat4 view{};
-	glm::mat4 proj{};
-	glm::vec3 pos{};
+	glm::mat4 view_proj{};
+	glm::vec4 pos{};
 };
 //
 //	Model Uniform Buffer Object

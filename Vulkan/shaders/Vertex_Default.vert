@@ -15,9 +15,8 @@ layout(location = 3) out vec4 outWorldPos;
 layout(location = 4) out vec3 outTangent;
 
 layout(std140, push_constant) uniform CameraPushConstant {
-    mat4 view;
-    mat4 proj;
-	vec3 pos;
+    mat4 view_proj;
+    vec4 pos;
 } PushConstants;
 
 layout(std140, binding = 0) uniform UniformBufferObject {
@@ -27,7 +26,7 @@ layout(std140, binding = 0) uniform UniformBufferObject {
 
 void main() {
     outWorldPos = ubo.model * vec4(inPosition, 1.0);
-    gl_Position = PushConstants.proj * PushConstants.view * outWorldPos;
+    gl_Position = PushConstants.view_proj * outWorldPos;
     
     outUV = inTexCoord;
     
