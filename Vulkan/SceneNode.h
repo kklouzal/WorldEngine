@@ -8,7 +8,7 @@ public:
 	std::string Name = "N/A";
 	Camera* _Camera = nullptr;
 	bool isFrozen = false;
-	bool canPhys = false;
+	bool canPhys = true;
 	//
 	//	per frame check
 	bool bNeedsUpdate[3];

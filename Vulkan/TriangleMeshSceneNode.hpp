@@ -110,7 +110,8 @@ public:
 		if (dynamicBody)
 		{
 			ndVector massMatrix(dynamicBody->GetMassMatrix());
-			ndVector force(ndVector(0.0f, -10.0f, 0.0f, 0.0f).Scale(massMatrix.m_w));
+			//ndVector force(ndVector(0.0f, -10.0f, 0.0f, 0.0f).Scale(massMatrix.m_w));
+			ndVector force(dynamicBody->GetNotifyCallback()->GetGravity().Scale(massMatrix.m_w));
 			dynamicBody->SetForce(force);
 			dynamicBody->SetTorque(ndVector::m_zero);
 		}
