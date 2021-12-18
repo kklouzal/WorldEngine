@@ -41,7 +41,7 @@ namespace Pipeline {
 			VkPushConstantRange push_constant;
 			push_constant.offset = 0;
 			push_constant.size = sizeof(CameraPushConstant);
-			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 			VK_CHECK_RESULT(vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));

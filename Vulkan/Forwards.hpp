@@ -79,7 +79,6 @@ struct DLight {
 };
 struct DComposition {
 	DLight lights[6];
-	glm::vec4 viewPos;
 	glm::i32 debugDisplayTarget = 0;
 };
 
@@ -88,6 +87,7 @@ struct DComposition {
 struct CameraPushConstant {
 	glm::mat4 view{};
 	glm::mat4 proj{};
+	glm::vec3 pos{};
 };
 //
 //	Model Uniform Buffer Object

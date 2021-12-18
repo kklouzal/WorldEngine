@@ -89,6 +89,8 @@ public:
 	const CameraPushConstant& GetCPC(const float& ScrWidth, const float& ScrHeight, const float& zNear, const float& zFar, const float& FOV)
 	{
 		//ubo.view = glm::lookAt(glm::vec3(512.0f, 512.0f, 128.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		//CPC.pos = glm::vec4(Pos.x, Pos.y, Pos.z, 0.0f);
+		CPC.pos = Pos;
 		CPC.view = View;
 		CPC.proj = glm::perspective(glm::radians(FOV), ScrWidth/ScrHeight, zNear, zFar);
 		CPC.proj[1][1] *= -1;

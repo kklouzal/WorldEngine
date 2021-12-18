@@ -14,10 +14,15 @@ struct DLight {
 	float radius;
 };
 
+layout(std140, push_constant) uniform CameraPushConstant {
+    mat4 view;
+    mat4 proj;
+	vec3 pos;
+} PushConstants;
+
 layout(std140, binding = 4) uniform DComposition
 {
 	DLight lights[6];
-	vec4 viewPos;
 	int displayDebugTarget;
 } ubo;
 
@@ -64,7 +69,8 @@ void main()
 		float dist = length(L);
 
 		// Viewer to fragment
-		vec3 V = ubo.viewPos.xyz - fragPos;
+		//vec3 V = ubo.viewPos.xyz - fragPos;
+		vec3 V = PushConstants.pos - fragPos;
 		V = normalize(V);
 		
 		//if(dist < ubo.lights[i].radius)

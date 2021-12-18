@@ -93,7 +93,7 @@ namespace WorldEngine
 		//	Main Loop
 		void mainLoop();
 		void Render();
-		void updateUniformBufferComposition(const size_t& CurFrame, const glm::vec3& CamPosition);
+		void updateUniformBufferComposition(const size_t& CurFrame);
 		//
 		//	Vulkan Initialization Stage 1
 		void createInstance();
@@ -338,6 +338,13 @@ namespace WorldEngine
 		//	Loop Main Logic
 		void mainLoop()
 		{
+			//
+			//	Update Shader Lighting Uniforms
+			for (int i = 0; i < swapChain.imageCount; i++)
+			{
+				updateUniformBufferComposition(i);
+			}
+			//
 			while (!glfwWindowShouldClose(_Window))
 			{
 				//
@@ -364,9 +371,6 @@ namespace WorldEngine
 					//
 					//	Simulate Physics
 					_ndWorld->Update(deltaFrame);
-					//
-					//	Update Shader Uniforms
-					updateUniformBufferComposition(currentFrame, SceneGraph::GetCamera().Pos);
 					SceneGraph::updateUniformBuffer(currentFrame);
 					//
 					//	Draw Frame
@@ -500,7 +504,7 @@ namespace WorldEngine
 			//
 			//	Draw our combined image view over the entire screen
 			vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline_Composition);
-			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 			vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
 			//
@@ -562,7 +566,7 @@ namespace WorldEngine
 		}
 
 		// Update lights and parameters passed to the composition shaders
-		void updateUniformBufferComposition(const size_t& CurFrame, const glm::vec3& CamPosition)
+		void updateUniformBufferComposition(const size_t& CurFrame)
 		{
 			// White
 			uboComposition.lights[0].position = glm::vec4(-50.0f, 10.0f, -50.0f, 0.0f);
@@ -589,9 +593,6 @@ namespace WorldEngine
 			uboComposition.lights[5].position = glm::vec4(50.0f, 10.0f, 50.0f, 0.0f);
 			uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
 			uboComposition.lights[5].radius = 100.0f;
-
-			// Current view position
-			uboComposition.viewPos = glm::vec4(CamPosition, 0.0f) * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
 		}
