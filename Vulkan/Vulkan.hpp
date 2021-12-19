@@ -300,7 +300,7 @@ namespace WorldEngine
 			//
 			delete _ndWorld;
 			//
-			delete _EventReceiver;
+			_EventReceiver->Cleanup();
 			//	Destroy Synchronization Objects
 			for (auto& sync : semaphores)
 			{

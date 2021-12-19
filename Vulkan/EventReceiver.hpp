@@ -16,8 +16,6 @@ class EventReceiver : public Gwen::Event::Handler
 	bool isWorldInitialized = false;
 	//
 
-	void OnPress(Gwen::Controls::Base* pControl);
-
 protected:
 
 	enum EventTypes: uint_fast8_t {
@@ -76,6 +74,10 @@ public:
 	static void cursor_enter_callback(GLFWwindow* window, int entered);
 
 	//
+	//	GWEN Callbacks
+	void OnPress(Gwen::Controls::Base* pControl);
+
+	//
 	//	Menus
 	MainMenu* _MainMenu = nullptr;
 	ConsoleMenu* _ConsoleMenu = nullptr;
@@ -83,16 +85,15 @@ public:
 
 	EventReceiver();
 	virtual ~EventReceiver();
+	//
+	//	Internal Cleanup Function
+	void Cleanup();
 
 	virtual void OnUpdate() = 0;
 	virtual void OnEvent(const Event &NewEvent) = 0;
 
 	void EnableCursor();
 	void DisableCursor();
-
-	friend class MainMenu;
-	friend class ConsoleMenu;
-	friend class SpawnMenu;
 };
 
 //
@@ -125,6 +126,11 @@ EventReceiver::EventReceiver() {
 
 EventReceiver::~EventReceiver() {
 	printf("\tDestroy Base EventReceiver\n");
+}
+
+void EventReceiver::Cleanup()
+{
+	printf("\Cleanup Base EventReceiver\n");
 	//
 	//	Cleanup Menus
 	delete _MainMenu;

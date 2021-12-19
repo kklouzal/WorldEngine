@@ -14,8 +14,8 @@ int main() {
 	//
 	//	Create our custom event receiver (must be done AFTER VulkanDriver Initialize)
 	//	Will be cleaned up by WorldEngine::VulkanDriver::Deinitialize()
-	CustomEventReceiver* events = new CustomEventReceiver();
-	WorldEngine::VulkanDriver::setEventReceiver(events);
+	CustomEventReceiver events;
+	WorldEngine::VulkanDriver::setEventReceiver(&events);
 
 #ifdef _DEBUG
 	try {
