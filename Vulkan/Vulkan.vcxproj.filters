@@ -181,6 +181,9 @@
     <ClInclude Include="GUI.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
+    <ClInclude Include="Thread_Pool.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">

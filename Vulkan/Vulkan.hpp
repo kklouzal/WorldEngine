@@ -2,10 +2,14 @@
 
 #include "Forwards.hpp"
 
+#include "Thread_Pool.hpp"
+
 namespace WorldEngine
 {
 	namespace VulkanDriver
 	{
+		thread_pool pool(4);
+
 		uint32_t WIDTH = 1024;
 		uint32_t HEIGHT = 768;
 		bool VSYNC = false;
@@ -767,6 +771,7 @@ namespace WorldEngine
 		{
 			VmaAllocationCreateInfo allocInfo = {};
 			allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+			allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
 			VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
 			imageInfo.imageType = VK_IMAGE_TYPE_2D;

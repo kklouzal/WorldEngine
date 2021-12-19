@@ -168,6 +168,7 @@
     <ClInclude Include="ozz_utils.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
+    <ClInclude Include="Thread_Pool.hpp" />
     <ClInclude Include="TinyGLTF.hpp" />
     <ClInclude Include="Import_GLTF.hpp" />
     <ClInclude Include="json.hpp" />
