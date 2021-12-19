@@ -445,7 +445,7 @@ namespace Gwen
 					iCommand.indexCount = CurIndexCount;
 					iCommand.firstInstance = 0;
 					iCommand.instanceCount = 1;
-					indirectCommands.push_back(iCommand);
+					indirectCommands.emplace_back(iCommand);
 					//	Clear FontTexture Inside ClipRect
 					/*for (unsigned int dstY = clipOld.y; dstY < clipOld.h; ++dstY) {
 						for (unsigned int dstX = clipOld.x; dstX < clipOld.w; ++dstX) {
@@ -480,45 +480,45 @@ namespace Gwen
 
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Font_Descriptor->DescriptorSets[currentBuffer], 0, nullptr);
 
-				const VkCommandBuffer &CB = WorldEngine::VulkanDriver::beginSingleTimeCommands();
-				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				imgMemBarrier.subresourceRange.baseMipLevel = 0;
-				imgMemBarrier.subresourceRange.levelCount = 1;
-				imgMemBarrier.subresourceRange.baseArrayLayer = 0;
-				imgMemBarrier.subresourceRange.layerCount = 1;
-				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-				imgMemBarrier.image = Font_TextureImage;
-				imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-				
-				vkCmdPipelineBarrier(
-					CB,
-					VK_PIPELINE_STAGE_TRANSFER_BIT,
-					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-					0,
-					0, nullptr,
-					0, nullptr,
-					1, &imgMemBarrier);
+				//const VkCommandBuffer &CB = WorldEngine::VulkanDriver::beginSingleTimeCommands();
+				//VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+				//imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				//imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+				//imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				//imgMemBarrier.subresourceRange.baseMipLevel = 0;
+				//imgMemBarrier.subresourceRange.levelCount = 1;
+				//imgMemBarrier.subresourceRange.baseArrayLayer = 0;
+				//imgMemBarrier.subresourceRange.layerCount = 1;
+				//imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				//imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+				//imgMemBarrier.image = Font_TextureImage;
+				//imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				//imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				//
+				//vkCmdPipelineBarrier(
+				//	CB,
+				//	VK_PIPELINE_STAGE_TRANSFER_BIT,
+				//	VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+				//	0,
+				//	0, nullptr,
+				//	0, nullptr,
+				//	1, &imgMemBarrier);
 
-				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imgMemBarrier.image = Font_TextureImage;
-				imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				//imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+				//imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				//imgMemBarrier.image = Font_TextureImage;
+				//imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				//imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-				vkCmdPipelineBarrier(
-					CB,
-					VK_PIPELINE_STAGE_TRANSFER_BIT,
-					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-					0,
-					0, nullptr,
-					0, nullptr,
-					1, &imgMemBarrier);
-				WorldEngine::VulkanDriver::endSingleTimeCommands(CB);
+				//vkCmdPipelineBarrier(
+				//	CB,
+				//	VK_PIPELINE_STAGE_TRANSFER_BIT,
+				//	VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+				//	0,
+				//	0, nullptr,
+				//	0, nullptr,
+				//	1, &imgMemBarrier);
+				//WorldEngine::VulkanDriver::endSingleTimeCommands(CB);
 
 				VkDeviceSize offsets2[] = { 0 };
 				vkCmdBindVertexBuffers(commandBuffer, 0, 1, &Font_VertexBuffer, offsets2);
@@ -531,16 +531,6 @@ namespace Gwen
 				GUI_Vertices.clear();
 				GUI_Indices.clear();
 				GUI_UniqueVertices.clear();
-			}
-			void DrawFilledRect(Gwen::Rect rect)
-			{
-				Translate(rect);
-				/*AddVert(rect.x, rect.y);
-				AddVert(rect.x + rect.w, rect.y);
-				AddVert(rect.x, rect.y + rect.h);
-				AddVert(rect.x + rect.w, rect.y);
-				AddVert(rect.x + rect.w, rect.y + rect.h);
-				AddVert(rect.x, rect.y + rect.h);*/
 			}
 			void DrawTexturedRect(Gwen::Texture* pTexture, Gwen::Rect pTargetRect, float u1 = 0.0f, float v1 = 0.0f, float u2 = 1.0f, float v2 = 1.0f)
 			{

@@ -6,7 +6,7 @@ public:
 	const char* _Name;
 	const char* _Icon;
 
-	Item(const char* Name = "NoNamed", const char* Icon = "images/empty.png")
+	Item(const char* Name = "NoNamed", const char* Icon = "media/empty.png")
 	: _Name(Name), _Icon(Icon) {}
 	virtual ~Item() {}
 
@@ -38,6 +38,10 @@ public:
 	virtual void onSelectItem()	{}
 
 	virtual void onDeselectItem() {}
+
+	virtual void HideGUI() {}
+
+	virtual void ShowGUI() {}
 };
 
 //

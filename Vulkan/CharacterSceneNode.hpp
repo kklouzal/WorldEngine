@@ -47,15 +47,11 @@ public:
 		// 
 		//  -   PhysGun
 		Item_Physgun* Itm1 = new Item_Physgun();
-		//Itm1->SetInterface(_Interface);
-		//Itm1->SetPhysics(_Physics);
-		//Itm1->CreateGUI();
+		Itm1->CreateGUI();
 		this->GiveItem(Itm1, 0);
 		//
 		//  -   ToolGun
 		/*Item_Tool* Itm2 = new Item_Tool();
-		Itm2->SetInterface(_Interface);
-		Itm2->SetPhysics(_Physics);
 		Itm2->SetNavMesh(_NavMesh);
 		Itm2->LoadTools();
 		Itm2->CreateGUI();
@@ -115,11 +111,11 @@ public:
 		if (Items[CurItem] != nullptr)
 		{
 			Items[CurItem]->onDeselectItem();
-			//Items[CurItem]->HideGUI();
+			Items[CurItem]->HideGUI();
 		}
 		//
 		//	Prepare GUI Icon to display empty
-		const char* Ico = "images/empty.png";
+		const char* Ico = "media/empty.png";
 		//
 		//	Increment/Decrement current item counter
 		if (Scrolled > 0)
@@ -145,7 +141,7 @@ public:
 		if (Items[CurItem] != nullptr)
 		{
 			Items[CurItem]->onSelectItem();
-			//Items[CurItem]->ShowGUI();
+			Items[CurItem]->ShowGUI();
 			//
 			//	New item exists, use its icon instead
 			Ico = Items[CurItem]->_Icon;
@@ -159,14 +155,14 @@ public:
 	void GiveItem(Item* NewItem, unsigned int Slot)
 	{
 		Items[Slot] = NewItem;
-		const char* Ico = "images/empty.png";
+		const char* Ico = "media/empty.png";
 		if (Items[Slot] != nullptr) {
 			Ico = Items[Slot]->_Icon;
 		}
-		//_Interface->ChangeItemIcon(Slot, Ico);
+		WorldEngine::GUI::ChangeItemIcon(Slot, Ico);
 		if (Slot == CurItem && Items[CurItem] != nullptr)
 		{
-			//Items[CurItem]->ShowGUI();
+			Items[CurItem]->ShowGUI();
 		}
 	}
 

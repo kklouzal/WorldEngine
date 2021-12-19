@@ -18,7 +18,7 @@ public:
 	Gwen::Controls::Rectangle* Base_PhysConfig = nullptr;
 
 	Item_Physgun()
-		: Item("PhysGun", "images/atom-icon.png")
+		: Item("PhysGun", "media/atom-icon.png")
 	{}
 
 	~Item_Physgun()
@@ -178,9 +178,9 @@ public:
 
 	void CreateGUI()
 	{
-		/*Base_PhysConfig = new Gwen::Controls::Rectangle(_Interface->pCanvas);
+		Base_PhysConfig = new Gwen::Controls::Rectangle(WorldEngine::GUI::pCanvas);
 		Base_PhysConfig->SetSize(200, 120);
-		Base_PhysConfig->SetPos(GetScreenWidth() / 2 - 100, GetScreenHeight() - 200);
+		Base_PhysConfig->SetPos(WorldEngine::VulkanDriver::WIDTH / 2 - 100, WorldEngine::VulkanDriver::HEIGHT - 200);
 		Base_PhysConfig->SetColor(Gwen::Color(255, 255, 255, 100));
 
 		Gwen::Controls::Label* Force_Label = new Gwen::Controls::Label(Base_PhysConfig);
@@ -209,7 +209,7 @@ public:
 		Zoom_Slider->SetNotchCount(10);
 		Zoom_Slider->SetClampToNotches(true);
 		Zoom_Slider->SetFloatValue(ZoomMult);
-		Zoom_Slider->onValueChanged.Add(this, &Item_Physgun::OnGUI_Scale, this);*/
+		Zoom_Slider->onValueChanged.Add(this, &Item_Physgun::OnGUI_Scale, this);
 
 		//
 		//	Hide GUI by default
@@ -218,12 +218,12 @@ public:
 
 	void HideGUI()
 	{
-		//Base_PhysConfig->SetHidden(true);
+		Base_PhysConfig->SetHidden(true);
 	}
 
 	void ShowGUI()
 	{
-		//Base_PhysConfig->SetHidden(false);
+		Base_PhysConfig->SetHidden(false);
 	}
 
 };
