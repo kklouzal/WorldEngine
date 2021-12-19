@@ -104,8 +104,6 @@ namespace WorldEngine
 	}
 }
 
-#include "MaterialCache.hpp"
-
 //
 //	Include All SceneNode Types
 #include "TriangleMesh.hpp"

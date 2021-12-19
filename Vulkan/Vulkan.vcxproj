@@ -162,6 +162,7 @@
     <ClInclude Include="CharacterSceneNode.hpp" />
     <ClInclude Include="ConsoleMenu.hpp" />
     <ClInclude Include="ConvexDecomposition.hpp" />
+    <ClInclude Include="GUI.hpp" />
     <ClInclude Include="Item_Physgun.hpp" />
     <ClInclude Include="ozz_mesh.h" />
     <ClInclude Include="ozz_utils.h" />

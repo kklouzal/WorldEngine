@@ -6,7 +6,7 @@ class SpawnMenu {
 	Gwen::Controls::WindowControl* SpawnWindow;
 public:
 	SpawnMenu(EventReceiver* Receiver) : _EventReceiver(Receiver), isOpen(true) {
-		SpawnWindow = new Gwen::Controls::WindowControl(_EventReceiver->pCanvas);
+		SpawnWindow = new Gwen::Controls::WindowControl(WorldEngine::GUI::pCanvas);
 		SpawnWindow->SetWidth(400);
 		SpawnWindow->SetHeight(300);
 		SpawnWindow->SetPos(200, 150);

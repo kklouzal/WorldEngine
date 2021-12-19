@@ -12,7 +12,7 @@ int main() {
 	//	Vulkan Initialization
 	WorldEngine::VulkanDriver::Initialize();
 	//
-	//	Create our custom event receiver
+	//	Create our custom event receiver (must be done AFTER VulkanDriver Initialize)
 	//	Will be cleaned up by WorldEngine::VulkanDriver::Deinitialize()
 	CustomEventReceiver* events = new CustomEventReceiver();
 	WorldEngine::VulkanDriver::setEventReceiver(events);

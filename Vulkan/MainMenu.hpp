@@ -6,7 +6,7 @@ class MainMenu {
 	Gwen::Controls::WindowControl* MainWindow;
 public:
 	MainMenu(EventReceiver* Receiver) : _EventReceiver(Receiver), isOpen(true) {
-		MainWindow = new Gwen::Controls::WindowControl(_EventReceiver->pCanvas);
+		MainWindow = new Gwen::Controls::WindowControl(WorldEngine::GUI::pCanvas);
 		MainWindow->SetWidth(80);
 		MainWindow->SetHeight(135);
 		MainWindow->SetPos(10, 10);

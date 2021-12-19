@@ -8,7 +8,7 @@ class ConsoleMenu {
 	Gwen::Controls::StatusBar* StatusBar;
 public:
 	ConsoleMenu(EventReceiver* Receiver) : _EventReceiver(Receiver), isOpen(true), isActive(true) {
-		ConsoleWindow = new Gwen::Controls::WindowControl(_EventReceiver->pCanvas);
+		ConsoleWindow = new Gwen::Controls::WindowControl(WorldEngine::GUI::pCanvas);
 		ConsoleWindow->SetHeight(200);
 		ConsoleWindow->SetWidth(400);
 		ConsoleWindow->SetTitle("Console");

@@ -164,9 +164,10 @@ namespace WorldEngine
 #include "PipelineObject.hpp"
 #include "Import_GLTF.hpp"
 
-#include "SceneGraph.hpp"
+#include "MaterialCache.hpp"
+#include "GUI.hpp"
 
-#include "VulkanGWEN.hpp"
+#include "SceneGraph.hpp"
 
 #include "EventReceiver.hpp"
 
@@ -537,7 +538,7 @@ namespace WorldEngine
 			//
 			//	Issue draw commands
 			if (_EventReceiver) {
-				_EventReceiver->drawGWEN(commandBuffers_GUI[currentFrame]);
+				GUI::Draw(commandBuffers_GUI[currentFrame]);
 			}
 #ifdef _DEBUG
 			//if (isWorld) {

@@ -11,11 +11,6 @@ class SpawnMenu;
 class EventReceiver : public Gwen::Event::Handler
 {
 	//
-	//	GWEN
-	Gwen::Renderer::Vulkan* pRenderer;
-	Gwen::Skin::TexturedBase* pSkin;
-	Gwen::Controls::Canvas* pCanvas;
-	//
 	//	State Flags
 	//bool isMenuOpen = true;
 	bool isWorldInitialized = false;
@@ -80,10 +75,6 @@ public:
 	static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 	static void cursor_enter_callback(GLFWwindow* window, int entered);
 
-	void drawGWEN(const VkCommandBuffer& Buff) {
-		pRenderer->SetBuffer(Buff);
-		pCanvas->RenderCanvas();
-	}
 	//
 	//	Menus
 	MainMenu* _MainMenu = nullptr;
@@ -99,7 +90,6 @@ public:
 	void EnableCursor();
 	void DisableCursor();
 
-	friend class VulkanDriver;
 	friend class MainMenu;
 	friend class ConsoleMenu;
 	friend class SpawnMenu;
@@ -115,18 +105,9 @@ public:
 //	Define EventReceiver Implementations
 EventReceiver::EventReceiver() {
 	printf("Create EventReceiver\n");
-	pRenderer = new Gwen::Renderer::Vulkan();
-
-	pRenderer->Init();
-	pSkin = new Gwen::Skin::TexturedBase(pRenderer);
-	pSkin->Init("media/DefaultSkin.png");
-
-	pCanvas = new Gwen::Controls::Canvas(pSkin);
-	pCanvas->SetSize(WorldEngine::VulkanDriver::WIDTH, WorldEngine::VulkanDriver::HEIGHT);
-	pCanvas->SetDrawBackground(false);
-	pCanvas->SetBackgroundColor(Gwen::Color(150, 170, 170, 255));
-	pCanvas->SetKeyboardInputEnabled(false);
-
+	//
+	//	Initialize GUI here since it is deeply intertwined with the event receiver
+	WorldEngine::GUI::Initialize();
 	//
 	//	Initialize Menus
 	_MainMenu = new MainMenu(this);
@@ -134,7 +115,7 @@ EventReceiver::EventReceiver() {
 	_SpawnMenu = new SpawnMenu(this);
 	//
 
-	Crosshair = new Gwen::Controls::ImagePanel(pCanvas);
+	Crosshair = new Gwen::Controls::ImagePanel(WorldEngine::GUI::pCanvas);
 	Crosshair->SetImage("media/crosshairs/focus1.png");
 	Crosshair->SetPos(WorldEngine::VulkanDriver::WIDTH / 2 - 16, WorldEngine::VulkanDriver::HEIGHT / 2 - 16);
 	Crosshair->SetSize(32, 32);
@@ -150,10 +131,8 @@ EventReceiver::~EventReceiver() {
 	delete _ConsoleMenu;
 	delete _SpawnMenu;
 	//
-	//	Cleanup GWEN
-	delete pCanvas;
-	delete pSkin;
-	delete pRenderer;
+	//	Cleanup GUI
+	WorldEngine::GUI::Deinitialize();
 }
 
 const bool& EventReceiver::IsMenuOpen() const {
@@ -211,7 +190,7 @@ void EventReceiver::char_callback(GLFWwindow* window, unsigned int codepoint)
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
 	if (Rcvr->IsMenuOpen()) {
 		Gwen::UnicodeChar chr = (Gwen::UnicodeChar) codepoint;
-		Rcvr->pCanvas->InputCharacter(chr);
+		WorldEngine::GUI::pCanvas->InputCharacter(chr);
 	}
 }
 
@@ -274,7 +253,7 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 	}
 
 	if (iKey != -1 && Rcvr->IsMenuOpen()) {
-		Rcvr->pCanvas->InputKey(iKey, bDown);
+		WorldEngine::GUI::pCanvas->InputKey(iKey, bDown);
 	}
 
 	Event NewEvent;
@@ -297,16 +276,16 @@ void EventReceiver::mouse_button_callback(GLFWwindow* window, int button, int ac
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
 	if (Rcvr->IsMenuOpen()) {
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-			Rcvr->pCanvas->InputMouseButton(0, true);
+			WorldEngine::GUI::pCanvas->InputMouseButton(0, true);
 		}
 		else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-			Rcvr->pCanvas->InputMouseButton(0, false);
+			WorldEngine::GUI::pCanvas->InputMouseButton(0, false);
 		}
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-			Rcvr->pCanvas->InputMouseButton(1, true);
+			WorldEngine::GUI::pCanvas->InputMouseButton(1, true);
 		}
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
-			Rcvr->pCanvas->InputMouseButton(1, false);
+			WorldEngine::GUI::pCanvas->InputMouseButton(1, false);
 		}
 	}
 	Event NewEvent;
@@ -327,7 +306,7 @@ void EventReceiver::mouse_button_callback(GLFWwindow* window, int button, int ac
 void EventReceiver::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
-	Rcvr->pCanvas->InputMouseWheel(yoffset);
+	WorldEngine::GUI::pCanvas->InputMouseWheel(yoffset);
 
 	Event NewEvent;
 	NewEvent.Type = EventTypes::Mouse;
@@ -359,7 +338,7 @@ void EventReceiver::cursor_position_callback(GLFWwindow* window, double xpos, do
 	int y = ypos;
 	int dx = Rcvr->m_PosX_Delta;
 	int dy = Rcvr->m_PosY_Delta;
-	Rcvr->pCanvas->InputMouseMoved(x, y, dx, dy);
+	WorldEngine::GUI::pCanvas->InputMouseMoved(x, y, dx, dy);
 
 	Event NewEvent;
 	NewEvent.Type = EventTypes::Mouse;

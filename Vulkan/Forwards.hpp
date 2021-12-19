@@ -1,7 +1,5 @@
 #pragma once
 #define WIN32_LEAN_AND_MEAN
-#pragma warning( disable : 4714 )
-#pragma warning( disable : 4267 )
 
 #include <Gwen/Gwen.h>
 #include <Gwen/Skins/TexturedBase.h>
@@ -11,6 +9,9 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -34,9 +35,6 @@
 #define _D_COLLISION_DLL
 #include <ndNewton.h>
 
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
-
 #include "LuaScripting.hpp"
 
 #include <functional>
@@ -58,14 +56,14 @@
 #include "VulkanSwapChain.hpp"
 
 // Texture properties
-#define TEX_DIM 2048
-#define TEX_FILTER VK_FILTER_LINEAR
-#define SHADOWMAP_DIM 2048
-#define SHADOWMAP_FORMAT VK_FORMAT_D32_SFLOAT_S8_UINT
-#define LIGHT_COUNT 6
+constexpr auto FB_DIM = 2048;
+constexpr auto TEX_DIM = 2048;
+constexpr auto SHADOWMAP_DIM = 2048;
+constexpr auto SHADOWMAP_FORMAT = VK_FORMAT_D32_SFLOAT_S8_UINT;
+constexpr auto TEX_FILTER = VK_FILTER_LINEAR;
+constexpr auto LIGHT_COUNT = 6;
 
 // Offscreen frame buffer properties
-#define FB_DIM TEX_DIM
 
 class EventReceiver;
 namespace Gwen { namespace Renderer { class Vulkan; } }
