@@ -346,7 +346,7 @@ namespace WorldEngine
 		{
 			//
 			//	Update Shader Lighting Uniforms
-			for (int i = 0; i < swapChain.imageCount; i++)
+			for (uint32_t i = 0; i < swapChain.imageCount; i++)
 			{
 				updateUniformBufferComposition(i);
 			}
@@ -554,7 +554,7 @@ namespace WorldEngine
 			//		END ONSCREEN DRAWING
 			// 
 			//	Execute render commands from the secondary command buffers
-			vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
+			vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], (uint32_t)secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 			vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentFrame]));
 
@@ -662,7 +662,7 @@ namespace WorldEngine
 			std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
 			vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
 			bool validationLayerPresent = false;
-			for (VkLayerProperties layer : instanceLayerProperties) {
+			for (const VkLayerProperties& layer : instanceLayerProperties) {
 				if (strcmp(layer.layerName, validationLayerName) == 0) {
 					validationLayerPresent = true;
 					break;

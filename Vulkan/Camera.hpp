@@ -49,11 +49,11 @@ public:
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 	}
 	bool firstMouse = true;
-	double lastX = 0;
-	double lastY = 0;
-	float yaw = 0;
-	float pitch = 0;
-	float sensitivity = 0.15;
+	double lastX = 0.f;
+	double lastY = 0.f;
+	float yaw = 0.f;
+	float pitch = 0.f;
+	float sensitivity = 0.15f;
 
 	void DoLook(const double& deltaX, const double& deltaY)
 	{

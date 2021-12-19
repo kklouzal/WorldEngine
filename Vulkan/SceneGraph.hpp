@@ -245,7 +245,7 @@ namespace WorldEngine
 				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;*/
 				Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
 			}
-			ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
+			ndShapeInstance shape(new ndShapeConvexHull((dInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
 			ndMatrix matrix(dGetIdentityMatrix());
 			matrix.m_posit = Position;
@@ -282,7 +282,7 @@ namespace WorldEngine
 				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
 				Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
 			}
-			ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
+			ndShapeInstance shape(new ndShapeConvexHull((dInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
 			ndMatrix matrix(dGetIdentityMatrix());
 			matrix.m_posit = ndVector(0, 0, 0, 0);

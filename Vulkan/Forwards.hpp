@@ -195,8 +195,8 @@ struct TextureObject {
 	VmaAllocation Allocation = VMA_NULL;
 	VkImage Image = VK_NULL_HANDLE;
 	VkImageView ImageView = VK_NULL_HANDLE;
-	unsigned int Width = 0;
-	unsigned int Height = 0;
+	uint32_t Width = 0;
+	uint32_t Height = 0;
 	std::vector<unsigned char> Pixels = {};
 	bool Empty = true;
 

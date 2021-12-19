@@ -5,8 +5,8 @@ struct GLTFInfo
     std::vector<Vertex> Vertices;
     std::vector<uint32_t> Indices;
     const char* TexDiffuse;
-    TextureObject* DiffuseTex;
-    TextureObject* NormalTex;
+    TextureObject* DiffuseTex = nullptr;
+    TextureObject* NormalTex = nullptr;
 };
 
 class ImportGLTF

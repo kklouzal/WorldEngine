@@ -4,7 +4,7 @@
 //
 //	Structure containing objects created during composition
 struct DecompResults {
-	ndShapeCompound* CompoundShape;
+	ndShapeCompound* CompoundShape = nullptr;
 	std::vector<ndShapeConvex*> m_convexShapes = {};
 	//btAlignedObjectArray<btTriangleMesh*> m_trimeshes = {};
 };
@@ -60,7 +60,7 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 	//printf("Compute V-HACD: Points %i Triangles %i\n", Points.size(), Triangles.size());
 	//const bool res = interfaceVHACD->Compute(Points.data(), (uint32_t)(Points.size() / 3),
 	//	Triangles.data(), (uint32_t)(Triangles.size() / 3), params);
-	const bool res = interfaceVHACD->Compute(Points.data(), nPoints/3, Infos->Indices.data(), nTriangles/3, params);
+	const bool res = interfaceVHACD->Compute(Points.data(), (uint32_t)nPoints/3, Infos->Indices.data(), (uint32_t)nTriangles/3, params);
 	//
 	//	Get the number of convex hulls
 	const uint32_t nConvexHulls = interfaceVHACD->GetNConvexHulls();
@@ -99,7 +99,7 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 		}
 		//
 		//	Create a new ConvexShape from this hulls Triangle Mesh
-		ndShapeConvexHull* convexShape = new ndShapeConvexHull(Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x);
+		ndShapeConvexHull* convexShape = new ndShapeConvexHull((dInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x);
 		Results->m_convexShapes.push_back(convexShape);
 		//
 		//	Grab the hulls center position

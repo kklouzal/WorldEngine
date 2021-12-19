@@ -36,7 +36,7 @@ namespace Gwen
 	{
 		class Vulkan : public Gwen::Renderer::Base
 		{
-			Pipeline::GUI* Pipe;
+			Pipeline::GUI* Pipe = nullptr;
 
 			size_t currentBuffer = 0;
 			VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
@@ -67,32 +67,32 @@ namespace Gwen
 			VmaAllocation Font_VertexAllocation = VMA_NULL;
 
 			VmaAllocation Font_TextureAllocation = VMA_NULL;
-			VkImage Font_TextureImage;
-			VkImageView Font_TextureImageView;
+			VkImage Font_TextureImage = VK_NULL_HANDLE;
+			VkImageView Font_TextureImageView = VK_NULL_HANDLE;
 
-			DescriptorObject* Font_Descriptor;
+			DescriptorObject* Font_Descriptor = nullptr;
 
-			FT_Library library;
+			FT_Library library = nullptr;
 
-			FTC_Manager manager;
-			FTC_SBitCache sbitCache;
-			FTC_CMapCache cmapCache;
+			FTC_Manager manager = nullptr;
+			FTC_SBitCache sbitCache = nullptr;
+			FTC_CMapCache cmapCache = nullptr;
 
 			std::vector<VkRect2D> ClipScissors = {};
-			Gwen::Rect clipOld;
-			Gwen::Rect clipNew;
+			Gwen::Rect clipOld = {};
+			Gwen::Rect clipNew = {};
 
-			Gwen::Color	m_Color;
+			Gwen::Color	m_Color = {};
 
 			std::deque<unsigned char*> LastWrites = {};
 
-			const unsigned int dst_Size;
-			const unsigned int dst_Pitch;
-			GWENFace Face1;
-			FTC_Scaler Face1Scale;
-			FTC_ImageType Face1Rec;
+			const uint32_t dst_Size;
+			const uint32_t dst_Pitch;
+			GWENFace Face1 = nullptr;
+			FTC_Scaler Face1Scale = nullptr;
+			FTC_ImageType Face1Rec = nullptr;
 
-			FTC_SBit Bit;	//	Glyph returned from character lookup in cache
+			FTC_SBit Bit = nullptr;	//	Glyph returned from character lookup in cache
 
 			void initFreeType()
 			{

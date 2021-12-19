@@ -19,11 +19,13 @@ class EventReceiver : public Gwen::Event::Handler
 protected:
 
 	enum EventTypes: uint_fast8_t {
+		NOTYPE = 0,
 		Keyboard = 1,
 		Mouse = 2
 	};
 
 	enum EventActions: uint_fast8_t {
+		NOACTION = 0,
 		Press = 1,
 		Release = 2,
 		Repeat = 3,
@@ -33,9 +35,9 @@ protected:
 
 	struct Event {
 		//	Keyboard/Mouse
-		EventTypes Type;
+		EventTypes Type = EventTypes::NOTYPE;
 		//	Press/Release/Repeat/Move/Scroll
-		EventActions Action;
+		EventActions Action = EventActions::NOACTION;
 		//	GLFW Keyboard Keycode/Mouse Left-Right
 		uint_fast16_t Key = 0;
 		//	Mouse Move X
@@ -56,7 +58,7 @@ protected:
 	double m_PosY_Delta = 0;
 	bool m_Pos_First = true;
 
-	const bool& IsMenuOpen() const;
+	const bool IsMenuOpen() const;
 
 	const bool& IsWorldInitialized() const {
 		return isWorldInitialized;
@@ -130,7 +132,7 @@ EventReceiver::~EventReceiver() {
 
 void EventReceiver::Cleanup()
 {
-	printf("\Cleanup Base EventReceiver\n");
+	printf("\tCleanup Base EventReceiver\n");
 	//
 	//	Cleanup Menus
 	delete _MainMenu;
@@ -141,7 +143,7 @@ void EventReceiver::Cleanup()
 	WorldEngine::GUI::Deinitialize();
 }
 
-const bool& EventReceiver::IsMenuOpen() const {
+const bool EventReceiver::IsMenuOpen() const {
 	return _MainMenu->IsOpen() || _ConsoleMenu->IsActive() || _SpawnMenu->IsOpen();
 }
 
