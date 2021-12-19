@@ -152,7 +152,7 @@ public:
 		}
 		//
 		//	Update GUI
-		//_Interface->ChangeItemSelection(CurItem, Ico);
+		WorldEngine::GUI::ChangeItemSelection(CurItem, Ico);
 		printf("Current Item %i\n", CurItem);
 	}
 

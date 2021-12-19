@@ -46,7 +46,7 @@ namespace WorldEngine
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;		//	Cleaned Up
 		VkPhysicalDeviceProperties deviceProperties;			//
 		VkPhysicalDeviceFeatures deviceFeatures;				//
-		VkPhysicalDeviceFeatures enabledFeatures{};			//
+		VkPhysicalDeviceFeatures enabledFeatures{};				//
 		std::vector<const char*> enabledDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };	//
 		std::vector<const char*> enabledInstanceExtensions;		//
 		VkQueue graphicsQueue = VK_NULL_HANDLE;					//
@@ -163,7 +163,6 @@ namespace WorldEngine
 
 #include "PipelineObject.hpp"
 #include "Import_GLTF.hpp"
-
 #include "MaterialCache.hpp"
 #include "GUI.hpp"
 

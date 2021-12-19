@@ -119,12 +119,16 @@ namespace WorldEngine
 		void SceneGraph::initWorld()
 		{
 			if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
-
+			//
+			//	Load World/Charater/Etc..
 			_World = createWorldSceneNode("media/models/CurrentWorld.gltf");
 			_Character = createCharacterSceneNode("media/models/box.gltf", ndVector(0, 15, 0, 0));
 			_Character->_Camera = &_Camera;
 
 			isWorld = true;
+			//
+			//	Create GUI Elements
+			GUI::CreateBottomBar();
 		}
 
 		void SceneGraph::cleanupWorld(const bool& bForce)
