@@ -156,17 +156,24 @@ namespace Gwen
 						for (unsigned int x = 0; x < Bit->width; ++x) {
 							const unsigned int dstX = x + PenX + dst_Cursor_X;
 							const uint8_t value = *src++;
+							//
+							//	Skip writing 0 alpha pixels
+							if (value == 0) { continue; }
+							//
 							//	Check if X position is within image bounds and clip rect
 							if (dstX <= static_cast<uint32_t>(clipOld.x) || dstX >= WorldEngine::VulkanDriver::WIDTH || dstX >= static_cast<uint32_t>(clipOld.w)) { continue; }
 							//	y * dst_Pitch	== Image Row Destination Bit
 							//	x * 4			== Image Column Destination Bit
 							const unsigned int dstBit = (dstY * dst_Pitch) + (dstX * 4);
 
+
 							//writeBuffer[dstBit]		= m_Color.r;// +0 == R
 							//writeBuffer[dstBit +1]	= m_Color.g;// +1 == G
 							//writeBuffer[dstBit +2]	= m_Color.b;// +2 == B
 							//writeBuffer[dstBit +3]	= value;	// +3 == A
 							unsigned char* TextureData = reinterpret_cast<unsigned char*>(Font_TextureAllocation->GetMappedData());
+							//
+							//	Write changed pixels
 							TextureData[dstBit] = m_Color.r;
 							TextureData[dstBit+1] = m_Color.g;
 							TextureData[dstBit+2] = m_Color.b;
@@ -182,19 +189,19 @@ namespace Gwen
 			
 			void RenderText(Gwen::Font* pFont, Gwen::Point pos, const Gwen::UnicodeString& text)
 			{
-				//auto Clp = clipNew;
-				//int ClpX = Clp.x;
-				//int ClpY = Clp.y;
-				//int ClpW = ClpX + Clp.w;
-				//int ClpH = ClpY + Clp.h;
+				auto Clp = clipNew;
+				int ClpX = Clp.x;
+				int ClpY = Clp.y;
+				int ClpW = ClpX + Clp.w;
+				int ClpH = ClpY + Clp.h;
 				int x = pos.x;
 				int y = pos.y;
 				Translate(x, y);
 				//printf("%i (%i) %i | %i (%i) %i\n", ClpX, x, ClpW, ClpY, y, ClpH);
 				//printf("%i %i\n", x, y);
-				//if (x >= ClpX && y >= ClpY && x <= ClpW && y <= ClpH) {
+				if (x >= ClpX && y >= ClpY && x <= ClpW && y <= ClpH) {
 					DrawText(text, x, y);
-				//}
+				}
 			}
 
 			//
@@ -441,14 +448,15 @@ namespace Gwen
 			void DrawFilledRect(Gwen::Rect rect)
 			{
 				Translate(rect);
+				Gwen::Rect CLR = clipNew;
 				for (unsigned int X = rect.x; X <= rect.x+rect.w; X++)
 				{
 					// X = Column Position
-					//if (X <= static_cast<uint32_t>(clipOld.x) || X >= WorldEngine::VulkanDriver::WIDTH || X >= static_cast<uint32_t>(clipOld.w)) { return; }
+					if (X <= static_cast<uint32_t>(CLR.x) || X >= WorldEngine::VulkanDriver::WIDTH || X >= static_cast<uint32_t>(CLR.x+CLR.w)) { continue; }
 					for (unsigned int Y = rect.y; Y <= rect.y + rect.h; Y++)
 					{
 						// Y = Row Position
-						//if (Y <= static_cast<uint32_t>(clipOld.y) || Y >= WorldEngine::VulkanDriver::HEIGHT || Y >= static_cast<uint32_t>(clipOld.h)) { return; }
+						if (Y <= static_cast<uint32_t>(CLR.y) || Y >= WorldEngine::VulkanDriver::HEIGHT || Y >= static_cast<uint32_t>(CLR.y+CLR.h)) { continue; }
 						//
 						//	Calculate Pixel Bit Position
 						unsigned int PixelPos = (X * 4) + (Y * dst_Pitch);
@@ -458,11 +466,11 @@ namespace Gwen
 						TextureData[PixelPos] = m_Color.r;
 						TextureData[PixelPos + 1] = m_Color.g;
 						TextureData[PixelPos + 2] = m_Color.b;
-						TextureData[PixelPos + 3] = m_Color.a;
+						//TextureData[PixelPos + 3] = m_Color.a;
 						//
 						//	Store the alpha position into our 'LastWrites' buffer before setting the value
-						//LastWrites.push_back(&TextureData[PixelPos + 3]);
-						//*LastWrites.back() = m_Color.a;
+						LastWrites.push_back(&TextureData[PixelPos + 3]);
+						*LastWrites.back() = m_Color.a;
 						//printf("draw filled");
 					}
 				}
@@ -608,7 +616,7 @@ namespace Gwen
 			}
 			void DrawTexturedRect(Gwen::Texture* pTexture, Gwen::Rect pTargetRect, float u1 = 0.0f, float v1 = 0.0f, float u2 = 1.0f, float v2 = 1.0f)
 			{
-				/*vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &(static_cast<GWENTex*>(pTexture->data)->Descriptor)->DescriptorSets[currentBuffer], 0, nullptr);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &(static_cast<GWENTex*>(pTexture->data)->Descriptor)->DescriptorSets[currentBuffer], 0, nullptr);
 				Translate(pTargetRect);
 
 				AddVert(pTargetRect.x, pTargetRect.y, u1, v1);
@@ -616,7 +624,7 @@ namespace Gwen
 				AddVert(pTargetRect.x, pTargetRect.y + pTargetRect.h, u1, v2);
 				AddVert(pTargetRect.x + pTargetRect.w, pTargetRect.y, u2, v1);
 				AddVert(pTargetRect.x + pTargetRect.w, pTargetRect.y + pTargetRect.h, u2, v2);
-				AddVert(pTargetRect.x, pTargetRect.y + pTargetRect.h, u1, v2);*/
+				AddVert(pTargetRect.x, pTargetRect.y + pTargetRect.h, u1, v2);
 			}
 			void LoadTexture(Gwen::Texture* pTexture)
 			{

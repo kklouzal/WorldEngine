@@ -174,9 +174,9 @@ public:
 							//	Calculate Ray
 							Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
 							auto CamPos = Cam->Pos;
-							ndVector From((dFloat32)CamPos.x, (dFloat32)CamPos.y, (dFloat32)CamPos.z, 0.f);
+							ndVector From((ndFloat32)CamPos.x, (ndFloat32)CamPos.y, (ndFloat32)CamPos.z, 0.f);
 							auto CamDir = CamPos + Cam->Ang * 1000.0f;
-							ndVector To((dFloat32)CamDir.x, (dFloat32)CamDir.y, (dFloat32)CamDir.z, 0.f);
+							ndVector To((ndFloat32)CamDir.x, (ndFloat32)CamDir.y, (ndFloat32)CamDir.z, 0.f);
 							//
 							//	Cast Ray
 							ndRayCastClosestHitCallback CB;

@@ -184,59 +184,6 @@ public:
 			_Mesh->draw(CommandBuffer, CurFrame);
 		}
 	}
-
-	inline void IntegrateGyroSubstep(const ndVector& timestep)
-	{
-		const dFloat32 omegaMag2 = m_omega.DotProduct(m_omega).GetScalar() + dFloat32(1.0e-12f);
-		const dFloat32 tol = (dFloat32(0.0125f) * dDegreeToRad);
-		if (omegaMag2 > (tol * tol))
-		{
-			// calculate new matrix
-			const dFloat32 invOmegaMag = dRsqrt(omegaMag2);
-			const ndVector omegaAxis(m_omega.Scale(invOmegaMag));
-			dFloat32 omegaAngle = invOmegaMag * omegaMag2 * timestep.GetScalar();
-			const ndQuaternion rotationStep(omegaAxis, omegaAngle);
-			m_gyroRotation = m_gyroRotation * rotationStep;
-			dAssert((m_gyroRotation.DotProduct(m_gyroRotation).GetScalar() - dFloat32(1.0f)) < dFloat32(1.0e-5f));
-
-			// calculate new Gyro torque and Gyro acceleration
-			const ndMatrix matrix(m_gyroRotation, ndVector::m_wOne);
-
-			const ndVector localOmega(matrix.UnrotateVector(m_omega));
-			const ndVector localGyroTorque(localOmega.CrossProduct(m_mass * localOmega));
-			m_gyroTorque = matrix.RotateVector(localGyroTorque);
-			m_gyroAlpha = matrix.RotateVector(localGyroTorque * m_invMass);
-		}
-		else
-		{
-			m_gyroAlpha = ndVector::m_zero;
-			m_gyroTorque = ndVector::m_zero;
-		}
-	}
-
-	inline ndJacobian IntegrateForceAndToque(const ndVector& force, const ndVector& torque, const ndVector& timestep) const
-	{
-		ndJacobian velocStep;
-		const ndMatrix matrix(m_gyroRotation, ndVector::m_wOne);
-		const ndVector localOmega(matrix.UnrotateVector(m_omega));
-		const ndVector localTorque(matrix.UnrotateVector(torque));
-
-		// derivative at half time step. (similar to midpoint Euler so that it does not loses too much energy)
-		const ndVector dw(localOmega * timestep);
-		const ndMatrix jacobianMatrix(
-			ndVector(m_mass.m_x, (m_mass.m_z - m_mass.m_y) * dw.m_z, (m_mass.m_z - m_mass.m_y) * dw.m_y, dFloat32(0.0f)),
-			ndVector((m_mass.m_x - m_mass.m_z) * dw.m_z, m_mass.m_y, (m_mass.m_x - m_mass.m_z) * dw.m_x, dFloat32(0.0f)),
-			ndVector((m_mass.m_y - m_mass.m_x) * dw.m_y, (m_mass.m_y - m_mass.m_x) * dw.m_x, m_mass.m_z, dFloat32(0.0f)),
-			ndVector::m_wOne);
-
-		// and solving for alpha we get the angular acceleration at t + dt
-		// calculate gradient at a full time step
-		const ndVector gradientStep(jacobianMatrix.SolveByGaussianElimination(localTorque * timestep));
-
-		velocStep.m_angular = matrix.RotateVector(gradientStep);
-		velocStep.m_linear = force.Scale(m_invMass.m_w) * timestep;
-		return velocStep;
-	}
 };
 
 class SkinnedMeshSceneNodeNotify : public ndBodyNotify
@@ -253,7 +200,7 @@ public:
 		return (void*)_Node;
 	}
 
-	void OnApplyExternalForce(dInt32, dFloat32)
+	void OnApplyExternalForce(ndInt32, ndFloat32)
 	{
 		ndBodyDynamic* const dynamicBody = GetBody()->GetAsBodyDynamic();
 		if (dynamicBody)
@@ -265,7 +212,7 @@ public:
 		}
 	}
 
-	void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
+	void OnTransform(ndInt32 threadIndex, const ndMatrix& matrix)
 	{
 		// apply this transformation matrix to the application user data.
 		_Node->bNeedsUpdate[0] = true;

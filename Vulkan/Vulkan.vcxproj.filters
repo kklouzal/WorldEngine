@@ -48,6 +48,9 @@
     <Filter Include="Header Files\Items">
       <UniqueIdentifier>{cafdadac-7b05-488f-8326-728eb3f242b3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Libraries\imGUI">
+      <UniqueIdentifier>{a3d7af35-3df2-4e0a-81e2-831138060e0e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -61,6 +64,21 @@
     </ClCompile>
     <ClCompile Include="ozz_utils.cc">
       <Filter>Header Files\OZZ</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui.cpp">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_demo.cpp">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_draw.cpp">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_tables.cpp">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="imgui_widgets.cpp">
+      <Filter>Header Files\Libraries\imGUI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -181,8 +199,26 @@
     <ClInclude Include="GUI.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
+    <ClInclude Include="imconfig.h">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui.h">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui_internal.h">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imstb_rectpack.h">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imstb_textedit.h">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="imstb_truetype.h">
+      <Filter>Header Files\Libraries\imGUI</Filter>
+    </ClInclude>
     <ClInclude Include="Thread_Pool.hpp">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Libraries</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -67,8 +67,8 @@ namespace WorldEngine
 		//	Create SceneNode Functions
 		WorldSceneNode* createWorldSceneNode(const char* FileFBX);
 		CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const ndVector& Position);
-		TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const dFloat32& Mass, const ndVector& Position);
-		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32& Mass, const ndVector& Position);
+		TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
+		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
 
 		const bool& ShouldCleanupWorld()
 		{
@@ -171,7 +171,7 @@ namespace WorldEngine
 		class NewtonDebugDraw : public ndShapeDebugNotify
 		{
 		public:
-			void DrawPolygon(dInt32 vertexCount, const ndVector* const faceArray, const ndEdgeType* const edgeType)
+			void DrawPolygon(ndInt32 vertexCount, const ndVector* const faceArray, const ndEdgeType* const edgeType)
 			{
 				printf("DRAW POLYGON\n");
 			}
@@ -230,7 +230,7 @@ namespace WorldEngine
 
 		//
 		//	TriangleMesh Create Function
-		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const dFloat32& Mass, const ndVector& Position)
+		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -245,7 +245,7 @@ namespace WorldEngine
 				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;*/
 				Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
 			}
-			ndShapeInstance shape(new ndShapeConvexHull((dInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
+			ndShapeInstance shape(new ndShapeConvexHull((ndInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
 			ndMatrix matrix(dGetIdentityMatrix());
 			matrix.m_posit = Position;
@@ -267,7 +267,7 @@ namespace WorldEngine
 
 		//
 		//	SkinnedMesh Create Function
-		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const dFloat32& Mass, const ndVector& Position)
+		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -282,7 +282,7 @@ namespace WorldEngine
 				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
 				Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
 			}
-			ndShapeInstance shape(new ndShapeConvexHull((dInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
+			ndShapeInstance shape(new ndShapeConvexHull((ndInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
 			ndMatrix matrix(dGetIdentityMatrix());
 			matrix.m_posit = ndVector(0, 0, 0, 0);
@@ -313,9 +313,9 @@ namespace WorldEngine
 			localAxis[1] = ndVector(1.0, 0.0f, 0.0f, 0.0f);
 			localAxis[2] = localAxis[0].CrossProduct(localAxis[1]);
 
-			dFloat32 height = 5.0f;
-			dFloat32 radius = 1.5f;
-			dFloat32 mass = 10.0f;
+			ndFloat32 height = 5.0f;
+			ndFloat32 radius = 1.5f;
+			ndFloat32 mass = 10.0f;
 
 			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh, localAxis, mass, radius, height, height / 4.0f);
 

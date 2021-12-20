@@ -22,15 +22,15 @@ public:
 			m_strafeSpeed = 0.0f;
 			m_jump = false;
 		}
-		dFloat32 m_heading;
-		dFloat32 m_forwardSpeed;
-		dFloat32 m_strafeSpeed;
+		ndFloat32 m_heading;
+		ndFloat32 m_forwardSpeed;
+		ndFloat32 m_strafeSpeed;
 		bool m_jump;
 	};
 
 	PlayerInputs m_playerInput;
 public:
-	CharacterSceneNode(TriangleMesh* Mesh, ndMatrix localAxis, dFloat32 Mass, dFloat32 Radius, dFloat32 Height, dFloat32 StepHeight)
+	CharacterSceneNode(TriangleMesh* Mesh, ndMatrix localAxis, ndFloat32 Mass, ndFloat32 Radius, ndFloat32 Height, ndFloat32 StepHeight)
 		: _Mesh(Mesh), SceneNode(), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight)
 	{
 		printf("Create CharacterSceneNode\n");
@@ -68,17 +68,17 @@ public:
 		delete _Mesh;
 	}
 
-	dFloat32 ContactFrictionCallback(const ndVector&, const ndVector& normal, dInt32, const ndBodyKinematic* const) const
+	ndFloat32 ContactFrictionCallback(const ndVector&, const ndVector& normal, ndInt32, const ndBodyKinematic* const) const
 	{
-		//return dFloat32(2.0f);
+		//return ndFloat32(2.0f);
 		if (dAbs(normal.m_y) < 0.8f)
 		{
 			return 0.4f;
 		}
-		return dFloat32(1.0f);
+		return ndFloat32(1.0f);
 	}
 
-	void ApplyInputs(dFloat32 timestep)
+	void ApplyInputs(ndFloat32 timestep)
 	{
 		//calculate the gravity contribution to the velocity, 
 		const ndVector gravity(GetNotifyCallback()->GetGravity());
@@ -88,7 +88,7 @@ public:
 		//dTrace(("  frame: %d    player camera: %f\n", m_scene->GetWorld()->GetFrameIndex(), m_playerInput.m_heading * dRadToDegree));
 		if (m_playerInput.m_jump)
 		{
-			dFloat32 PLAYER_JUMP_SPEED = 1.0f;
+			ndFloat32 PLAYER_JUMP_SPEED = 1.0f;
 			ndVector jumpImpulse(0.0f, PLAYER_JUMP_SPEED * m_mass, 0.0f, 0.0f);
 			m_impulse += jumpImpulse;
 			m_playerInput.m_jump = false;
@@ -166,7 +166,7 @@ public:
 		}
 	}
 
-	void moveForward(const dFloat32& Speed) {
+	void moveForward(const ndFloat32& Speed) {
 		ndMatrix Trans = GetMatrix();
 
 		Trans.m_posit.m_x += _Camera->front.x * Speed;
@@ -179,7 +179,7 @@ public:
 
 	}
 
-	void moveBackward(const dFloat32& Speed) {
+	void moveBackward(const ndFloat32& Speed) {
 
 		ndMatrix Trans = GetMatrix();
 
@@ -193,7 +193,7 @@ public:
 
 	}
 
-	void moveLeft(const dFloat32& Speed) {
+	void moveLeft(const ndFloat32& Speed) {
 
 		ndMatrix Trans = GetMatrix();
 
@@ -207,7 +207,7 @@ public:
 
 	}
 
-	void moveRight(const dFloat32& Speed) {
+	void moveRight(const ndFloat32& Speed) {
 
 		ndMatrix Trans = GetMatrix();
 		
@@ -221,7 +221,7 @@ public:
 
 	}
 
-	void setPosition(const dFloat32& NewPosition) {
+	void setPosition(const ndFloat32& NewPosition) {
 		ndMatrix Trans = GetMatrix();
 		//Trans.setOrigin(btVector3(NewPosition));
 		SetMatrix(Trans);
@@ -234,7 +234,7 @@ public:
 
 	}
 
-	void doJump(const dFloat32& Speed)
+	void doJump(const ndFloat32& Speed)
 	{
 
 		//dMatrix Trans = _RigidBody->GetMatrix();
@@ -291,11 +291,11 @@ public:
 		return (void*)_Node;
 	}
 
-	void OnApplyExternalForce(dInt32, dFloat32)
+	void OnApplyExternalForce(ndInt32, ndFloat32)
 	{
 	}
 
-	void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
+	void OnTransform(ndInt32 threadIndex, const ndMatrix& matrix)
 	{
 		// apply this transformation matrix to the application user data.
 		_Node->bNeedsUpdate[0] = true;

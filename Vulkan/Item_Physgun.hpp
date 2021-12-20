@@ -7,7 +7,7 @@ public:
 	SceneNode* SelectedNode = nullptr;
 	ndBody* SelectedBody = nullptr;
 	ndVector OldFireAng = {};
-	dFloat32 TgtDistance = -1.0f;
+	ndFloat32 TgtDistance = -1.0f;
 	ndVector OldGravity = {};
 	float AddDistance = 0.0f;
 	bool IsPrimary = false;
@@ -152,8 +152,8 @@ public:
 		//	ndVector TgtPosition = FirePos + (FireAng * TgtDistance);
 
 		//	ndVector MoveVec = (TgtPosition - ObjPosition).Normalize();
-		//	//dFloat32 MoveDist = btDistance(ObjPosition, TgtPosition) / 2;
-		//	dFloat32 MoveDist = (TgtPosition - ObjPosition) / 2;
+		//	//ndFloat32 MoveDist = btDistance(ObjPosition, TgtPosition) / 2;
+		//	ndFloat32 MoveDist = (TgtPosition - ObjPosition) / 2;
 		//	SelectedNode->_RigidBody->activate(true);
 		//	SelectedNode->_RigidBody->setLinearVelocity(MoveVec * (MoveDist * ForceMult));
 		//	SelectedNode->_RigidBody->setAngularVelocity(btVector3(0, 0, 0));
