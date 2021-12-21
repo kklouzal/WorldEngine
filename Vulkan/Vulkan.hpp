@@ -363,12 +363,16 @@ namespace WorldEngine
 				float DF = GetDeltaFrames();
 				float FPS = (1.0f / DF);
 
+				ImGuiIO& io = ImGui::GetIO();
+				io.DeltaTime = DF;
+
 				if (_EventReceiver) {
 					_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Stats (60 Frame Average) - FPS: %f - Frame Time: %f - Physics Time: %f - Scene Nodes: %i", FPS, DF, _ndWorld->GetUpdateTime(), SceneGraph::SceneNodes.size()));
 				}
 				//
 				//	Handle and perform Inputs
 				glfwPollEvents();
+				_EventReceiver->UpdateCursor();
 				_EventReceiver->OnUpdate();
 				//
 				//	We trying to cleanup?

@@ -240,5 +240,11 @@
     <None Include="shaders\Vertex_Default.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
+    <None Include="shaders\ui.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
+    <None Include="shaders\ui.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
   </ItemGroup>
 </Project>

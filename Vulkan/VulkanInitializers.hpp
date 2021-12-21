@@ -129,14 +129,14 @@ namespace vks
 		}
 
 		///** @brief Initialize an image memory barrier with no image transfer ownership */
-		//inline VkImageMemoryBarrier imageMemoryBarrier()
-		//{
-		//	VkImageMemoryBarrier imageMemoryBarrier{};
-		//	imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		//	imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		//	imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		//	return imageMemoryBarrier;
-		//}
+		inline VkImageMemoryBarrier imageMemoryBarrier()
+		{
+			VkImageMemoryBarrier imageMemoryBarrier{};
+			imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			imageMemoryBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			imageMemoryBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			return imageMemoryBarrier;
+		}
 
 		///** @brief Initialize a buffer memory barrier with no image transfer ownership */
 		//inline VkBufferMemoryBarrier bufferMemoryBarrier()
@@ -405,31 +405,31 @@ namespace vks
 			return writeDescriptorSet;
 		}
 
-		//inline VkVertexInputBindingDescription vertexInputBindingDescription(
-		//	uint32_t binding,
-		//	uint32_t stride,
-		//	VkVertexInputRate inputRate)
-		//{
-		//	VkVertexInputBindingDescription vInputBindDescription{};
-		//	vInputBindDescription.binding = binding;
-		//	vInputBindDescription.stride = stride;
-		//	vInputBindDescription.inputRate = inputRate;
-		//	return vInputBindDescription;
-		//}
+		inline VkVertexInputBindingDescription vertexInputBindingDescription(
+			uint32_t binding,
+			uint32_t stride,
+			VkVertexInputRate inputRate)
+		{
+			VkVertexInputBindingDescription vInputBindDescription{};
+			vInputBindDescription.binding = binding;
+			vInputBindDescription.stride = stride;
+			vInputBindDescription.inputRate = inputRate;
+			return vInputBindDescription;
+		}
 
-		//inline VkVertexInputAttributeDescription vertexInputAttributeDescription(
-		//	uint32_t binding,
-		//	uint32_t location,
-		//	VkFormat format,
-		//	uint32_t offset)
-		//{
-		//	VkVertexInputAttributeDescription vInputAttribDescription{};
-		//	vInputAttribDescription.location = location;
-		//	vInputAttribDescription.binding = binding;
-		//	vInputAttribDescription.format = format;
-		//	vInputAttribDescription.offset = offset;
-		//	return vInputAttribDescription;
-		//}
+		inline VkVertexInputAttributeDescription vertexInputAttributeDescription(
+			uint32_t binding,
+			uint32_t location,
+			VkFormat format,
+			uint32_t offset)
+		{
+			VkVertexInputAttributeDescription vInputAttribDescription{};
+			vInputAttribDescription.location = location;
+			vInputAttribDescription.binding = binding;
+			vInputAttribDescription.format = format;
+			vInputAttribDescription.offset = offset;
+			return vInputAttribDescription;
+		}
 
 		inline VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo()
 		{
@@ -609,17 +609,17 @@ namespace vks
 		//	return computePipelineCreateInfo;
 		//}
 
-		//inline VkPushConstantRange pushConstantRange(
-		//	VkShaderStageFlags stageFlags,
-		//	uint32_t size,
-		//	uint32_t offset)
-		//{
-		//	VkPushConstantRange pushConstantRange{};
-		//	pushConstantRange.stageFlags = stageFlags;
-		//	pushConstantRange.offset = offset;
-		//	pushConstantRange.size = size;
-		//	return pushConstantRange;
-		//}
+		inline VkPushConstantRange pushConstantRange(
+			VkShaderStageFlags stageFlags,
+			uint32_t size,
+			uint32_t offset)
+		{
+			VkPushConstantRange pushConstantRange{};
+			pushConstantRange.stageFlags = stageFlags;
+			pushConstantRange.offset = offset;
+			pushConstantRange.size = size;
+			return pushConstantRange;
+		}
 
 		//inline VkBindSparseInfo bindSparseInfo()
 		//{
