@@ -220,6 +220,9 @@
     <ClInclude Include="Thread_Pool.hpp">
       <Filter>Header Files\Libraries</Filter>
     </ClInclude>
+    <ClInclude Include="Menu.hpp">
+      <Filter>Header Files\Menus</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">

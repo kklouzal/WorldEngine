@@ -1,5 +1,6 @@
 #pragma once
 #include "imgui.h"
+#include "Menu.hpp"
 
 #include "VulkanGWEN.hpp"
 
@@ -27,25 +28,28 @@ namespace WorldEngine
                 glm::vec2 scale;
                 glm::vec2 translate;
             } pushConstBlock;
+
+            VmaAllocation Font_ImageAllocation = VMA_NULL;
+            VkImage Font_Image = VK_NULL_HANDLE;
+            VkImageView Font_View = VK_NULL_HANDLE;
+
+            VkBuffer GUI_VertexBuffer = VK_NULL_HANDLE;
+            VmaAllocation GUI_VertexAllocation = VMA_NULL;
+            int32_t vertexCount = 0;
+
+            VkBuffer GUI_IndexBuffer = VK_NULL_HANDLE;
+            VmaAllocation GUI_IndexAllocation = VMA_NULL;
+            int32_t indexCount = 0;
+
+            VkPipelineCache pipelineCache;
+            VkPipelineLayout pipelineLayout;
+            VkPipeline pipeline;
+            VkDescriptorPool descriptorPool;
+            VkDescriptorSetLayout descriptorSetLayout;
+            VkDescriptorSet descriptorSet;
+
+            std::deque<Menu*> Menus;
         }
-        VmaAllocation Font_ImageAllocation = VMA_NULL;
-        VkImage Font_Image = VK_NULL_HANDLE;
-        VkImageView Font_View = VK_NULL_HANDLE;
-
-        VkBuffer GUI_VertexBuffer = VK_NULL_HANDLE;
-        VmaAllocation GUI_VertexAllocation = VMA_NULL;
-        int32_t vertexCount = 0;
-
-        VkBuffer GUI_IndexBuffer = VK_NULL_HANDLE;
-        VmaAllocation GUI_IndexAllocation = VMA_NULL;
-        int32_t indexCount = 0;
-
-        VkPipelineCache pipelineCache;
-        VkPipelineLayout pipelineLayout;
-        VkPipeline pipeline;
-        VkDescriptorPool descriptorPool;
-        VkDescriptorSetLayout descriptorSetLayout;
-        VkDescriptorSet descriptorSet;
         //
         //  GWEN
 		Gwen::Renderer::Vulkan* pRenderer;
@@ -367,46 +371,20 @@ namespace WorldEngine
             }
 		}
 
+        void Register(Menu* _Menu)
+        {
+            Menus.push_back(_Menu);
+        }
+
         void newFrame(bool updateFrameGraph)
         {
             ImGui::NewFrame();
 
-            // Init imGui windows and elements
-
-            ImVec4 clear_color = ImColor(114, 144, 154);
-            static float f = 0.0f;
-            ImGui::TextUnformatted("World Engine");
-            ImGui::TextUnformatted("Device");
-
-            // Update frame time display
-            if (updateFrameGraph) {
-                std::rotate(uiSettings.frameTimes.begin(), uiSettings.frameTimes.begin() + 1, uiSettings.frameTimes.end());
-                float frameTime = 1000.0f / (VulkanDriver::deltaFrame *1000.0f);
-                uiSettings.frameTimes.back() = frameTime;
-                if (frameTime < uiSettings.frameTimeMin) {
-                    uiSettings.frameTimeMin = frameTime;
-                }
-                if (frameTime > uiSettings.frameTimeMax) {
-                    uiSettings.frameTimeMax = frameTime;
-                }
+            for (auto& _Menu : Menus)
+            {
+                _Menu->Draw();
             }
 
-            ImGui::PlotLines("Frame Times", &uiSettings.frameTimes[0], 50, 0, "", uiSettings.frameTimeMin, uiSettings.frameTimeMax, ImVec2(0, 80));
-
-            ImGui::Text("Camera");
-           // ImGui::InputFloat3("position", &SceneGraph::GetCamera().Pos.x);
-           // ImGui::InputFloat3("rotation", &SceneGraph::GetCamera().Ang.x);
-
-            //ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiSetCond_FirstUseEver);
-            ImGui::Begin("Example settings");
-            ImGui::Checkbox("Render models", &uiSettings.displayModels);
-            ImGui::Checkbox("Display logos", &uiSettings.displayLogos);
-            ImGui::Checkbox("Display background", &uiSettings.displayBackground);
-            ImGui::Checkbox("Animate light", &uiSettings.animateLight);
-            ImGui::SliderFloat("Light speed", &uiSettings.lightSpeed, 0.1f, 1.0f);
-            ImGui::End();
-
-            //ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
             ImGui::ShowDemoWindow();
 
             // Render to generate draw buffers
@@ -524,10 +502,22 @@ namespace WorldEngine
 
 		void Deinitialize()
 		{
+            for (auto& _Menu : Menus)
+            {
+                delete _Menu;
+            }
+
             ImGui::DestroyContext();
             vmaDestroyImage(VulkanDriver::allocator, Font_Image, Font_ImageAllocation);
             vkDestroyImageView(VulkanDriver::_VulkanDevice->logicalDevice, Font_View, nullptr);
             vkDestroySampler(VulkanDriver::_VulkanDevice->logicalDevice, sampler, nullptr);
+            vmaDestroyBuffer(VulkanDriver::allocator, GUI_VertexBuffer, GUI_VertexAllocation);
+            vmaDestroyBuffer(VulkanDriver::allocator, GUI_IndexBuffer, GUI_IndexAllocation);
+            vkDestroyDescriptorSetLayout(VulkanDriver::_VulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
+            vkDestroyDescriptorPool(VulkanDriver::_VulkanDevice->logicalDevice, descriptorPool, nullptr);
+            vkDestroyPipeline(VulkanDriver::_VulkanDevice->logicalDevice, pipeline, nullptr);
+            vkDestroyPipelineLayout(VulkanDriver::_VulkanDevice->logicalDevice, pipelineLayout, nullptr);
+            vkDestroyPipelineCache(VulkanDriver::_VulkanDevice->logicalDevice, pipelineCache, nullptr);
             //
             //  GWEN
 			delete pCanvas;

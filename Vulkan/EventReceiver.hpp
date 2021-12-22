@@ -61,13 +61,14 @@ protected:
 	double m_PosY_Delta = 0;
 	bool m_Pos_First = true;
 
+	Gwen::Controls::ImagePanel* Crosshair;
+public:
+
 	const bool IsMenuOpen() const;
 
 	const bool& IsWorldInitialized() const {
 		return isWorldInitialized;
 	}
-	Gwen::Controls::ImagePanel* Crosshair;
-public:
 
 	//
 	//	Static GLFW Callbacks
@@ -84,6 +85,9 @@ public:
 	//	GWEN Callbacks
 	void OnPress(Gwen::Controls::Base* pControl);
 
+	//
+	//	GUI Callback
+	void OnGUI(const char* EventID);
 	//
 	//	Menus
 	MainMenu* _MainMenu = nullptr;
@@ -227,6 +231,31 @@ void EventReceiver::UpdateCursor()
 		// FIXME-PLATFORM: Unfocused windows seems to fail changing the mouse cursor with GLFW 3.2, but 3.3 works here.
 		glfwSetCursor(WorldEngine::VulkanDriver::_Window, g_MouseCursors[imgui_cursor] ? g_MouseCursors[imgui_cursor] : g_MouseCursors[ImGuiMouseCursor_Arrow]);
 		glfwSetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+	}
+}
+//
+//	GUI Callbacks
+void EventReceiver::OnGUI(const char* EventID)
+{
+	if (EventID == "Quit") {
+		glfwSetWindowShouldClose(WorldEngine::VulkanDriver::_Window, GLFW_TRUE);
+	}
+	else if (EventID == "Play") {
+		if (!isWorldInitialized && !WorldEngine::SceneGraph::isWorld) {
+			WorldEngine::SceneGraph::initWorld();
+			isWorldInitialized = true;
+
+			_SpawnMenu->Hide(false);
+			_ConsoleMenu->ForceHide();
+			_MainMenu->Hide();
+			Crosshair->Show();
+		}
+		else {
+			WorldEngine::SceneGraph::cleanupWorld();
+			isWorldInitialized = false;
+			Crosshair->Hide();
+			_MainMenu->Show();
+		}
 	}
 }
 
