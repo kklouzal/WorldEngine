@@ -363,12 +363,6 @@ namespace WorldEngine
 				float DF = GetDeltaFrames();
 				float FPS = (1.0f / DF);
 
-				ImGuiIO& io = ImGui::GetIO();
-				io.DeltaTime = DF;
-
-				if (_EventReceiver) {
-					_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Stats (60 Frame Average) - FPS: %f - Frame Time: %f - Physics Time: %f - Scene Nodes: %i", FPS, DF, _ndWorld->GetUpdateTime(), SceneGraph::SceneNodes.size()));
-				}
 				//
 				//	Handle and perform Inputs
 				glfwPollEvents();
@@ -395,6 +389,10 @@ namespace WorldEngine
 				endFrame = std::chrono::high_resolution_clock::now();
 				deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count() / 1000.f;
 				PushFrameDelta(deltaFrame);
+				//
+				//	Push previous delta to ImGui
+				ImGuiIO& io = ImGui::GetIO();
+				io.DeltaTime = deltaFrame;
 			}
 			//
 			//	Wait for idle before shutting down
@@ -547,14 +545,14 @@ namespace WorldEngine
 			if (_EventReceiver) {
 				GUI::Draw(commandBuffers_GUI[currentFrame]);
 			}
-#ifdef _DEBUG
+			#ifdef _DEBUG
 			//if (isWorld) {
 				//dynamicsWorld->debugDrawWorld();
 			//}
-#endif
-//
-//
-//	End recording state
+			#endif
+			//
+			//
+			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_GUI[currentFrame]);
 

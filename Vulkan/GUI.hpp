@@ -527,8 +527,8 @@ namespace WorldEngine
 
 		void Draw(const VkCommandBuffer& Buff)
 		{
-			pRenderer->SetBuffer(Buff);
-			pCanvas->RenderCanvas();
+			//pRenderer->SetBuffer(Buff);
+			//pCanvas->RenderCanvas();
 
             newFrame(false);
             updateBuffers();

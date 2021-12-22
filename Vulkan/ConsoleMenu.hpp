@@ -4,7 +4,6 @@ class ConsoleMenu : public Menu {
 	EventReceiver* _EventReceiver;
 	bool isActive;
 	bool isOpen;
-	Gwen::Controls::StatusBar* StatusBar;
 
 	char                  InputBuf[256];
 	ImVector<char*>       Items;
@@ -17,9 +16,6 @@ class ConsoleMenu : public Menu {
 public:
 	ConsoleMenu(EventReceiver* Receiver) : _EventReceiver(Receiver), isOpen(true), isActive(true)
 	{
-		StatusBar = new Gwen::Controls::StatusBar(WorldEngine::GUI::pCanvas);
-		StatusBar->Dock(Gwen::Pos::Bottom);
-		//
 		ClearLog();
 		memset(InputBuf, 0, sizeof(InputBuf));
 		HistoryPos = -1;
@@ -91,9 +87,7 @@ public:
                 ImGui::EndPopup();
             }
 
-            ImGui::TextWrapped(
-                "This example implements a console with basic coloring, completion (TAB key) and history (Up/Down keys). A more elaborate "
-                "implementation may want to store entries along with extra data such as timestamp, emitter, etc.");
+            ImGui::TextWrapped("Basic Console with Auto-Completion (TAB key) and History (Up/Down keys).");
             ImGui::TextWrapped("Enter 'HELP' for help.");
 
             // TODO: display items starting from the bottom
@@ -124,7 +118,7 @@ public:
             ImGui::Separator();
 
             // Reserve enough left-over height for 1 separator + 1 input text
-            const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
+            const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y*6 + ImGui::GetFrameHeightWithSpacing();
             ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), false, ImGuiWindowFlags_HorizontalScrollbar);
             if (ImGui::BeginPopupContextWindow())
             {
@@ -205,7 +199,9 @@ public:
             ImGui::SetItemDefaultFocus();
             if (reclaim_focus)
                 ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
-
+            
+            //  Debug output
+            ImGui::TextDisabled("FPS: %.0f\tFrame: %f\tPhysics: %f\tNodes: %i", 1.0f / ImGui::GetIO().DeltaTime, ImGui::GetIO().DeltaTime, WorldEngine::VulkanDriver::_ndWorld->GetUpdateTime(), WorldEngine::SceneGraph::SceneNodes.size());
             ImGui::End();
 		}
 	}
@@ -259,7 +255,7 @@ public:
         return console->TextEditCallback(data);
     }
 
-    int     TextEditCallback(ImGuiInputTextCallbackData* data)
+    int TextEditCallback(ImGuiInputTextCallbackData* data)
     {
         //AddLog("cursor: %d, selection: %d-%d", data->CursorPos, data->SelectionStart, data->SelectionEnd);
         switch (data->EventFlag)
@@ -359,10 +355,6 @@ public:
         }
         return 0;
     }
-
-	void SetStatusText(Gwen::UnicodeString Str) {
-		StatusBar->SetText(Str);
-	}
 
 	void ForceHide() {
 		isActive = false;
