@@ -223,6 +223,9 @@
     <ClInclude Include="Menu.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
+    <ClInclude Include="HotBar.hpp">
+      <Filter>Header Files\Menus</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">

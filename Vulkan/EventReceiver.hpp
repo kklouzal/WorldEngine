@@ -5,6 +5,7 @@
 class MainMenu;
 class ConsoleMenu;
 class SpawnMenu;
+class HotBar;
 
 static GLFWcursor* g_MouseCursors[ImGuiMouseCursor_COUNT] = {};
 
@@ -93,6 +94,7 @@ public:
 	MainMenu* _MainMenu = nullptr;
 	ConsoleMenu* _ConsoleMenu = nullptr;
 	SpawnMenu* _SpawnMenu = nullptr;
+	HotBar* _HotBar = nullptr;
 
 	EventReceiver();
 	virtual ~EventReceiver();
@@ -113,6 +115,7 @@ public:
 #include "MainMenu.hpp"
 #include "ConsoleMenu.hpp"
 #include "SpawnMenu.hpp"
+#include "HotBar.hpp"
 
 //
 //	Define EventReceiver Implementations
@@ -126,6 +129,7 @@ EventReceiver::EventReceiver() {
 	_MainMenu = new MainMenu(this);
 	_ConsoleMenu = new ConsoleMenu(this);
 	_SpawnMenu = new SpawnMenu(this);
+	_HotBar = new HotBar(this);
 	//
 
 	Crosshair = new Gwen::Controls::ImagePanel(WorldEngine::GUI::pCanvas);
@@ -180,9 +184,9 @@ void EventReceiver::Cleanup()
 	printf("\tCleanup Base EventReceiver\n");
 	//
 	//	Cleanup Menus
-	delete _MainMenu;
-	delete _ConsoleMenu;
-	delete _SpawnMenu;
+	//delete _MainMenu;
+	//delete _ConsoleMenu;
+	//delete _SpawnMenu;
 	//
 	//	Cleanup GUI
 	WorldEngine::GUI::Deinitialize();
