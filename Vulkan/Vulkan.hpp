@@ -543,7 +543,14 @@ namespace WorldEngine
 			//
 			//	Issue draw commands
 			if (_EventReceiver) {
-				GUI::Draw(commandBuffers_GUI[currentFrame], currentFrame);
+				GUI::StartDraw();
+
+				for (auto& _Node : SceneGraph::SceneNodes)
+				{
+					_Node->drawGUI();
+				}
+
+				GUI::EndDraw(commandBuffers_GUI[currentFrame], currentFrame);
 			}
 			#ifdef _DEBUG
 			//if (isWorld) {

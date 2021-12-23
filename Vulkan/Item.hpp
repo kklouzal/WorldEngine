@@ -5,9 +5,10 @@ class Item
 public:
 	const char* _Name;
 	const char* _Icon;
+	bool bShowGUI;
 
 	Item(const char* Name = "NoNamed", const char* Icon = "media/empty.png")
-	: _Name(Name), _Icon(Icon) {}
+	: _Name(Name), _Icon(Icon), bShowGUI(true) {}
 	virtual ~Item() {}
 
 	virtual void StartPrimaryAction(ndRayCastClosestHitCallback& CB)
@@ -39,9 +40,15 @@ public:
 
 	virtual void onDeselectItem() {}
 
-	virtual void HideGUI() {}
+	void HideGUI() {
+		bShowGUI = false;
+	}
 
-	virtual void ShowGUI() {}
+	void ShowGUI() {
+		bShowGUI = true;
+	}
+
+	virtual void DrawGUI() {};
 };
 
 //

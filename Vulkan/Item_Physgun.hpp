@@ -194,64 +194,18 @@ public:
 		EndPrimaryAction();
 	}
 
-	void OnGUI_Force()
+	void DrawGUI()
 	{
-		//((Item_Physgun*)info.Data)->ForceMult = ((Gwen::Controls::HorizontalSlider*)info.Control)->GetFloatValue();
+		if (bShowGUI)
+		{
+			ImGui::SetNextWindowSize(ImVec2(200, 120));
+			ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 100, WorldEngine::VulkanDriver::HEIGHT - 200));
+			ImGui::Begin("Physgun Settings", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
+			ImGui::TextDisabled("Physgun Force");
+			ImGui::SliderFloat("Force", &ForceMult, 1.0f, 100.0f, "%.1f");
+			ImGui::TextDisabled("Zoom Scale");
+			ImGui::SliderFloat("Scale", &ZoomMult, 1.0f, 10.0f, "%.1f");
+			ImGui::End();
+		}
 	}
-
-	void OnGUI_Scale()
-	{
-		//((Item_Physgun*)info.Data)->ZoomMult = ((Gwen::Controls::HorizontalSlider*)info.Control)->GetFloatValue();
-	}
-
-	void CreateGUI()
-	{
-		/*Base_PhysConfig = new Gwen::Controls::Rectangle(WorldEngine::GUI::pCanvas);
-		Base_PhysConfig->SetSize(200, 120);
-		Base_PhysConfig->SetPos(WorldEngine::VulkanDriver::WIDTH / 2 - 100, WorldEngine::VulkanDriver::HEIGHT - 200);
-		Base_PhysConfig->SetColor(Gwen::Color(255, 255, 255, 100));
-
-		Gwen::Controls::Label* Force_Label = new Gwen::Controls::Label(Base_PhysConfig);
-		Force_Label->SetSize(180, 20);
-		Force_Label->SetPos(10, 10);
-		Force_Label->SetValue("Physgun Force");
-
-		Gwen::Controls::HorizontalSlider* Force_Slider = new Gwen::Controls::HorizontalSlider(Base_PhysConfig);
-		Force_Slider->SetSize(180, 20);
-		Force_Slider->SetPos(10, 30);
-		Force_Slider->SetRange(1, 100);
-		Force_Slider->SetNotchCount(10);
-		Force_Slider->SetClampToNotches(true);
-		Force_Slider->SetFloatValue(ForceMult);
-		Force_Slider->onValueChanged.Add(this, &Item_Physgun::OnGUI_Force, this);
-
-		Gwen::Controls::Label* Zoom_Label = new Gwen::Controls::Label(Base_PhysConfig);
-		Zoom_Label->SetSize(180, 20);
-		Zoom_Label->SetPos(10, 60);
-		Zoom_Label->SetValue("Zoom Scale");
-
-		Gwen::Controls::HorizontalSlider* Zoom_Slider = new Gwen::Controls::HorizontalSlider(Base_PhysConfig);
-		Zoom_Slider->SetSize(180, 20);
-		Zoom_Slider->SetPos(10, 80);
-		Zoom_Slider->SetRange(1, 10);
-		Zoom_Slider->SetNotchCount(10);
-		Zoom_Slider->SetClampToNotches(true);
-		Zoom_Slider->SetFloatValue(ZoomMult);
-		Zoom_Slider->onValueChanged.Add(this, &Item_Physgun::OnGUI_Scale, this);*/
-
-		//
-		//	Hide GUI by default
-		HideGUI();
-	}
-
-	void HideGUI()
-	{
-		//Base_PhysConfig->SetHidden(true);
-	}
-
-	void ShowGUI()
-	{
-		//Base_PhysConfig->SetHidden(false);
-	}
-
 };

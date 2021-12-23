@@ -54,7 +54,6 @@ public:
 		// 
 		//  -   PhysGun
 		Item_Physgun* Itm1 = new Item_Physgun();
-		Itm1->CreateGUI();
 		this->GiveItem(Itm1, 0);
 		SelectItem(0);
 		//
@@ -74,6 +73,12 @@ public:
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
 		delete _Mesh;
+	}
+
+	void drawGUI()
+	{
+		// TODO: Check if item exists
+		Items[CurItem]->DrawGUI();
 	}
 
 	ndFloat32 ContactFrictionCallback(const ndVector&, const ndVector& normal, ndInt32, const ndBodyKinematic* const) const

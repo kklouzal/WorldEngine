@@ -344,20 +344,6 @@ namespace WorldEngine
             Menus.push_back(_Menu);
         }
 
-        void newFrame(bool updateFrameGraph)
-        {
-            ImGui::NewFrame();
-
-            for (auto& _Menu : Menus)
-            {
-                _Menu->Draw();
-            }
-
-            ImGui::ShowDemoWindow();
-
-            // Render to generate draw buffers
-            ImGui::Render();
-        }
         // Update vertex and index buffer containing the imGui elements when required
         void updateBuffers(const uint32_t& CurFrame)
         {
@@ -479,8 +465,11 @@ namespace WorldEngine
             vmaDestroyImage(VulkanDriver::allocator, Font_Image, Font_ImageAllocation);
             vkDestroyImageView(VulkanDriver::_VulkanDevice->logicalDevice, Font_View, nullptr);
             vkDestroySampler(VulkanDriver::_VulkanDevice->logicalDevice, sampler, nullptr);
-            //vmaDestroyBuffer(VulkanDriver::allocator, GUI_VertexBuffer, GUI_VertexAllocation);
-            //vmaDestroyBuffer(VulkanDriver::allocator, GUI_IndexBuffer, GUI_IndexAllocation);
+            for (int i = 0; i < 3; i++)
+            {
+                vmaDestroyBuffer(VulkanDriver::allocator, PerFrameResource[i].GUI_VertexBuffer, PerFrameResource[i].GUI_VertexAllocation);
+                vmaDestroyBuffer(VulkanDriver::allocator, PerFrameResource[i].GUI_IndexBuffer, PerFrameResource[i].GUI_IndexAllocation);
+            }
             vkDestroyDescriptorSetLayout(VulkanDriver::_VulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
             vkDestroyDescriptorPool(VulkanDriver::_VulkanDevice->logicalDevice, descriptorPool, nullptr);
             vkDestroyPipeline(VulkanDriver::_VulkanDevice->logicalDevice, pipeline, nullptr);
@@ -488,9 +477,23 @@ namespace WorldEngine
             vkDestroyPipelineCache(VulkanDriver::_VulkanDevice->logicalDevice, pipelineCache, nullptr);
 		}
 
-		void Draw(const VkCommandBuffer& Buff, const uint32_t& CurFrame)
+        void StartDraw()
+        {
+            ImGui::NewFrame();
+
+            for (auto& _Menu : Menus)
+            {
+                _Menu->Draw();
+            }
+
+            ImGui::ShowDemoWindow();
+
+        }
+
+		void EndDraw(const VkCommandBuffer& Buff, const uint32_t& CurFrame)
 		{
-            newFrame(false);
+            // Render to generate draw buffers
+            ImGui::Render();
             updateBuffers(CurFrame);
             drawFrame(Buff, CurFrame);
 		}
