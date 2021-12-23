@@ -121,6 +121,13 @@ public:
 		printf("End Item Secondary - %s\n", _Name);
 	}
 
+	ndFloat32 vectorLength(ndVector start, ndVector end)
+	{
+
+		return sqrt(pow(start.GetX() - end.GetX(), 2) + pow(start.GetY() - end.GetY(), 2) + pow(start.GetZ() - end.GetZ(), 2));
+
+	}
+
 	void DoThink(ndVector FirePos, ndVector FireAng)
 	{
 		////
@@ -135,6 +142,7 @@ public:
 			
 			if (OldFireAng.GetX() == 0.f && OldFireAng.GetY() == 0.f && OldFireAng.GetZ() == 0.f && OldFireAng.GetW() == 0.f)
 			{
+
 				OldFireAng = FireAng;
 
 			}
@@ -142,8 +150,9 @@ public:
 			if (TgtDistance == -1)
 			{
 
-				TgtDistance = dBoxDistanceToOrigin2(FirePos, ObjPosition);
-
+				//TgtDistance = dBoxDistanceToOrigin2(FirePos, ObjPosition);
+				TgtDistance = vectorLength(FirePos, ObjPosition);
+				
 			}
 			
 			//
@@ -167,7 +176,8 @@ public:
 			//ndVector newVec = TgtPosition - ObjPosition;
 			//ndFloat32 MoveDist = newVec.GetX() / 2;
 
-			ndFloat32 MoveDist = dBoxDistanceToOrigin2(TgtPosition, ObjPosition) / 2;
+			//ndFloat32 MoveDist = dBoxDistanceToOrigin2(TgtPosition, ObjPosition) / 2;
+			ndFloat32 MoveDist = vectorLength(TgtPosition, ObjPosition) / 2;
 			
 			//SelectedNotify->GetBody()->SetVelocity(MoveVec * (MoveDist * 1000));
 			SelectedNotify->GetBody()->SetVelocity(MoveVec * (MoveDist * ForceMult));
