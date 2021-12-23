@@ -2,10 +2,14 @@
 
 #include "Forwards.hpp"
 
+#include "Thread_Pool.hpp"
+
 namespace WorldEngine
 {
 	namespace VulkanDriver
 	{
+		thread_pool pool(4);
+
 		uint32_t WIDTH = 1024;
 		uint32_t HEIGHT = 768;
 		bool VSYNC = false;
@@ -359,12 +363,10 @@ namespace WorldEngine
 				float DF = GetDeltaFrames();
 				float FPS = (1.0f / DF);
 
-				if (_EventReceiver) {
-					_EventReceiver->_ConsoleMenu->SetStatusText(Gwen::Utility::Format(L"Stats (60 Frame Average) - FPS: %f - Frame Time: %f - Physics Time: %f - Scene Nodes: %i", FPS, DF, _ndWorld->GetUpdateTime(), SceneGraph::SceneNodes.size()));
-				}
 				//
 				//	Handle and perform Inputs
 				glfwPollEvents();
+				_EventReceiver->UpdateCursor();
 				_EventReceiver->OnUpdate();
 				//
 				//	We trying to cleanup?
@@ -387,6 +389,10 @@ namespace WorldEngine
 				endFrame = std::chrono::high_resolution_clock::now();
 				deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count() / 1000.f;
 				PushFrameDelta(deltaFrame);
+				//
+				//	Push previous delta to ImGui
+				ImGuiIO& io = ImGui::GetIO();
+				io.DeltaTime = deltaFrame;
 			}
 			//
 			//	Wait for idle before shutting down
@@ -537,16 +543,16 @@ namespace WorldEngine
 			//
 			//	Issue draw commands
 			if (_EventReceiver) {
-				GUI::Draw(commandBuffers_GUI[currentFrame]);
+				GUI::Draw(commandBuffers_GUI[currentFrame], currentFrame);
 			}
-#ifdef _DEBUG
+			#ifdef _DEBUG
 			//if (isWorld) {
 				//dynamicsWorld->debugDrawWorld();
 			//}
-#endif
-//
-//
-//	End recording state
+			#endif
+			//
+			//
+			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_GUI[currentFrame]);
 
@@ -767,6 +773,7 @@ namespace WorldEngine
 		{
 			VmaAllocationCreateInfo allocInfo = {};
 			allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+			allocInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
 			VkImageCreateInfo imageInfo = vks::initializers::imageCreateInfo();
 			imageInfo.imageType = VK_IMAGE_TYPE_2D;

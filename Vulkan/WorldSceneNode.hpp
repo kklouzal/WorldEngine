@@ -50,7 +50,7 @@ public:
 		return (void*)_Node;
 	}
 
-	void OnApplyExternalForce(dInt32, dFloat32)
+	void OnApplyExternalForce(ndInt32, ndFloat32)
 	{
 		ndBodyDynamic* const dynamicBody = GetBody()->GetAsBodyDynamic();
 		if (dynamicBody)
@@ -62,7 +62,7 @@ public:
 		}
 	}
 
-	void OnTransform(dInt32 threadIndex, const ndMatrix& matrix)
+	void OnTransform(ndInt32 threadIndex, const ndMatrix& matrix)
 	{
 		// apply this transformation matrix to the application user data.
 		_Node->bNeedsUpdate[0] = true;

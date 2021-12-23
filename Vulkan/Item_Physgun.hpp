@@ -1,21 +1,19 @@
 #pragma once
 
-class Item_Physgun : public Item, public Gwen::Event::Handler
+class Item_Physgun : public Item
 {
 public:
 	ndBodyNotify* SelectedNotify = nullptr;
 	SceneNode* SelectedNode = nullptr;
 	ndBody* SelectedBody = nullptr;
 	ndVector OldFireAng = {};
-	dFloat32 TgtDistance = -1.0f;
+	ndFloat32 TgtDistance = -1.0f;
 	ndVector OldGravity = {};
 	float AddDistance = 0.0f;
 	bool IsPrimary = false;
 
 	float ForceMult = 10;
 	float ZoomMult = 3;
-
-	Gwen::Controls::Rectangle* Base_PhysConfig = nullptr;
 
 	Item_Physgun()
 		: Item("PhysGun", "media/atom-icon.png")
@@ -152,8 +150,8 @@ public:
 		//	ndVector TgtPosition = FirePos + (FireAng * TgtDistance);
 
 		//	ndVector MoveVec = (TgtPosition - ObjPosition).Normalize();
-		//	//dFloat32 MoveDist = btDistance(ObjPosition, TgtPosition) / 2;
-		//	dFloat32 MoveDist = (TgtPosition - ObjPosition) / 2;
+		//	//ndFloat32 MoveDist = btDistance(ObjPosition, TgtPosition) / 2;
+		//	ndFloat32 MoveDist = (TgtPosition - ObjPosition) / 2;
 		//	SelectedNode->_RigidBody->activate(true);
 		//	SelectedNode->_RigidBody->setLinearVelocity(MoveVec * (MoveDist * ForceMult));
 		//	SelectedNode->_RigidBody->setAngularVelocity(btVector3(0, 0, 0));
@@ -166,19 +164,19 @@ public:
 		EndPrimaryAction();
 	}
 
-	void OnGUI_Force(Gwen::Event::Info info)
+	void OnGUI_Force()
 	{
-		((Item_Physgun*)info.Data)->ForceMult = ((Gwen::Controls::HorizontalSlider*)info.Control)->GetFloatValue();
+		//((Item_Physgun*)info.Data)->ForceMult = ((Gwen::Controls::HorizontalSlider*)info.Control)->GetFloatValue();
 	}
 
-	void OnGUI_Scale(Gwen::Event::Info info)
+	void OnGUI_Scale()
 	{
-		((Item_Physgun*)info.Data)->ZoomMult = ((Gwen::Controls::HorizontalSlider*)info.Control)->GetFloatValue();
+		//((Item_Physgun*)info.Data)->ZoomMult = ((Gwen::Controls::HorizontalSlider*)info.Control)->GetFloatValue();
 	}
 
 	void CreateGUI()
 	{
-		Base_PhysConfig = new Gwen::Controls::Rectangle(WorldEngine::GUI::pCanvas);
+		/*Base_PhysConfig = new Gwen::Controls::Rectangle(WorldEngine::GUI::pCanvas);
 		Base_PhysConfig->SetSize(200, 120);
 		Base_PhysConfig->SetPos(WorldEngine::VulkanDriver::WIDTH / 2 - 100, WorldEngine::VulkanDriver::HEIGHT - 200);
 		Base_PhysConfig->SetColor(Gwen::Color(255, 255, 255, 100));
@@ -209,7 +207,7 @@ public:
 		Zoom_Slider->SetNotchCount(10);
 		Zoom_Slider->SetClampToNotches(true);
 		Zoom_Slider->SetFloatValue(ZoomMult);
-		Zoom_Slider->onValueChanged.Add(this, &Item_Physgun::OnGUI_Scale, this);
+		Zoom_Slider->onValueChanged.Add(this, &Item_Physgun::OnGUI_Scale, this);*/
 
 		//
 		//	Hide GUI by default
@@ -218,12 +216,12 @@ public:
 
 	void HideGUI()
 	{
-		Base_PhysConfig->SetHidden(true);
+		//Base_PhysConfig->SetHidden(true);
 	}
 
 	void ShowGUI()
 	{
-		Base_PhysConfig->SetHidden(false);
+		//Base_PhysConfig->SetHidden(false);
 	}
 
 };
