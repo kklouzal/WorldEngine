@@ -70,13 +70,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\VulkanSDK\1.2.198.1\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Libraries\newton\include\ndNewton;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.2.198.1\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\newton\lib;C:\Libraries\vhacd\lib\debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.2.198.1\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\newton\include\ndNewton;C:\Libraries\vhacd\include;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.2.198.1\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\freetype\lib;C:\Libraries\newton\lib;C:\Libraries\vhacd\lib\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\VulkanSDK\1.2.198.1\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\Lua\Include;C:\Libraries\ozz\include;C:\Libraries\GWEN-master\gwen\include;C:\Libraries\freetype\include\freetype2;C:\Libraries\newton\include\ndNewton;C:\Libraries\vhacd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.2.198.1\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\GWEN-master\gwen\lib\windows\vs2019;C:\Libraries\freetype\lib;C:\Libraries\newton\lib;C:\Libraries\vhacd\lib\release;$(LibraryPath)</LibraryPath>
-    <SourcePath>C:\Libraries\GWEN-master\gwen\src;$(SourcePath)</SourcePath>
+    <IncludePath>C:\VulkanSDK\1.2.198.1\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\newton\include\ndNewton;C:\Libraries\vhacd\include;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.2.198.1\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\freetype\lib;C:\Libraries\newton\lib;C:\Libraries\vhacd\lib\release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -104,7 +103,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;Lua_Debug.lib;vhacd.lib;ozz_animation_d.lib;ozz_base_d.lib;ozz_geometry_d.lib;gwen_d.lib;FreeImage.lib;freetyped.lib;ndnewton_d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;ndnewton_d.lib;vhacd.lib;ozz_animation_d.lib;ozz_base_d.lib;ozz_geometry_d.lib;Lua_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -147,7 +146,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;Lua.lib;vhacd.lib;ozz_animation_r.lib;ozz_base_r.lib;ozz_geometry_r.lib;gwen.lib;freetype.lib;ndnewton.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;ndnewton.lib;vhacd.lib;ozz_animation_r.lib;ozz_base_r.lib;ozz_geometry_r.lib;Lua.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
@@ -207,7 +206,6 @@
     <ClInclude Include="Vulkan.hpp" />
     <ClInclude Include="VulkanDevice.hpp" />
     <ClInclude Include="VulkanFrameBuffer.hpp" />
-    <ClInclude Include="VulkanGWEN.hpp" />
     <ClInclude Include="VulkanInitializers.hpp" />
     <ClInclude Include="VulkanSwapChain.hpp" />
     <ClInclude Include="Item.hpp" />

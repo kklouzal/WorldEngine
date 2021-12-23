@@ -29,6 +29,9 @@ public:
 	};
 
 	PlayerInputs m_playerInput;
+
+
+	HotBar* _HotBar = nullptr;
 public:
 	CharacterSceneNode(TriangleMesh* Mesh, ndMatrix localAxis, ndFloat32 Mass, ndFloat32 Radius, ndFloat32 Height, ndFloat32 StepHeight)
 		: _Mesh(Mesh), SceneNode(), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight)
@@ -36,6 +39,10 @@ public:
 		printf("Create CharacterSceneNode\n");
 		Name = "Character";
 		canPhys = false;
+		//
+		//	Create HotBar GUI
+		_HotBar = new HotBar(WorldEngine::VulkanDriver::_EventReceiver);
+		//
 		//	Reserve 10 item slots (hotbar slots currently)
 		for (int i = 0; i < 10; i++)
 		{
@@ -49,6 +56,7 @@ public:
 		Item_Physgun* Itm1 = new Item_Physgun();
 		Itm1->CreateGUI();
 		this->GiveItem(Itm1, 0);
+		SelectItem(0);
 		//
 		//  -   ToolGun
 		/*Item_Tool* Itm2 = new Item_Tool();
@@ -104,18 +112,43 @@ public:
 		return Items[CurItem];
 	}
 
-	void ScrollItems(const double& Scrolled)
+	void DeSelectItem(const unsigned int& ItemNum)
 	{
 		//
 		//	Switch out of our current item
-		if (Items[CurItem] != nullptr)
+		if (Items[ItemNum] != nullptr)
 		{
-			Items[CurItem]->onDeselectItem();
-			Items[CurItem]->HideGUI();
+			Items[ItemNum]->onDeselectItem();
+			Items[ItemNum]->HideGUI();
 		}
+	}
+
+	void SelectItem(const unsigned int& ItemNum)
+	{
 		//
 		//	Prepare GUI Icon to display empty
 		const char* Ico = "media/empty.png";
+		//
+		//	Switch into our new item
+		if (Items[ItemNum] != nullptr)
+		{
+			Items[ItemNum]->onSelectItem();
+			Items[ItemNum]->ShowGUI();
+			//
+			//	New item exists, use its icon instead
+			Ico = Items[ItemNum]->_Icon;
+		}
+		//
+		//	Update GUI
+		_HotBar->ChangeItemSelection(ItemNum, Ico);
+		printf("Current Item %i\n", ItemNum);
+	}
+
+	void ScrollItems(const double& Scrolled)
+	{
+		//
+		//	Deselect current item
+		DeSelectItem(CurItem);
 		//
 		//	Increment/Decrement current item counter
 		if (Scrolled > 0)
@@ -138,18 +171,7 @@ public:
 		}
 		//
 		//	Switch into our new item
-		if (Items[CurItem] != nullptr)
-		{
-			Items[CurItem]->onSelectItem();
-			Items[CurItem]->ShowGUI();
-			//
-			//	New item exists, use its icon instead
-			Ico = Items[CurItem]->_Icon;
-		}
-		//
-		//	Update GUI
-		WorldEngine::GUI::ChangeItemSelection(CurItem, Ico);
-		printf("Current Item %i\n", CurItem);
+		SelectItem(CurItem);
 	}
 
 	void GiveItem(Item* NewItem, unsigned int Slot)
@@ -159,7 +181,7 @@ public:
 		if (Items[Slot] != nullptr) {
 			Ico = Items[Slot]->_Icon;
 		}
-		WorldEngine::GUI::ChangeItemIcon(Slot, Ico);
+		_HotBar->ChangeItemIcon(Slot, Ico);
 		if (Slot == CurItem && Items[CurItem] != nullptr)
 		{
 			Items[CurItem]->ShowGUI();

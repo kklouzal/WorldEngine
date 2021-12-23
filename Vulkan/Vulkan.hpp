@@ -543,7 +543,7 @@ namespace WorldEngine
 			//
 			//	Issue draw commands
 			if (_EventReceiver) {
-				GUI::Draw(commandBuffers_GUI[currentFrame]);
+				GUI::Draw(commandBuffers_GUI[currentFrame], currentFrame);
 			}
 			#ifdef _DEBUG
 			//if (isWorld) {

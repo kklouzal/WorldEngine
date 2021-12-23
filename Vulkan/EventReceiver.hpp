@@ -11,7 +11,7 @@ static GLFWcursor* g_MouseCursors[ImGuiMouseCursor_COUNT] = {};
 
 //
 //	EventReceiver Declaration
-class EventReceiver : public Gwen::Event::Handler
+class EventReceiver
 {
 	//
 	//	State Flags
@@ -62,7 +62,6 @@ protected:
 	double m_PosY_Delta = 0;
 	bool m_Pos_First = true;
 
-	Gwen::Controls::ImagePanel* Crosshair;
 public:
 
 	const bool IsMenuOpen() const;
@@ -83,10 +82,6 @@ public:
 	static void cursor_enter_callback(GLFWwindow* window, int entered);
 
 	//
-	//	GWEN Callbacks
-	void OnPress(Gwen::Controls::Base* pControl);
-
-	//
 	//	GUI Callback
 	void OnGUI(const char* EventID);
 	//
@@ -94,7 +89,6 @@ public:
 	MainMenu* _MainMenu = nullptr;
 	ConsoleMenu* _ConsoleMenu = nullptr;
 	SpawnMenu* _SpawnMenu = nullptr;
-	HotBar* _HotBar = nullptr;
 
 	EventReceiver();
 	virtual ~EventReceiver();
@@ -115,7 +109,6 @@ public:
 #include "MainMenu.hpp"
 #include "ConsoleMenu.hpp"
 #include "SpawnMenu.hpp"
-#include "HotBar.hpp"
 
 //
 //	Define EventReceiver Implementations
@@ -129,14 +122,13 @@ EventReceiver::EventReceiver() {
 	_MainMenu = new MainMenu(this);
 	_ConsoleMenu = new ConsoleMenu(this);
 	_SpawnMenu = new SpawnMenu(this);
-	_HotBar = new HotBar(this);
 	//
 
-	Crosshair = new Gwen::Controls::ImagePanel(WorldEngine::GUI::pCanvas);
+	/*Crosshair = new Gwen::Controls::ImagePanel(WorldEngine::GUI::pCanvas);
 	Crosshair->SetImage("media/crosshairs/focus1.png");
 	Crosshair->SetPos(WorldEngine::VulkanDriver::WIDTH / 2 - 16, WorldEngine::VulkanDriver::HEIGHT / 2 - 16);
 	Crosshair->SetSize(32, 32);
-	Crosshair->Hide();
+	Crosshair->Hide();*/
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendPlatformName = "GLFW";
@@ -252,41 +244,12 @@ void EventReceiver::OnGUI(const char* EventID)
 			_SpawnMenu->Hide(false);
 			_ConsoleMenu->ForceHide();
 			_MainMenu->Hide();
-			Crosshair->Show();
+			//Crosshair->Show();
 		}
 		else {
 			WorldEngine::SceneGraph::cleanupWorld();
 			isWorldInitialized = false;
-			Crosshair->Hide();
-			_MainMenu->Show();
-		}
-	}
-}
-
-//
-//	GWEN Callbacks
-void EventReceiver::OnPress(Gwen::Controls::Base* pControl) {
-	Gwen::String ControlName = pControl->GetName();
-	printf("Press %s\n", ControlName.c_str());
-	if (ControlName == "Quit") {
-		glfwSetWindowShouldClose(WorldEngine::VulkanDriver::_Window, GLFW_TRUE);
-	}
-	else if (ControlName == "Play") {
-		if (!isWorldInitialized && !WorldEngine::SceneGraph::isWorld) {
-			WorldEngine::SceneGraph::initWorld();
-			isWorldInitialized = true;
-			((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Disconnect"));
-
-			_SpawnMenu->Hide(false);
-			_ConsoleMenu->ForceHide();
-			_MainMenu->Hide();
-			Crosshair->Show();
-		}
-		else {
-			WorldEngine::SceneGraph::cleanupWorld();
-			isWorldInitialized = false;
-			((Gwen::Controls::Button*)pControl)->SetText(Gwen::String("Play"));
-			Crosshair->Hide();
+			//Crosshair->Hide();
 			_MainMenu->Show();
 		}
 	}
@@ -312,8 +275,7 @@ void EventReceiver::char_callback(GLFWwindow* window, unsigned int codepoint)
 	io.AddInputCharacter(codepoint);
 
 	if (Rcvr->IsMenuOpen()) {
-		Gwen::UnicodeChar chr = (Gwen::UnicodeChar) codepoint;
-		WorldEngine::GUI::pCanvas->InputCharacter(chr);
+		// TODO: ImGui input handling here?
 	}
 }
 
@@ -336,22 +298,6 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 	if (action == GLFW_RELEASE) { bDown = false; }
 	else if (action == GLFW_PRESS || action == GLFW_REPEAT) { bDown = true; }
 
-	int iKey = -1;
-	if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) { iKey = Gwen::Key::Shift; }
-	else if (key == GLFW_KEY_LEFT_CONTROL || key == GLFW_KEY_RIGHT_CONTROL) { iKey = Gwen::Key::Control; }
-	else if (key == GLFW_KEY_ENTER) { iKey = Gwen::Key::Return; }
-	else if (key == GLFW_KEY_BACKSPACE) { iKey = Gwen::Key::Backspace; }
-	else if (key == GLFW_KEY_DELETE) { iKey = Gwen::Key::Delete; }
-	else if (key == GLFW_KEY_LEFT) { iKey = Gwen::Key::Left; }
-	else if (key == GLFW_KEY_RIGHT) { iKey = Gwen::Key::Right; }
-	else if (key == GLFW_KEY_TAB) { iKey = Gwen::Key::Tab; }
-	else if (key == GLFW_KEY_SPACE) { iKey = Gwen::Key::Space; }
-	else if (key == GLFW_KEY_HOME) { iKey = Gwen::Key::Home; }
-	else if (key == GLFW_KEY_END) { iKey = Gwen::Key::End; }
-	else if (key == GLFW_KEY_SPACE) { iKey = Gwen::Key::Space; }
-	else if (key == GLFW_KEY_UP) { iKey = Gwen::Key::Up; }
-	else if (key == GLFW_KEY_DOWN) { iKey = Gwen::Key::Down; }
-
 	if (action == GLFW_PRESS && key == GLFW_KEY_GRAVE_ACCENT) {
 		Rcvr->_ConsoleMenu->Toggle();
 	}
@@ -361,10 +307,10 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 			if (Rcvr->IsMenuOpen()) {
 				Rcvr->_MainMenu->Hide();
 				Rcvr->_ConsoleMenu->ForceInactive();
-				Rcvr->Crosshair->Show();
+				//Rcvr->Crosshair->Show();
 			}
 			else {
-				Rcvr->Crosshair->Hide();
+				//Rcvr->Crosshair->Hide();
 				Rcvr->_MainMenu->Show();
 			}
 			if (Rcvr->_SpawnMenu->IsOpen()) {
@@ -386,8 +332,8 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 		}
 	}
 
-	if (iKey != -1 && Rcvr->IsMenuOpen()) {
-		WorldEngine::GUI::pCanvas->InputKey(iKey, bDown);
+	if (Rcvr->IsMenuOpen()) {
+		// TODO: ImGui input handling here?
 	}
 
 	Event NewEvent;
@@ -411,19 +357,15 @@ void EventReceiver::mouse_button_callback(GLFWwindow* window, int button, int ac
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
 	if (Rcvr->IsMenuOpen()) {
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-			WorldEngine::GUI::pCanvas->InputMouseButton(0, true);
 			io.MouseDown[0] = true;
 		}
 		else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
-			WorldEngine::GUI::pCanvas->InputMouseButton(0, false);
 			io.MouseDown[0] = false;
 		}
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
-			WorldEngine::GUI::pCanvas->InputMouseButton(1, true);
 			io.MouseDown[1] = true;
 		}
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
-			WorldEngine::GUI::pCanvas->InputMouseButton(1, false);
 			io.MouseDown[1] = false;
 		}
 	}
@@ -450,8 +392,6 @@ void EventReceiver::scroll_callback(GLFWwindow* window, double xoffset, double y
 	ImGuiIO& io = ImGui::GetIO();
 	io.MouseWheelH += (float)xoffset;
 	io.MouseWheel += (float)yoffset;
-
-	WorldEngine::GUI::pCanvas->InputMouseWheel(yoffset);
 
 	Event NewEvent;
 	NewEvent.Type = EventTypes::Mouse;
@@ -480,13 +420,6 @@ void EventReceiver::cursor_position_callback(GLFWwindow* window, double xpos, do
 	Rcvr->m_PosY_Delta = Rcvr->m_PosY_Old - ypos;
 	Rcvr->m_PosX_Old = xpos;
 	Rcvr->m_PosY_Old = ypos;
-
-
-	int x = xpos;
-	int y = ypos;
-	int dx = Rcvr->m_PosX_Delta;
-	int dy = Rcvr->m_PosY_Delta;
-	WorldEngine::GUI::pCanvas->InputMouseMoved(x, y, dx, dy);
 
 	Event NewEvent;
 	NewEvent.Type = EventTypes::Mouse;

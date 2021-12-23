@@ -1,12 +1,6 @@
 #pragma once
 #define WIN32_LEAN_AND_MEAN
 
-#include <Gwen/Gwen.h>
-#include <Gwen/Skins/TexturedBase.h>
-#include <Gwen/Input/Windows.h>
-#include <Gwen/Controls.h>
-#include <Gwen/Controls/WindowControl.h>
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 

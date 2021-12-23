@@ -126,9 +126,6 @@ namespace WorldEngine
 			_Character->_Camera = &_Camera;
 
 			isWorld = true;
-			//
-			//	Create GUI Elements
-			GUI::CreateBottomBar();
 		}
 
 		void SceneGraph::cleanupWorld(const bool& bForce)

@@ -103,9 +103,6 @@
     <ClInclude Include="TriangleMeshSceneNode.hpp">
       <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
-    <ClInclude Include="VulkanGWEN.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Forwards.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

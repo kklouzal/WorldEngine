@@ -2,11 +2,28 @@
 
 class HotBar : public Menu
 {
+	struct HotBar_Item
+	{
+		bool Selected = false;
+		const char* Image = "media/empty.png";
+		const char* Text = "UnUsed";
+	};
+
 	EventReceiver* _EventReceiver;
 	bool isOpen;
+
+	std::deque<HotBar_Item> HotBar_Items;
+	unsigned int SelectedItem = 0;
 public:
 	HotBar(EventReceiver* Receiver) : _EventReceiver(Receiver), isOpen(true)
 	{
+		//
+		// TODO: This is hacky, need to not depend on this
+		//	Reserve 10 item slots (hotbar slots currently)
+		for (int i = 0; i < 10; i++)
+		{
+			HotBar_Items.emplace_back();
+		}
 		//
 		//	Register ourselves with the GUI manager
 		WorldEngine::GUI::Register(this);
@@ -18,8 +35,8 @@ public:
 	{
 		if (isOpen)
 		{
-			ImGui::SetNextWindowSize(ImVec2(550, 70));
-			ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 272, WorldEngine::VulkanDriver::HEIGHT - 70));
+			ImGui::SetNextWindowSize(ImVec2(550, 80));
+			ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 272, WorldEngine::VulkanDriver::HEIGHT - 80));
 			ImGui::Begin("Hotbar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
 
 			ImGuiIO& io = ImGui::GetIO();
@@ -30,25 +47,22 @@ public:
 			ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);   // No tint
 			ImVec4 border_col = ImVec4(1.0f, 1.0f, 1.0f, 0.5f); // 50% opaque white
 
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
-			ImGui::SameLine();
-			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
+			//	TODO: Loop through hotbar items deque instead of this hardcoded junk
+			for (auto& _Item : HotBar_Items)
+			{
+				ImGui::BeginGroup();
+				ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
+				if (_Item.Selected)
+				{
+					ImGui::TextDisabled("Active");
+				}
+				else
+				{
+					ImGui::TextDisabled(_Item.Text);
+				}
+				ImGui::EndGroup();
+				ImGui::SameLine();
+			}
 
 			ImGui::End();
 		}
@@ -67,5 +81,21 @@ public:
 	const bool& IsOpen()
 	{
 		return isOpen;
+	}
+
+	void ChangeItemIcon(unsigned int CurItem, const char* ImageFile)
+	{
+		//	TODO: sanity check if item exists in deque
+		//	TODO: adapt this for ImGui
+		HotBar_Items[CurItem].Image = ImageFile;
+	}
+
+	void ChangeItemSelection(unsigned int CurItem, const char* ImageFile)
+	{
+		//	TODO: sanity check if items exists in deque
+		HotBar_Items[SelectedItem].Selected = false;
+		HotBar_Items[CurItem].Selected = true;
+		ChangeItemIcon(CurItem, ImageFile);
+		SelectedItem = CurItem;
 	}
 };
