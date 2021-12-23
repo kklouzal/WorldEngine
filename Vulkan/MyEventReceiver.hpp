@@ -63,6 +63,15 @@ public:
 					Character->doJump(35.0f);
 				}
 			}
+
+			Item* CurItem = Character->GetCurrentItem();
+			if (CurItem)
+			{
+
+				CurItem->DoThink((Cam->Pos.x, Cam->Pos.y, Cam->Pos.z, 0.0f), ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
+
+			}
+
 		}
 	}
 

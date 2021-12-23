@@ -5,7 +5,6 @@ class Item_Physgun : public Item
 public:
 	ndBodyNotify* SelectedNotify = nullptr;
 	SceneNode* SelectedNode = nullptr;
-	ndBody* SelectedBody = nullptr;
 	ndVector OldFireAng = {};
 	ndFloat32 TgtDistance = -1.0f;
 	ndVector OldGravity = {};
@@ -35,8 +34,6 @@ public:
 			//	Store a pointer to our hit SceneNode
 			SelectedNotify = CB.m_contact.m_body0->GetNotifyCallback();
 			SelectedNode = (SceneNode*)SelectedNotify->GetUserData();
-			//SelectedBody = SelectedNotify->GetBody();
-			//SelectedBody->GetNotifyCallback()->GetUserData();
 
 			if (SelectedNode != nullptr)
 			{
@@ -106,8 +103,11 @@ public:
 		//	Clear the pointer to our hit SceneNode
 		if (SelectedNode != nullptr)
 		{
+			
 			SelectedNotify->SetGravity(OldGravity);
+		
 		}
+
 		SelectedNotify = nullptr;
 		SelectedNode = nullptr;
 		OldFireAng = {};
@@ -126,37 +126,57 @@ public:
 		////
 		////	If we have a valid SelectedNode
 		////	Perform the 'PhysGun' logic
-		//if (SelectedNode != nullptr)
-		//{
-		//	ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition();
-		//	if (OldFireAng == ndVector(0.f, 0.f, 0.f, 0.f))
-		//	{
-		//		OldFireAng = FireAng;
-		//	}
-		//	if (TgtDistance == -1)
-		//	{
-		//		TgtDistance = btDistance(FirePos, ObjPosition);
-		//	}
-		//	//
-		//	//	Move object forward/backward by scrolling mouse
-		//	//TgtDistance += GetMouseWheelMove() * ZoomMult;
-		//	//
-		//	//	Minimum distance to object from player
-		//	if (TgtDistance < 5)
-		//	{
-		//		TgtDistance = 5.0f;
-		//	}
+		
+		if (SelectedNode != nullptr)
+		{
 
-		//	ndVector TgtPosition = FirePos + (FireAng * TgtDistance);
+			
+			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition();
+			
+			if (OldFireAng.GetX() == 0.f && OldFireAng.GetY() == 0.f && OldFireAng.GetZ() == 0.f && OldFireAng.GetW() == 0.f)
+			{
+				OldFireAng = FireAng;
 
-		//	ndVector MoveVec = (TgtPosition - ObjPosition).Normalize();
-		//	//ndFloat32 MoveDist = btDistance(ObjPosition, TgtPosition) / 2;
-		//	ndFloat32 MoveDist = (TgtPosition - ObjPosition) / 2;
-		//	SelectedNode->_RigidBody->activate(true);
-		//	SelectedNode->_RigidBody->setLinearVelocity(MoveVec * (MoveDist * ForceMult));
-		//	SelectedNode->_RigidBody->setAngularVelocity(btVector3(0, 0, 0));
-		//	SelectedNode->_RigidBody->clearForces();
-		//}
+			}
+			
+			if (TgtDistance == -1)
+			{
+
+				TgtDistance = dBoxDistanceToOrigin2(FirePos, ObjPosition);
+
+			}
+			
+			//
+			//	Move object forward/backward by scrolling mouse
+			//TgtDistance += GetMouseWheelMove() * ZoomMult;
+			//
+			//	Minimum distance to object from player
+
+			if (TgtDistance < 5)
+			{
+
+				TgtDistance = 5.0f;
+
+			}
+			
+			ndVector TgtPosition = FirePos + (FireAng * TgtDistance);
+			
+			ndVector MoveVec = (TgtPosition - ObjPosition).Normalize();
+			//ndFloat32 MoveDist = btDistance(ObjPosition, TgtPosition) / 2;
+			
+			//ndVector newVec = TgtPosition - ObjPosition;
+			//ndFloat32 MoveDist = newVec.GetX() / 2;
+
+			ndFloat32 MoveDist = dBoxDistanceToOrigin2(TgtPosition, ObjPosition) / 2;
+			
+			//SelectedNotify->GetBody()->SetVelocity(MoveVec * (MoveDist * 1000));
+			SelectedNotify->GetBody()->SetVelocity(MoveVec * (MoveDist * ForceMult));
+			
+			//SelectedNode->_RigidBody->activate(true);
+			//SelectedNode->_RigidBody->setLinearVelocity(MoveVec * (MoveDist * ForceMult));
+			//SelectedNode->_RigidBody->setAngularVelocity(btVector3(0, 0, 0));
+			//SelectedNode->_RigidBody->clearForces();
+		}
 	}
 
 	void onDeselectItem()
