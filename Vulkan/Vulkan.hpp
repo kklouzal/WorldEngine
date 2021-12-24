@@ -96,9 +96,9 @@ namespace WorldEngine
 		void initLua();
 		//
 		//	Main Loop
-		void mainLoop();
-		void Render();
-		void updateUniformBufferComposition(const size_t& CurFrame);
+		inline void mainLoop();
+		inline void Render();
+		inline void updateUniformBufferComposition(const size_t& CurFrame);
 		//
 		//	Vulkan Initialization Stage 1
 		void createInstance();
@@ -117,12 +117,11 @@ namespace WorldEngine
 		//
 		//	Time Keeping
 		std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
-		std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
-		float deltaFrame = 0;
+		float deltaFrame = 0.f;
 		std::deque<float> Frames;
 		//
 		//	Push a new frame time into the list
-		void PushFrameDelta(const float F) {
+		inline void PushFrameDelta(const float F) {
 			Frames.push_back(F);
 			if (Frames.size() > 30) {
 				Frames.pop_front();
@@ -130,17 +129,17 @@ namespace WorldEngine
 		}
 		//
 		//	Return the average frame time from the list
-		const float GetDeltaFrames() {
+		inline const float GetDeltaFrames() {
 			float DF = 0;
 			for (auto& F : Frames) {
 				DF += F;
 			}
 			return DF / Frames.size();
-		}
+		} const
 
 		//
 		//	Return CommandBuffer for single immediate use
-		const VkCommandBuffer beginSingleTimeCommands()
+		inline const VkCommandBuffer beginSingleTimeCommands()
 		{
 			VkCommandBuffer commandBuffer;
 			VkCommandBufferAllocateInfo allocInfo = vks::initializers::commandBufferAllocateInfo(commandPools[currentFrame], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
@@ -150,9 +149,10 @@ namespace WorldEngine
 			vkBeginCommandBuffer(commandBuffer, &beginInfo);
 			return commandBuffer;
 		}
+
 		//
 		//	End and submit single immediate use CommandBuffer
-		void endSingleTimeCommands(const VkCommandBuffer& commandBuffer)
+		inline void endSingleTimeCommands(const VkCommandBuffer& commandBuffer)
 		{
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 			VkSubmitInfo STCsubmitInfo = vks::initializers::submitInfo();
@@ -346,7 +346,7 @@ namespace WorldEngine
 
 		//
 		//	Loop Main Logic
-		void mainLoop()
+		inline void mainLoop()
 		{
 			//
 			//	Update Shader Lighting Uniforms
@@ -360,46 +360,40 @@ namespace WorldEngine
 				//
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
 				startFrame = std::chrono::high_resolution_clock::now();
-				float DF = GetDeltaFrames();
-				float FPS = (1.0f / DF);
-
+				//
+				//	Push previous delta to rolling average
+				PushFrameDelta(deltaFrame);
+				//
+				//	Push previous delta to ImGui
+				ImGui::GetIO().DeltaTime = deltaFrame;
 				//
 				//	Handle and perform Inputs
 				glfwPollEvents();
 				_EventReceiver->UpdateCursor();
 				_EventReceiver->OnUpdate();
 				//
-				//	We trying to cleanup?
-				if (SceneGraph::ShouldCleanupWorld())
-				{
-					SceneGraph::cleanupWorld();
-				}
-				else
-				{
-					//
-					//	Simulate Physics
-					_ndWorld->Update(deltaFrame);
-					SceneGraph::updateUniformBuffer(currentFrame);
-					//
-					//	Draw Frame
-					Render();
-				}
+				//	Simulate Physics
+				_ndWorld->Update(deltaFrame);
+				SceneGraph::updateUniformBuffer(currentFrame);
+				//
+				//	Draw Frame
+				Render();
 				//
 				//	Mark Frame End Time and Calculate Delta
-				endFrame = std::chrono::high_resolution_clock::now();
-				deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count() / 1000.f;
-				PushFrameDelta(deltaFrame);
-				//
-				//	Push previous delta to ImGui
-				ImGuiIO& io = ImGui::GetIO();
-				io.DeltaTime = deltaFrame;
+				deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
+			}
+			//
+			//	We trying to cleanup? Should be at this point..
+			if (SceneGraph::ShouldCleanupWorld())
+			{
+				SceneGraph::cleanupWorld();
 			}
 			//
 			//	Wait for idle before shutting down
 			vkDeviceWaitIdle(_VulkanDevice->logicalDevice);
 		}
 
-		void Render()
+		inline void Render()
 		{
 			//
 			//	Grab our CPC before doing any blocking/waiting calls
@@ -601,7 +595,7 @@ namespace WorldEngine
 		}
 
 		// Update lights and parameters passed to the composition shaders
-		void updateUniformBufferComposition(const size_t& CurFrame)
+		inline void updateUniformBufferComposition(const size_t& CurFrame)
 		{
 			// White
 			uboComposition.lights[0].position = glm::vec4(-50.0f, 10.0f, -50.0f, 0.0f);

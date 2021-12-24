@@ -100,7 +100,7 @@ public:
 
 	void EnableCursor();
 	void DisableCursor();
-	void UpdateCursor();
+	inline void UpdateCursor();
 };
 
 //
@@ -213,7 +213,7 @@ void EventReceiver::DisableCursor() {
 	m_Pos_First = true;
 }
 
-void EventReceiver::UpdateCursor()
+inline void EventReceiver::UpdateCursor()
 {
 	ImGuiIO& io = ImGui::GetIO();
 	if ((io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange) || glfwGetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)

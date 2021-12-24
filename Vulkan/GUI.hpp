@@ -2,19 +2,6 @@
 #include "imgui.h"
 #include "Menu.hpp"
 
-// Options and values to display/toggle from the UI
-struct UISettings {
-    bool displayModels = true;
-    bool displayLogos = true;
-    bool displayBackground = true;
-    bool animateLight = false;
-    float lightSpeed = 0.25f;
-    std::array<float, 50> frameTimes{};
-    float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
-    float lightTimer = 0.0f;
-} uiSettings;
-
-//  TODO: CLEANUP RESOURCES!
 struct GUITexture
 {
     TextureObject* TexObj;
@@ -128,7 +115,7 @@ namespace WorldEngine
         }
 
         // Update vertex and index buffer containing the imGui elements when required
-        void updateBuffers(const uint32_t& CurFrame)
+        inline void updateBuffers(const uint32_t& CurFrame)
         {
             ImDrawData* imDrawData = ImGui::GetDrawData();
 
@@ -191,7 +178,7 @@ namespace WorldEngine
                 idxDst += cmd_list->IdxBuffer.Size;
             }
         }
-        void drawFrame(VkCommandBuffer commandBuffer, const uint32_t& CurFrame)
+        inline void drawFrame(VkCommandBuffer commandBuffer, const uint32_t& CurFrame)
         {
             ImGuiIO& io = ImGui::GetIO();
 
@@ -264,7 +251,7 @@ namespace WorldEngine
             vkDestroyPipelineCache(VulkanDriver::_VulkanDevice->logicalDevice, pipelineCache, nullptr);
 		}
 
-        void StartDraw()
+        inline void StartDraw()
         {
             ImGui::NewFrame();
 
@@ -277,7 +264,7 @@ namespace WorldEngine
 
         }
 
-		void EndDraw(const VkCommandBuffer& Buff, const uint32_t& CurFrame)
+		inline void EndDraw(const VkCommandBuffer& Buff, const uint32_t& CurFrame)
 		{
             // Render to generate draw buffers
             ImGui::Render();
