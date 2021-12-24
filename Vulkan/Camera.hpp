@@ -94,4 +94,16 @@ public:
 		CPC.pos = glm::vec4(Pos.x, Pos.y, Pos.z, 0.0f);
 		return CPC;
 	}
+
+	void DrawGUI()
+	{
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+		ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 15, WorldEngine::VulkanDriver::HEIGHT / 2 - 15));
+		ImGui::SetNextWindowBgAlpha(0.f);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+		ImGui::Begin("Example: Simple overlay", 0, window_flags);
+		ImGui::Image(WorldEngine::GUI::UseTextureFile("media/crosshairs/focus1.png"), ImVec2(30, 30), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0));
+		ImGui::PopStyleVar();
+		ImGui::End();
+	}
 };

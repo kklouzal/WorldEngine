@@ -23,7 +23,6 @@ public:
 
 	void StartPrimaryAction(ndRayCastClosestHitCallback& CB)
 	{
-
 		printf("Start Item Primary - %s", _Name);
 		
 		if (CB.m_contact.m_body0)

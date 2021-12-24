@@ -123,12 +123,6 @@ EventReceiver::EventReceiver() {
 	_SpawnMenu = new SpawnMenu(this);
 	//
 
-	/*Crosshair = new Gwen::Controls::ImagePanel(WorldEngine::GUI::pCanvas);
-	Crosshair->SetImage("media/crosshairs/focus1.png");
-	Crosshair->SetPos(WorldEngine::VulkanDriver::WIDTH / 2 - 16, WorldEngine::VulkanDriver::HEIGHT / 2 - 16);
-	Crosshair->SetSize(32, 32);
-	Crosshair->Hide();*/
-
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendPlatformName = "GLFW";
 	io.SetClipboardTextFn = SetClipboardText;
@@ -173,11 +167,6 @@ EventReceiver::~EventReceiver() {
 void EventReceiver::Cleanup()
 {
 	printf("\tCleanup Base EventReceiver\n");
-	//
-	//	Cleanup Menus
-	//delete _MainMenu;
-	//delete _ConsoleMenu;
-	//delete _SpawnMenu;
 	//
 	//	Cleanup GUI
 	WorldEngine::GUI::Deinitialize();
@@ -259,12 +248,10 @@ void EventReceiver::OnGUI(const char* EventID)
 			_SpawnMenu->Hide(false);
 			_ConsoleMenu->ForceHide();
 			_MainMenu->Hide();
-			//Crosshair->Show();
 		}
 		else {
 			WorldEngine::SceneGraph::cleanupWorld();
 			isWorldInitialized = false;
-			//Crosshair->Hide();
 			_MainMenu->Show();
 		}
 	}
@@ -324,10 +311,8 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 			if (Rcvr->isCursorActive) {
 				Rcvr->_MainMenu->Hide();
 				Rcvr->_ConsoleMenu->ForceInactive();
-				//Rcvr->Crosshair->Show();
 			}
 			else {
-				//Rcvr->Crosshair->Hide();
 				Rcvr->_MainMenu->Show();
 			}
 			if (Rcvr->_SpawnMenu->IsOpen()) {

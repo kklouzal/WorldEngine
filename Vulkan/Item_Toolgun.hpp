@@ -93,7 +93,7 @@ public:
 			ImGui::SetNextWindowSize(ImVec2(150, 300));
 			ImGui::SetNextWindowPos(ImVec2(10, WorldEngine::VulkanDriver::HEIGHT / 2 - 150));
 			ImGui::Begin("Tool List", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
-			ImGui::BeginListBox("##TOOLGUNTOOLS");
+			ImGui::BeginListBox("##TOOLGUNTOOLS", ImVec2(-FLT_MIN, -FLT_MIN));
 			for (auto _Tool : _Tools)
 			{
 				//

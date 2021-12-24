@@ -550,6 +550,13 @@ namespace WorldEngine
 					_Node->drawGUI();
 				}
 
+				//
+				//	Crosshairs
+				if (!_EventReceiver->IsCursorActive())
+				{
+					SceneGraph::GetCamera().DrawGUI();
+				}
+
 				GUI::EndDraw(commandBuffers_GUI[currentFrame], currentFrame);
 			}
 			#ifdef _DEBUG
