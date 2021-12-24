@@ -52,18 +52,22 @@ public:
 		//
 		//	Default Character Loadout
 		// 
+		//  -   Hands
+		Item_Hands* Itm0 = new Item_Hands();
+		this->GiveItem(Itm0, 0);
+		SelectItem(0);
+		//
 		//  -   PhysGun
 		Item_Physgun* Itm1 = new Item_Physgun();
-		this->GiveItem(Itm1, 0);
-		SelectItem(0);
+		this->GiveItem(Itm1, 1);
 		//
 		//  -   ToolGun
 		Item_Toolgun* Itm2 = new Item_Toolgun();
 		Itm2->LoadTools();
-		this->GiveItem(Itm2, 1);
+		this->GiveItem(Itm2, 2);
 		//
 		Item* Itm3 = new Item("Item 3");
-		this->GiveItem(Itm3, 2);
+		this->GiveItem(Itm3, 5);
 		Item* Itm7 = new Item("Item 7");
 		this->GiveItem(Itm7, 6);
 	}

@@ -235,6 +235,9 @@
     <ClInclude Include="Tool_Weld.hpp">
       <Filter>Header Files\Items\Tools</Filter>
     </ClInclude>
+    <ClInclude Include="Item_Hands.hpp">
+      <Filter>Header Files\Items</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">

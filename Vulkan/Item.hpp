@@ -55,3 +55,4 @@ public:
 //	Include individual item types
 #include "Item_Physgun.hpp"
 #include "Item_Toolgun.hpp"
+#include "Item_Hands.hpp"
