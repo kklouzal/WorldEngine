@@ -31,6 +31,8 @@ public:
 			{
 				_EventReceiver->OnGUI("Quit");
 			}
+			GUITexture* Tex = WorldEngine::GUI::createTextureImage("media/none.png");
+			ImGui::Image((void*)Tex, ImVec2(50, 50));
 			ImGui::End();
 		}
 	}

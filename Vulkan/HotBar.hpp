@@ -39,8 +39,8 @@ public:
 			ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 272, WorldEngine::VulkanDriver::HEIGHT - 80));
 			ImGui::Begin("Hotbar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
 
-			ImGuiIO& io = ImGui::GetIO();
-			ImTextureID my_tex_id = io.Fonts->TexID;
+			//ImGuiIO& io = ImGui::GetIO();
+			//ImTextureID my_tex_id = io.Fonts->TexID;
 
 			ImVec2 uv_min = ImVec2(0.0f, 0.0f);                 // Top-left
 			ImVec2 uv_max = ImVec2(1.0f, 1.0f);                 // Lower-right
@@ -51,6 +51,7 @@ public:
 			for (auto& _Item : HotBar_Items)
 			{
 				ImGui::BeginGroup();
+				ImTextureID my_tex_id = WorldEngine::GUI::createTextureImage(_Item.Image);
 				ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
 				if (_Item.Selected)
 				{

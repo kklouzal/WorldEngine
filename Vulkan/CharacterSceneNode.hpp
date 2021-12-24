@@ -77,8 +77,10 @@ public:
 
 	void drawGUI()
 	{
-		// TODO: Check if item exists
-		Items[CurItem]->DrawGUI();
+		if (Items[CurItem])
+		{
+			Items[CurItem]->DrawGUI();
+		}
 	}
 
 	ndFloat32 ContactFrictionCallback(const ndVector&, const ndVector& normal, ndInt32, const ndBodyKinematic* const) const
