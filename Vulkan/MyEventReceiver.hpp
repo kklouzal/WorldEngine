@@ -16,7 +16,7 @@ public:
 	void OnUpdate() {
 		//
 		//	Only keyboard-move-camera when menus closed and world initialized
-		if (!IsMenuOpen() && IsWorldInitialized()) {
+		if (!IsCursorActive() && IsWorldInitialized()) {
 			CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 			Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
 
@@ -80,17 +80,6 @@ public:
 	void OnEvent(const Event& NewEvent) {
 		if (NewEvent.Type == EventTypes::Keyboard) {
 			if (NewEvent.Action == EventActions::Press) {
-				//
-				//	Only keyboard-spawn-objects when menus closed and world initialized
-				if (!IsMenuOpen() && IsWorldInitialized()) {
-					if (NewEvent.Key == GLFW_KEY_SPACE) {
-						//WorldEngine::VulkanDriver::_SceneGraph->createSkinnedMeshSceneNode("media/models/DefaultFleshMaleBoned.gltf", 10.f, dVector(0, 15, 0, 0));
-						isSpace = true;
-					}
-					else if (NewEvent.Key == GLFW_KEY_C) {
-						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
-					}
-				}
 				if (NewEvent.Key == GLFW_KEY_W) {
 					isW = true;
 				}
@@ -102,6 +91,9 @@ public:
 				}
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = true;
+				}
+				else if (NewEvent.Key == GLFW_KEY_SPACE) {
+					isSpace = true;
 				}
 				else if (NewEvent.Key == GLFW_KEY_F1) {
 					printf("Change Debug View\n");
@@ -123,6 +115,13 @@ public:
 					printf("Change Debug View\n");
 					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 4;
 				}
+				else if (NewEvent.Key == GLFW_KEY_C) {
+					//
+					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
+					if (!IsCursorActive() && IsWorldInitialized()) {
+						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+					}
+				}
 			}
 			else if (NewEvent.Action == EventActions::Release) {
 				if (NewEvent.Key == GLFW_KEY_W) {
@@ -137,27 +136,27 @@ public:
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = false;
 				}
-				else if (NewEvent.Key == GLFW_KEY_SPACE)
-				{
-
+				else if (NewEvent.Key == GLFW_KEY_SPACE) {
 					isSpace = false;
-
 				}
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
-				if (NewEvent.Key == GLFW_KEY_C) {
-					float X = (rand() % 100) - 50.0f;
-					float Z = (rand() % 100) - 50.0f;
-					float Y = (rand() % 70) + 30.0f;
-					WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
-				}
-				else if (NewEvent.Key == GLFW_KEY_X) {
-					for (int i = 0; i < 5; i++)
-					{
+				//
+				//	Only keyboard-spawn-objects when menus are closed and the world is initialized
+				if (!IsCursorActive() && IsWorldInitialized()) {
+					if (NewEvent.Key == GLFW_KEY_C) {
 						float X = (rand() % 100) - 50.0f;
 						float Z = (rand() % 100) - 50.0f;
 						float Y = (rand() % 70) + 30.0f;
 						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
+					}
+					else if (NewEvent.Key == GLFW_KEY_X) {
+						for (int i = 0; i < 5; i++)	{
+							float X = (rand() % 100) - 50.0f;
+							float Z = (rand() % 100) - 50.0f;
+							float Y = (rand() % 70) + 30.0f;
+							WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
+						}
 					}
 				}
 			}
@@ -165,7 +164,7 @@ public:
 		else if (NewEvent.Type == EventTypes::Mouse) {
 			//
 			//	if menus aren't open
-			if (!IsMenuOpen())
+			if (!IsCursorActive())
 			{
 				if (NewEvent.Action == EventActions::Press)
 				{

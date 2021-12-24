@@ -17,8 +17,7 @@ class EventReceiver
 	//	State Flags
 	//bool isMenuOpen = true;
 	bool isWorldInitialized = false;
-	//
-
+	bool isCursorActive = true;
 
 protected:
 
@@ -64,7 +63,7 @@ protected:
 
 public:
 
-	const bool IsMenuOpen() const;
+	const bool IsCursorActive() const;
 
 	const bool& IsWorldInitialized() const {
 		return isWorldInitialized;
@@ -190,11 +189,19 @@ void EventReceiver::Cleanup()
 	}
 }
 
-const bool EventReceiver::IsMenuOpen() const {
-	return _MainMenu->IsOpen() || _ConsoleMenu->IsActive() || _SpawnMenu->IsOpen();
+const bool EventReceiver::IsCursorActive() const {
+	return isCursorActive;
 }
 
 void EventReceiver::EnableCursor() {
+	isCursorActive = true;
+	//
+	//	Clear all keystates
+	ImGuiIO& io = ImGui::GetIO();
+	for (auto& _Key : io.KeysDown)
+	{
+		_Key = false;
+	}
 	if (glfwRawMouseMotionSupported()) {
 		glfwSetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_RAW_MOUSE_MOTION, GLFW_FALSE);
 	}
@@ -202,6 +209,14 @@ void EventReceiver::EnableCursor() {
 }
 
 void EventReceiver::DisableCursor() {
+	isCursorActive = false;
+	//
+	//	Clear all keystates
+	ImGuiIO& io = ImGui::GetIO();
+	for (auto& _Key : io.KeysDown)
+	{
+		_Key = false;
+	}
 	glfwSetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	if (glfwRawMouseMotionSupported()) {
 		glfwSetInputMode(WorldEngine::VulkanDriver::_Window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
@@ -271,11 +286,10 @@ void EventReceiver::char_callback(GLFWwindow* window, unsigned int codepoint)
 {
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
 
-	ImGuiIO& io = ImGui::GetIO();
-	io.AddInputCharacter(codepoint);
-
-	if (Rcvr->IsMenuOpen()) {
-		// TODO: ImGui input handling here?
+	if (Rcvr->isCursorActive)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.AddInputCharacter(codepoint);
 	}
 }
 
@@ -283,16 +297,19 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 {
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
 
-	ImGuiIO& io = ImGui::GetIO();
-	if (action == GLFW_PRESS)
-		io.KeysDown[key] = true;
-	if (action == GLFW_RELEASE)
-		io.KeysDown[key] = false;
+	if (Rcvr->isCursorActive)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		if (action == GLFW_PRESS)
+			io.KeysDown[key] = true;
+		if (action == GLFW_RELEASE)
+			io.KeysDown[key] = false;
 
-	io.KeyCtrl = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
-	io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
-	io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
-	io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
+		io.KeyCtrl = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
+		io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
+		io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
+		io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
+	}
 
 	bool bDown = false;
 	if (action == GLFW_RELEASE) { bDown = false; }
@@ -304,7 +321,7 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 
 	if (Rcvr->isWorldInitialized) {
 		if (action == GLFW_PRESS && key == GLFW_KEY_TAB) {
-			if (Rcvr->IsMenuOpen()) {
+			if (Rcvr->isCursorActive) {
 				Rcvr->_MainMenu->Hide();
 				Rcvr->_ConsoleMenu->ForceInactive();
 				//Rcvr->Crosshair->Show();
@@ -319,21 +336,16 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 		}
 		else if (key == GLFW_KEY_Q) {
 			if (action == GLFW_PRESS) {
-				if (!Rcvr->IsMenuOpen()) {
+				if (!Rcvr->isCursorActive) {
 					if (!Rcvr->_SpawnMenu->IsOpen()) {
 						Rcvr->_SpawnMenu->Show();
 					}
 				}
 			}
 			else if (action == GLFW_RELEASE) {
-				
 				Rcvr->_SpawnMenu->Hide(!(Rcvr->_MainMenu->IsOpen() || Rcvr->_ConsoleMenu->IsActive()));
 			}
 		}
-	}
-
-	if (Rcvr->IsMenuOpen()) {
-		// TODO: ImGui input handling here?
 	}
 
 	Event NewEvent;
@@ -353,9 +365,10 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 
 void EventReceiver::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	ImGuiIO& io = ImGui::GetIO();
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
-	if (Rcvr->IsMenuOpen()) {
+	if (Rcvr->isCursorActive)
+	{
+		ImGuiIO& io = ImGui::GetIO();
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 			io.MouseDown[0] = true;
 		}
@@ -389,9 +402,12 @@ void EventReceiver::scroll_callback(GLFWwindow* window, double xoffset, double y
 {
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
 
-	ImGuiIO& io = ImGui::GetIO();
-	io.MouseWheelH += (float)xoffset;
-	io.MouseWheel += (float)yoffset;
+	if (Rcvr->isCursorActive)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.MouseWheelH += (float)xoffset;
+		io.MouseWheel += (float)yoffset;
+	}
 
 	Event NewEvent;
 	NewEvent.Type = EventTypes::Mouse;
@@ -405,8 +421,11 @@ void EventReceiver::cursor_position_callback(GLFWwindow* window, double xpos, do
 {
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
 
-	ImGuiIO& io = ImGui::GetIO();
-	io.MousePos = ImVec2(xpos, ypos);
+	if (Rcvr->isCursorActive)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		io.MousePos = ImVec2(xpos, ypos);
+	}
 
 	if (Rcvr->m_Pos_First)
 	{

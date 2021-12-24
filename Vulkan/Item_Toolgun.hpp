@@ -15,7 +15,7 @@ class Item_Toolgun : public Item
 public:
 
 	Item_Toolgun()
-		: Item("ToolGun", "images/wrench-icon.png")
+		: Item("ToolGun", "media/wrench-icon.png")
 	{}
 
 	~Item_Toolgun()
@@ -82,17 +82,8 @@ public:
 	{
 		printf("SELECT TOOL\n");
 		//
-		//	Hide the current tools GUI
-		if (_SelectedTool != nullptr)
-		{
-			//_SelectedTool->HideGUI();
-		}
-		//
 		//	Select our new tool
 		_SelectedTool = _Tool;
-		//
-		//	Display its GUI
-		//_SelectedTool->ShowGUI();
 	}
 
 	void DrawGUI()
@@ -105,6 +96,10 @@ public:
 			ImGui::BeginListBox("##TOOLGUNTOOLS");
 			for (auto _Tool : _Tools)
 			{
+				//
+				//	This commented code doesn't work even though it's identacle to the uncommented section below
+				//	BECAUSE IT'S A BIIIIIITCH! >.>
+				//
 				/*const bool cmp2 = (_SelectedTool == _Tool);
 				if (ImGui::Selectable(_Tool->Name, cmp2));
 				{
@@ -116,15 +111,20 @@ public:
 				if (cmp2)
 				{
 					ImGui::SetItemDefaultFocus();
+					_Tool->DrawGUI();
 				}*/
 				const bool is_selected = (_SelectedTool == _Tool);
 				if (ImGui::Selectable(_Tool->Name, is_selected))
 				{
+					//
+					//	Don't reselect if it's already currently selected
 					if (!is_selected)
 					{
 						SelectTool(_Tool);
 					}
 				}
+				//
+				//	Draw the GUI for whichever item is selected
 				if (is_selected)
 				{
 					ImGui::SetItemDefaultFocus();

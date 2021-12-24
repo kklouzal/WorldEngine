@@ -2,6 +2,7 @@
 
 class HotBar : public Menu
 {
+	//	TODO: Don't store HotBar_Item's, instead store Item*'s so it becomes dynamic..
 	struct HotBar_Item
 	{
 		bool Selected = false;
