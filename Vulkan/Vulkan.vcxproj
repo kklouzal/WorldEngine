@@ -168,7 +168,6 @@
     <ClInclude Include="ConsoleMenu.hpp" />
     <ClInclude Include="ConvexDecomposition.hpp" />
     <ClInclude Include="GUI.hpp" />
-    <ClInclude Include="HotBar.hpp" />
     <ClInclude Include="imconfig.h" />
     <ClInclude Include="imgui.h" />
     <ClInclude Include="imgui_internal.h" />

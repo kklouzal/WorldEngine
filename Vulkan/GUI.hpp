@@ -658,5 +658,3 @@ namespace WorldEngine
         }
 	}
 }
-
-#include "HotBar.hpp"

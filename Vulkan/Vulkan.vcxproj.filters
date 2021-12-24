@@ -223,9 +223,6 @@
     <ClInclude Include="Menu.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
-    <ClInclude Include="HotBar.hpp">
-      <Filter>Header Files\Menus</Filter>
-    </ClInclude>
     <ClInclude Include="Item_Toolgun.hpp">
       <Filter>Header Files\Items</Filter>
     </ClInclude>

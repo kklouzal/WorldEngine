@@ -9,6 +9,7 @@ class CharacterSceneNode : public SceneNode, public ndBodyPlayerCapsule
 public:
 	TriangleMesh* _Mesh = nullptr;
 	std::vector<Item*> Items;
+	std::vector<Item*> HotBar_Items;
 	int CurItem = 0;
 	bool onGround = false;
 
@@ -29,9 +30,6 @@ public:
 	};
 
 	PlayerInputs m_playerInput;
-
-
-	HotBar* _HotBar = nullptr;
 public:
 	CharacterSceneNode(TriangleMesh* Mesh, ndMatrix localAxis, ndFloat32 Mass, ndFloat32 Radius, ndFloat32 Height, ndFloat32 StepHeight)
 		: _Mesh(Mesh), SceneNode(), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight)
@@ -40,13 +38,11 @@ public:
 		Name = "Character";
 		canPhys = false;
 		//
-		//	Create HotBar GUI
-		_HotBar = new HotBar(WorldEngine::VulkanDriver::_EventReceiver);
-		//
 		//	Reserve 10 item slots (hotbar slots currently)
 		for (int i = 0; i < 10; i++)
 		{
 			Items.push_back(nullptr);
+			HotBar_Items.push_back(nullptr);
 		}
 		//
 		//
@@ -77,14 +73,6 @@ public:
 		delete _Mesh;
 	}
 
-	void drawGUI()
-	{
-		if (Items[CurItem])
-		{
-			Items[CurItem]->DrawGUI();
-		}
-	}
-
 	ndFloat32 ContactFrictionCallback(const ndVector&, const ndVector& normal, ndInt32, const ndBodyKinematic* const) const
 	{
 		//return ndFloat32(2.0f);
@@ -111,9 +99,9 @@ public:
 			m_playerInput.m_jump = false;
 		}
 
-		SetForwardSpeed(m_playerInput.m_forwardSpeed);
-		SetLateralSpeed(m_playerInput.m_strafeSpeed);
-		SetHeadingAngle(m_playerInput.m_heading);
+		//SetForwardSpeed(m_playerInput.m_forwardSpeed);
+		//SetLateralSpeed(m_playerInput.m_strafeSpeed);
+		//SetHeadingAngle(m_playerInput.m_heading);
 	}
 
 	Item* GetCurrentItem() const
@@ -132,6 +120,7 @@ public:
 		}
 	}
 
+	// TODO: ICON MANAGEMENT...
 	void SelectItem(const unsigned int& ItemNum)
 	{
 		//
@@ -149,7 +138,6 @@ public:
 		}
 		//
 		//	Update GUI
-		_HotBar->ChangeItemSelection(ItemNum, Ico);
 		printf("Current Item %i\n", ItemNum);
 	}
 
@@ -162,35 +150,56 @@ public:
 		//	Increment/Decrement current item counter
 		if (Scrolled > 0)
 		{
-			CurItem++;
+			for (unsigned char i = 0; i < 10; i++)
+			{
+				CurItem = CurItem + 1;
+				//
+				//	Wrap max
+				if (CurItem > 9)
+				{
+					CurItem = 0;
+				}
+				if (Items[CurItem])
+				{
+					//
+					//	Switch into our new item
+					SelectItem(CurItem);
+					break;
+				}
+			}
 		}
 		else if (Scrolled < 0)
 		{
-			CurItem--;
+			for (unsigned char i = 0; i < 10; i++)
+			{
+				CurItem = CurItem - 1;
+				//
+				//	Wrap min
+				if (CurItem < 0)
+				{
+					CurItem = 9;
+				}
+				if (Items[CurItem])
+				{
+					//
+					//	Switch into our new item
+					printf("SELECTED %i\n", CurItem);
+					SelectItem(CurItem);
+					break;
+				}
+			}
 		}
-		//
-		//	Wrap min/max
-		if (CurItem > 9)
-		{
-			CurItem = 0;
-		}
-		else if (CurItem < 0)
-		{
-			CurItem = 9;
-		}
-		//
-		//	Switch into our new item
-		SelectItem(CurItem);
 	}
 
+	// TODO: ICON MANAGEMENT
 	void GiveItem(Item* NewItem, unsigned int Slot)
 	{
 		Items[Slot] = NewItem;
+		HotBar_Items[Slot] = NewItem;
 		const char* Ico = "media/empty.png";
 		if (Items[Slot] != nullptr) {
 			Ico = Items[Slot]->_Icon;
 		}
-		_HotBar->ChangeItemIcon(Slot, Ico);
 		if (Slot == CurItem && Items[CurItem] != nullptr)
 		{
 			Items[CurItem]->ShowGUI();
@@ -304,6 +313,53 @@ public:
 	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
 		if (!Valid) {
 			_Mesh->draw(CommandBuffer, CurFrame);
+		}
+	}
+
+	void drawGUI()
+	{
+		//
+		//	Item Hot Bar
+		ImGui::SetNextWindowSize(ImVec2(550, 80));
+		ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 272, WorldEngine::VulkanDriver::HEIGHT - 80));
+		ImGui::Begin("Hotbar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
+
+		ImVec2 uv_min = ImVec2(0.0f, 0.0f);                 // Top-left
+		ImVec2 uv_max = ImVec2(1.0f, 1.0f);                 // Lower-right
+		ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);   // No tint
+		ImVec4 border_col = ImVec4(1.0f, 1.0f, 1.0f, 0.5f); // 50% opaque white
+
+		//	TODO: Loop through hotbar items deque instead of this hardcoded junk
+		for (auto& _Item : HotBar_Items)
+		{
+			ImTextureID my_tex_id = WorldEngine::GUI::UseTextureFile("media/empty.png");
+			const char* item_text = "UnUsed";
+			if (_Item)
+			{
+				my_tex_id = WorldEngine::GUI::UseTextureFile(_Item->_Icon);
+				if (_Item == Items[CurItem])
+				{
+					item_text = "Active";
+					border_col.x = 0.0f;
+				}
+				else {
+					item_text = _Item->_Name;
+					border_col.x = 1.0f;
+				}
+			}
+			ImGui::BeginGroup();
+			ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
+			ImGui::TextDisabled(item_text);
+			ImGui::EndGroup();
+			ImGui::SameLine();
+		}
+
+		ImGui::End();
+		//
+		//	Draw our currently selected items GUI
+		if (Items[CurItem])
+		{
+			Items[CurItem]->DrawGUI();
 		}
 	}
 };
