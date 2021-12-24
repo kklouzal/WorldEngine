@@ -227,8 +227,6 @@ namespace Pipeline {
 					}
 				}
 
-				Tex->Empty = false;
-
 				const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
 
 				//

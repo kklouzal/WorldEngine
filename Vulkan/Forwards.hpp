@@ -192,15 +192,12 @@ struct TextureObject {
 	uint32_t Width = 0;
 	uint32_t Height = 0;
 	std::vector<unsigned char> Pixels = {};
-	bool Empty = true;
 
 	//	ToDo: vector.swap image(p)
 	TextureObject(VkDevice Device, VmaAllocator Allocator) : _Device(Device), _Allocator(Allocator) {}
 	~TextureObject() {
-		if (!Empty) {
-			vkDestroyImageView(_Device, ImageView, nullptr);
-			vmaDestroyImage(_Allocator, Image, Allocation);
-		}
+		vkDestroyImageView(_Device, ImageView, nullptr);
+		vmaDestroyImage(_Allocator, Image, Allocation);
 	}
 };
 

@@ -55,7 +55,7 @@ public:
 					border_col.x = 1.0f;
 				}
 				ImGui::BeginGroup();
-				ImTextureID my_tex_id = WorldEngine::GUI::createTextureImage(_Item.Image);
+				ImTextureID my_tex_id = WorldEngine::GUI::UseTextureFile(_Item.Image);
 				ImGui::Image(my_tex_id, ImVec2(50, 50), uv_min, uv_max, tint_col, border_col);
 				if (_Item.Selected)
 				{

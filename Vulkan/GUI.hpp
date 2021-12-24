@@ -21,7 +21,8 @@ struct GUITexture
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSet;
 
-    void Init(VkDescriptorSetLayout* Layout, VkSampler Sampler)
+    GUITexture(TextureObject* Texture, VkDescriptorSetLayout* Layout, VkSampler Sampler)
+        : TexObj(Texture)
     {
         std::vector<VkDescriptorPoolSize> poolSizes = {
             vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
@@ -41,7 +42,6 @@ struct GUITexture
             vks::initializers::writeDescriptorSet(descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &fontDescriptor)
         };
         vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-        TexObj->Empty = false;
     }
 
     ~GUITexture()
@@ -396,15 +396,13 @@ namespace WorldEngine
 
             VulkanDriver::endSingleTimeCommands(CB);
             vmaDestroyBuffer(VulkanDriver::allocator, Font_Stage, Font_StageAlloc);
-            GUITexture* GUITex = new GUITexture();
-            GUITex->TexObj = FontTex;
-            GUITex->Init(&descriptorSetLayout, sampler);
+            GUITexture* GUITex = new GUITexture(FontTex, &descriptorSetLayout, sampler);
             io.Fonts->SetTexID(GUITex);
             _FontTex = GUITex;
             return GUITex;
         }
 
-        GUITexture* createTextureImage(const std::string& File)
+        GUITexture* UseTextureFile(const std::string& File)
         {
             if (_Textures.count(File) == 1) {
                 return _Textures[File];
@@ -423,8 +421,6 @@ namespace WorldEngine
                         return nullptr;
                     }
                 }
-
-                TexOBJ->Empty = false;
 
                 const VkDeviceSize imageSize = TexOBJ->Width * TexOBJ->Height * 4;
 
@@ -527,10 +523,7 @@ namespace WorldEngine
                 textureImageViewInfo.subresourceRange.layerCount = 1;
                 vkCreateImageView(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &TexOBJ->ImageView);
 
-                GUITexture* GUITex = new GUITexture();
-                GUITex->TexObj = TexOBJ;
-                GUITex->Init(&descriptorSetLayout, sampler);
-
+                GUITexture* GUITex = new GUITexture(TexOBJ, &descriptorSetLayout, sampler);
                 _Textures[File] = GUITex;
                 return GUITex;
             }
@@ -546,8 +539,6 @@ namespace WorldEngine
             style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
             style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
             style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-
-
 
             // Descriptor set layout
             std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {

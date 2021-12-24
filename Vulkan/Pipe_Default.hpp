@@ -268,8 +268,6 @@ namespace Pipeline {
 					}
 				}
 
-				Tex->Empty = false;
-
 				const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
 
 				//
@@ -381,7 +379,6 @@ namespace Pipeline {
 			Tex->Width = ImgData.width;
 			Tex->Height = ImgData.height;
 			Tex->Pixels = ImgData.image;
-			Tex->Empty = false;
 
 			const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
 
