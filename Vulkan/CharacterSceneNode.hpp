@@ -58,11 +58,9 @@ public:
 		SelectItem(0);
 		//
 		//  -   ToolGun
-		/*Item_Tool* Itm2 = new Item_Tool();
-		Itm2->SetNavMesh(_NavMesh);
+		Item_Toolgun* Itm2 = new Item_Toolgun();
 		Itm2->LoadTools();
-		Itm2->CreateGUI();
-		Player->GiveItem(Itm2, 1);*/
+		this->GiveItem(Itm2, 1);
 		//
 		Item* Itm3 = new Item("Item 3");
 		this->GiveItem(Itm3, 2);

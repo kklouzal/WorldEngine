@@ -51,6 +51,9 @@
     <Filter Include="Header Files\Libraries\imGUI">
       <UniqueIdentifier>{a3d7af35-3df2-4e0a-81e2-831138060e0e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Items\Tools">
+      <UniqueIdentifier>{2afaa70e-4772-43e0-aabf-c59e8794bec3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -223,6 +226,15 @@
     <ClInclude Include="HotBar.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
+    <ClInclude Include="Item_Toolgun.hpp">
+      <Filter>Header Files\Items</Filter>
+    </ClInclude>
+    <ClInclude Include="Tool.hpp">
+      <Filter>Header Files\Items\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="Tool_Weld.hpp">
+      <Filter>Header Files\Items\Tools</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">
@@ -248,6 +260,9 @@
     </None>
     <None Include="shaders\ui.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="Tool_NPC.hpp">
+      <Filter>Header Files\Items\Tools</Filter>
     </None>
   </ItemGroup>
 </Project>
