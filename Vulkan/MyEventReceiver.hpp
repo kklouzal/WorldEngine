@@ -7,6 +7,8 @@ class CustomEventReceiver : public EventReceiver {
 	bool isA = false;
 	bool isD = false;
 	bool isSpace = false;
+	bool isPrimary = false;
+	bool isSecondary = false;
 public:
 	CustomEventReceiver(){ }
 	~CustomEventReceiver() { printf("Destroy Custom Event Receiver\n"); }
@@ -193,11 +195,17 @@ public:
 							//	Item Action
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
+								
 								CurItem->StartPrimaryAction(CB);
+								isPrimary = true;
+
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT) 
 							{
+
 								CurItem->StartSecondaryAction(CB);
+								isSecondary = true;
+
 							}
 						}
 					}
@@ -218,11 +226,17 @@ public:
 							//	Item Acton
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
+
 								CurItem->EndPrimaryAction();
+								isPrimary = false;
+
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT)
 							{
+
 								CurItem->EndSecondaryAction();
+								isSecondary = false;
+
 							}
 						}
 					}
@@ -236,8 +250,22 @@ public:
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 					if (Character)
 					{
-						Character->ScrollItems(NewEvent.sY);
+
+						if (isPrimary == false)
+						{
+
+							Character->ScrollItems(NewEvent.sY);
+
+						}
+						else if (Character->GetCurrentItem())
+						{
+
+							Character->GetCurrentItem()->ReceiveMouseWheel(NewEvent.sY);
+
+						}
+
 					}
+
 				}
 				else if (NewEvent.Action == EventActions::Move)
 				{

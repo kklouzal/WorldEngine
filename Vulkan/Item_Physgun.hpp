@@ -13,7 +13,7 @@ public:
 	bool IsPrimary = false;
 
 	float ForceMult = 10;
-	float ZoomMult = 3;
+	float ZoomMult = 1;
 
 	Item_Physgun()
 		: Item("PhysGun", "media/atom-icon.png")
@@ -127,6 +127,8 @@ public:
 		TgtDistance = -1;
 		AddDistance = 0.0f;
 		IsPrimary = false;
+		ZoomMult = 1;
+
 	}
 
 	void EndSecondaryAction()
@@ -141,7 +143,23 @@ public:
 
 	}
 
-	
+	void ReceiveMouseWheel(const double& Scrolled)
+	{
+
+		if (Scrolled > 0 && ZoomMult < 100)
+		{
+
+			ZoomMult += 0.1;
+
+		}
+		else if (Scrolled < 0 && ZoomMult > 1)
+		{
+
+			ZoomMult -= 0.1;
+
+		}
+
+	}
 
 	void DoThink(ndVector FirePos, ndVector FireAng)
 	{
@@ -184,7 +202,7 @@ public:
 			}
 
 
-			ndVector TgtPosition = FirePos + (FireAng * TgtDistance);
+			ndVector TgtPosition = FirePos + ((FireAng * TgtDistance) * ZoomMult);
 			ndFloat32 MoveDist = vectorLength(TgtPosition, ObjPosition) / 2;
 			ndVector MoveVec = (TgtPosition - ObjPosition).Normalize() * (MoveDist * ForceMult);
 			
