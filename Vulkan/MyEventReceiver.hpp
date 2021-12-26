@@ -68,8 +68,8 @@ public:
 			if (CurItem)
 			{
 
-				CurItem->DoThink((Cam->Pos.x, Cam->Pos.y, Cam->Pos.z, 0.0f), ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
-
+				CurItem->DoThink(ndVector(Cam->Pos.x, Cam->Pos.y + 2, Cam->Pos.z, 0.0f), ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
+				
 			}
 
 		}
