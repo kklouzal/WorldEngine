@@ -9,10 +9,11 @@ public:
 	ndVector OldFireAng = {};
 	ndFloat32 TgtDistance = -1.0f;
 	ndVector OldGravity = {};
+	ndVector contactOffset = {};
 	float AddDistance = 0.0f;
 	bool IsPrimary = false;
 
-	float ForceMult = 10;
+	float ForceMult = 100;
 	float ZoomMult = 1;
 
 	Item_Physgun()
@@ -35,12 +36,12 @@ public:
 			//	Store a pointer to our hit SceneNode
 			SelectedNotify = CB.m_contact.m_body0->GetNotifyCallback();
 			SelectedNode = (SceneNode*)SelectedNotify->GetUserData();
+			contactOffset = CB.m_contact.m_point - CB.m_contact.m_body0->GetPosition();
+			//+2 offset is required for reasons I'm not sure sure of at this moment in time. Works for box.gltf and BrickFrank.gltf
+			contactOffset.m_y += 2;
 
 			if (SelectedNode != nullptr)
 			{
-				//SelectedNotify->GetBody()->SetVelocity(ndVector(0.f, 100.f, 0.f, 0.f));
-				//((ndBody*)SelectedNode)->GetAsBodyDynamic()->SetVelocity(ndVector(0.f, 10.f, 0.f, 0.f));
-
 
 				if (SelectedNode->canPhys == false)
 				{
@@ -62,22 +63,13 @@ public:
 					else
 					{
 
-						/*
-						ndBodyKinematic* player = ((ndBodyKinematic*)WorldEngine::SceneGraph::GetCharacter());
-						m_pickJoint = new ndJointKinematicController(player, SelectedNotify->GetBody()->GetAsBodyKinematic(), SelectedNotify->GetBody()->GetMatrix());
-
-						WorldEngine::VulkanDriver::_ndWorld->AddJoint(m_pickJoint);
-
-						m_pickJoint->SetControlMode(ndJointKinematicController::m_linear);
-						//m_pickJoint->SetControlMode(ndJointKinematicController::m_linearPlusAngularFriction);
-						*/
-
 						OldGravity = SelectedNotify->GetGravity();
-						//printf("%i, %i, %i, %i\n\n", OldGravity.GetX(), OldGravity.GetY(), OldGravity.GetZ(), OldGravity.GetW());
-						//SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
+
 						SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
 						AddDistance = 0.0f;
 						IsPrimary = true;
+
+						//ZoomMult = vectorLength(SelectedNotify->GetBody()->GetPosition(), ndVector(SelectedNode->Pos.x, SelectedNode->Pos.y, SelectedNode->Pos.z, 0.f));
 
 					}
 
@@ -171,7 +163,7 @@ public:
 		if (SelectedNode != nullptr)
 		{
 
-			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition();
+			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition() + contactOffset;
 
 			if (OldFireAng.GetX() == 0.f && OldFireAng.GetY() == 0.f && OldFireAng.GetZ() == 0.f && OldFireAng.GetW() == 0.f)
 			{
@@ -237,7 +229,7 @@ public:
 			ImGui::TextDisabled("Physgun Force");
 			ImGui::SliderFloat("Force", &ForceMult, 1.0f, 100.0f, "%.1f");
 			ImGui::TextDisabled("Zoom Scale");
-			ImGui::SliderFloat("Scale", &ZoomMult, 1.0f, 10.0f, "%.1f");
+			ImGui::SliderFloat("Scale", &ZoomMult, 1.0f, 100.0f, "%.1f");
 			ImGui::End();
 		}
 	}

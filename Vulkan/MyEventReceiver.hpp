@@ -212,9 +212,11 @@ public:
 				}
 				else if (NewEvent.Action == EventActions::Release)
 				{
+
 					//
 					//	If our character is valid
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
+
 					if (Character)
 					{
 						//
