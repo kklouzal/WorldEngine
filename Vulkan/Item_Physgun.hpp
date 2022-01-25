@@ -65,7 +65,7 @@ public:
 					{
 
 						SelectedNode->gravity = SelectedNotify->GetGravity();
-						printf("%f, %f, %f\n", SelectedNotify->GetGravity().GetX(), SelectedNotify->GetGravity().GetY(), SelectedNotify->GetGravity().GetZ());
+						
 						SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
 						AddDistance = 0.0f;
 						IsPrimary = true;
@@ -155,9 +155,21 @@ public:
 
 	}
 
+	void ReceiveMouseMovement(const float& xDelta, const float& yDelta)
+	{
+	
+		if (SelectedNode != nullptr)
+		{
+
+			SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector((xDelta * 50.f), 0.f, -(yDelta * 50.f), 0.f));
+
+		}
+	
+	}
+
 	void ReceiveMouseWheel(const double& Scrolled, const bool& shiftDown)
 	{
-		printf("%i\n\n", shiftDown);
+		
 		if (Scrolled > 0 && TgtDistance != -1)//&& ZoomMult < 100.09f)
 		{
 
@@ -228,10 +240,10 @@ public:
 			//
 			//	Minimum distance to object from player
 
-			if (TgtDistance < 3)
+			if (TgtDistance < 4)
 			{
 
-				TgtDistance = 3.0f;
+				TgtDistance = 4.0f;
 
 			}
 

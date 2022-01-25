@@ -308,17 +308,37 @@ public:
 				}
 				else if (NewEvent.Action == EventActions::Move)
 				{
-					//
-					//	Rotate the camera via mouse movement
-					Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
-					Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
-					//
-					//	Rotate the character via camera movement
+
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
-					if (Character && Character->_Camera)
+
+					if (isPrimary == true && isR == true)
 					{
-						Character->setYaw(Cam->getYaw());
+
+						if (Character->GetCurrentItem())
+						{
+
+							Character->GetCurrentItem()->ReceiveMouseMovement(m_PosX_Delta, m_PosY_Delta);
+
+						}
+
 					}
+					else
+					{
+
+						//
+						//	Rotate the camera via mouse movement
+						Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
+						Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
+						//
+						//	Rotate the character via camera movement
+						
+						if (Character && Character->_Camera)
+						{
+							Character->setYaw(Cam->getYaw());
+						}
+
+					}
+
 				}
 			}
 			//
