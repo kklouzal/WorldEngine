@@ -9,6 +9,7 @@ class CustomEventReceiver : public EventReceiver {
 	bool isSpace = false;
 	bool isPrimary = false;
 	bool isSecondary = false;
+	bool isShift = false;
 public:
 	CustomEventReceiver(){ }
 	~CustomEventReceiver() { printf("Destroy Custom Event Receiver\n"); }
@@ -97,6 +98,9 @@ public:
 				else if (NewEvent.Key == GLFW_KEY_SPACE) {
 					isSpace = true;
 				}
+				else if (NewEvent.Key == GLFW_KEY_LEFT_SHIFT) {
+					isShift = true;
+				}
 				else if (NewEvent.Key == GLFW_KEY_F1) {
 					printf("Change Debug View\n");
 					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 0;
@@ -140,6 +144,9 @@ public:
 				}
 				else if (NewEvent.Key == GLFW_KEY_SPACE) {
 					isSpace = false;
+				}
+				else if (NewEvent.Key == GLFW_KEY_LEFT_SHIFT) {
+					isShift = false;
 				}
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
@@ -262,7 +269,7 @@ public:
 						else if (Character->GetCurrentItem())
 						{
 
-							Character->GetCurrentItem()->ReceiveMouseWheel(NewEvent.sY);
+							Character->GetCurrentItem()->ReceiveMouseWheel(NewEvent.sY, isShift);
 
 						}
 

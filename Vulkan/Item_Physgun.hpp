@@ -56,21 +56,38 @@ public:
 					{
 
 						SelectedNode->isFrozen = false;
-						SelectedNotify->SetGravity(OldGravity);
+						SelectedNotify->SetGravity(SelectedNode->gravity);
 						SelectedNotify->GetBody()->GetAsBodyDynamic()->SetSleepState(false);
+						SelectedNotify->GetBody()->GetAsBodyKinematic()->SetMassMatrix(SelectedNode->mass);
 
 					}
 					else
 					{
 
-						OldGravity = SelectedNotify->GetGravity();
-
+						SelectedNode->gravity = SelectedNotify->GetGravity();
+						printf("%f, %f, %f\n", SelectedNotify->GetGravity().GetX(), SelectedNotify->GetGravity().GetY(), SelectedNotify->GetGravity().GetZ());
 						SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
 						AddDistance = 0.0f;
 						IsPrimary = true;
 
-						//ZoomMult = vectorLength(SelectedNotify->GetBody()->GetPosition(), ndVector(SelectedNode->Pos.x, SelectedNode->Pos.y, SelectedNode->Pos.z, 0.f));
 
+
+						/*if (((ndBody*)WorldEngine::SceneGraph::GetCharacter()))
+						{
+
+							printf("%f\n\n", vectorLength(SelectedNotify->GetBody()->GetPosition(), ((ndBody*)WorldEngine::SceneGraph::GetCharacter())->GetPosition()));
+
+						}
+
+						ZoomMult = vectorLength(SelectedNotify->GetBody()->GetPosition(), ((ndBody*)WorldEngine::SceneGraph::GetCharacter())->GetPosition());
+
+						if (ZoomMult < 1)
+						{
+
+							ZoomMult = 1.0f;
+
+						}*/
+						
 					}
 
 				}
@@ -94,6 +111,9 @@ public:
 		{
 			SelectedNode->isFrozen = true;
 			SelectedNotify->GetBody()->GetAsBodyDynamic()->SetSleepState(true);
+			SelectedNotify->GetBody()->GetAsBodyKinematic()->SetMassMatrix(0.f);
+			OldGravity = SelectedNotify->GetGravity();
+			SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
 			//
 			//	Apply a constraint from our SceneNode to the world
 			//	effectively freezing the node in place.
@@ -108,8 +128,8 @@ public:
 		//	Clear the pointer to our hit SceneNode
 		if (SelectedNode != nullptr)
 		{
-			
-			SelectedNotify->SetGravity(OldGravity);
+
+			SelectedNotify->SetGravity(SelectedNode->gravity);
 		
 		}
 
@@ -135,19 +155,41 @@ public:
 
 	}
 
-	void ReceiveMouseWheel(const double& Scrolled)
+	void ReceiveMouseWheel(const double& Scrolled, const bool& shiftDown)
 	{
-
-		if (Scrolled > 0 && ZoomMult < 100)
+		printf("%i\n\n", shiftDown);
+		if (Scrolled > 0 && TgtDistance != -1)//&& ZoomMult < 100.09f)
 		{
 
-			ZoomMult += 0.1;
+			if (shiftDown)
+			{
+
+				TgtDistance += 0.1;
+
+			}
+			else
+			{
+
+				TgtDistance += 1.f;
+
+			}
 
 		}
-		else if (Scrolled < 0 && ZoomMult > 1)
+		else if (Scrolled < 0 && TgtDistance != -1)//&& ZoomMult > 1.09f)
 		{
 
-			ZoomMult -= 0.1;
+			if (shiftDown)
+			{
+
+				TgtDistance -= 0.1;
+
+			}
+			else
+			{
+
+				TgtDistance -= 1.f;
+
+			}
 
 		}
 
@@ -186,10 +228,10 @@ public:
 			//
 			//	Minimum distance to object from player
 
-			if (TgtDistance < 5)
+			if (TgtDistance < 3)
 			{
 
-				TgtDistance = 5.0f;
+				TgtDistance = 3.0f;
 
 			}
 

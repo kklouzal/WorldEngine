@@ -31,7 +31,7 @@ public:
 		printf("End Item Secondary - %s\n", _Name);
 	}
 
-	virtual void ReceiveMouseWheel(const double& Scrolled)
+	virtual void ReceiveMouseWheel(const double& Scrolled, const bool& shiftDown)
 	{}
 
 	virtual void DoThink(ndVector FirePos, ndVector FireAng)
