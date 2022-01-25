@@ -6,6 +6,7 @@ class CustomEventReceiver : public EventReceiver {
 	bool isS = false;
 	bool isA = false;
 	bool isD = false;
+	bool isR = false;
 	bool isSpace = false;
 	bool isPrimary = false;
 	bool isSecondary = false;
@@ -60,6 +61,29 @@ public:
 					Cam->GoRight(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 			}
+			if (isR)
+			{
+
+				CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
+				if (Character)
+				{
+
+					if (isPrimary == false)
+					{
+
+						
+
+					}
+					else if (Character->GetCurrentItem())
+					{
+
+						Character->GetCurrentItem()->ReceiveReloadAction();
+
+					}
+
+				}
+
+			}
 			if (isSpace)
 			{
 				if (Character && Character->_Camera) {
@@ -94,6 +118,9 @@ public:
 				}
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = true;
+				}
+				else if (NewEvent.Key == GLFW_KEY_R) {
+					isR = true;
 				}
 				else if (NewEvent.Key == GLFW_KEY_SPACE) {
 					isSpace = true;
@@ -141,6 +168,9 @@ public:
 				}
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = false;
+				}
+				else if (NewEvent.Key == GLFW_KEY_R) {
+					isR = false;
 				}
 				else if (NewEvent.Key == GLFW_KEY_SPACE) {
 					isSpace = false;

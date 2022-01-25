@@ -34,6 +34,9 @@ public:
 	virtual void ReceiveMouseWheel(const double& Scrolled, const bool& shiftDown)
 	{}
 
+	virtual void ReceiveReloadAction()
+	{}
+
 	virtual void DoThink(ndVector FirePos, ndVector FireAng)
 	{
 		printf("Think Item - %s\n", _Name);
