@@ -60,6 +60,8 @@ public:
 						SelectedNotify->GetBody()->GetAsBodyDynamic()->SetSleepState(false);
 						SelectedNotify->GetBody()->GetAsBodyKinematic()->SetMassMatrix(SelectedNode->mass);
 
+						IsPrimary = true;
+
 					}
 					else
 					{
@@ -106,6 +108,7 @@ public:
 
 	void StartSecondaryAction(ndRayCastClosestHitCallback& CB)
 	{
+		
 		printf("Start Item Secondary - %s\n", _Name);
 		if (IsPrimary && SelectedNode != nullptr && !SelectedNode->isFrozen)
 		{
@@ -117,7 +120,10 @@ public:
 			//
 			//	Apply a constraint from our SceneNode to the world
 			//	effectively freezing the node in place.
+
+			SelectedNode = nullptr;
 			EndPrimaryAction();
+			
 		}
 	}
 
