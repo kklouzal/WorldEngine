@@ -251,7 +251,9 @@ namespace WorldEngine
 			MeshNode->SetNotifyCallback(new TriangleMeshSceneNodeNotify(MeshNode));
 			MeshNode->SetMatrix(matrix);
 			MeshNode->SetCollisionShape(shape);
-			MeshNode->SetMassMatrix(1.0f, shape);
+			MeshNode->SetMassMatrix(Mass, shape);
+			MeshNode->mass = Mass;
+
 
 			WorldEngine::VulkanDriver::_ndWorld->Sync();
 			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
