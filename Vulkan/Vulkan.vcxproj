@@ -159,8 +159,6 @@
     <ClCompile Include="imgui_widgets.cpp" />
     <ClCompile Include="lodepng.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="ozz_mesh.cc" />
-    <ClCompile Include="ozz_utils.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.hpp" />
@@ -178,8 +176,6 @@
     <ClInclude Include="Item_Physgun.hpp" />
     <ClInclude Include="Item_Toolgun.hpp" />
     <ClInclude Include="Menu.hpp" />
-    <ClInclude Include="ozz_mesh.h" />
-    <ClInclude Include="ozz_utils.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="Thread_Pool.hpp" />

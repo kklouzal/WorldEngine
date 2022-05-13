@@ -62,12 +62,6 @@
     <ClCompile Include="lodepng.cpp">
       <Filter>Source Files\Libraries</Filter>
     </ClCompile>
-    <ClCompile Include="ozz_mesh.cc">
-      <Filter>Header Files\OZZ</Filter>
-    </ClCompile>
-    <ClCompile Include="ozz_utils.cc">
-      <Filter>Header Files\OZZ</Filter>
-    </ClCompile>
     <ClCompile Include="imgui.cpp">
       <Filter>Header Files\Libraries\imGUI</Filter>
     </ClCompile>
@@ -165,12 +159,6 @@
     </ClInclude>
     <ClInclude Include="ConvexDecomposition.hpp">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="ozz_mesh.h">
-      <Filter>Header Files\OZZ</Filter>
-    </ClInclude>
-    <ClInclude Include="ozz_utils.h">
-      <Filter>Header Files\OZZ</Filter>
     </ClInclude>
     <ClInclude Include="VulkanDevice.hpp">
       <Filter>Header Files\Vulkan</Filter>

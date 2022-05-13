@@ -68,7 +68,7 @@ namespace WorldEngine
 		WorldSceneNode* createWorldSceneNode(const char* FileFBX);
 		CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const ndVector& Position);
 		TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
-		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
+		//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
 
 		const bool& ShouldCleanupWorld()
 		{
@@ -266,9 +266,9 @@ namespace WorldEngine
 
 		//
 		//	SkinnedMesh Create Function
-		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
-		{
-			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
+		//SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
+		//{
+			/*Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
@@ -296,8 +296,9 @@ namespace WorldEngine
 			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
 
 			SceneNodes.push_back(MeshNode);
-			return MeshNode;
-		}
+			return MeshNode;*/
+			//return nullptr;
+		//}
 
 		//
 		//	Character Create Function
