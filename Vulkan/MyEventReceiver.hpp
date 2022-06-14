@@ -6,7 +6,11 @@ class CustomEventReceiver : public EventReceiver {
 	bool isS = false;
 	bool isA = false;
 	bool isD = false;
+	bool isR = false;
 	bool isSpace = false;
+	bool isPrimary = false;
+	bool isSecondary = false;
+	bool isShift = false;
 public:
 	CustomEventReceiver(){ }
 	~CustomEventReceiver() { printf("Destroy Custom Event Receiver\n"); }
@@ -57,6 +61,29 @@ public:
 					Cam->GoRight(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 			}
+			if (isR)
+			{
+
+				CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
+				if (Character)
+				{
+
+					if (isPrimary == false)
+					{
+
+						
+
+					}
+					else if (Character->GetCurrentItem())
+					{
+
+						Character->GetCurrentItem()->ReceiveReloadAction();
+
+					}
+
+				}
+
+			}
 			if (isSpace)
 			{
 				if (Character && Character->_Camera) {
@@ -68,8 +95,8 @@ public:
 			if (CurItem)
 			{
 
-				CurItem->DoThink((Cam->Pos.x, Cam->Pos.y, Cam->Pos.z, 0.0f), ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
-
+				CurItem->DoThink(ndVector(Cam->Pos.x, Cam->Pos.y + 2, Cam->Pos.z, 0.0f), ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
+				
 			}
 
 		}
@@ -92,8 +119,14 @@ public:
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = true;
 				}
+				else if (NewEvent.Key == GLFW_KEY_R) {
+					isR = true;
+				}
 				else if (NewEvent.Key == GLFW_KEY_SPACE) {
 					isSpace = true;
+				}
+				else if (NewEvent.Key == GLFW_KEY_LEFT_SHIFT) {
+					isShift = true;
 				}
 				else if (NewEvent.Key == GLFW_KEY_F1) {
 					printf("Change Debug View\n");
@@ -136,8 +169,14 @@ public:
 				else if (NewEvent.Key == GLFW_KEY_D) {
 					isD = false;
 				}
+				else if (NewEvent.Key == GLFW_KEY_R) {
+					isR = false;
+				}
 				else if (NewEvent.Key == GLFW_KEY_SPACE) {
 					isSpace = false;
+				}
+				else if (NewEvent.Key == GLFW_KEY_LEFT_SHIFT) {
+					isShift = false;
 				}
 			}
 			else if (NewEvent.Action == EventActions::Repeat) {
@@ -193,20 +232,28 @@ public:
 							//	Item Action
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
+								
 								CurItem->StartPrimaryAction(CB);
+								isPrimary = true;
+
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT) 
 							{
+
 								CurItem->StartSecondaryAction(CB);
+								isSecondary = true;
+
 							}
 						}
 					}
 				}
 				else if (NewEvent.Action == EventActions::Release)
 				{
+
 					//
 					//	If our character is valid
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
+
 					if (Character)
 					{
 						//
@@ -218,11 +265,17 @@ public:
 							//	Item Acton
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
+
 								CurItem->EndPrimaryAction();
+								isPrimary = false;
+
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT)
 							{
+
 								CurItem->EndSecondaryAction();
+								isSecondary = false;
+
 							}
 						}
 					}
@@ -236,22 +289,56 @@ public:
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 					if (Character)
 					{
-						Character->ScrollItems(NewEvent.sY);
+
+						if (isPrimary == false)
+						{
+
+							Character->ScrollItems(NewEvent.sY);
+
+						}
+						else if (Character->GetCurrentItem())
+						{
+
+							Character->GetCurrentItem()->ReceiveMouseWheel(NewEvent.sY, isShift);
+
+						}
+
 					}
+
 				}
 				else if (NewEvent.Action == EventActions::Move)
 				{
-					//
-					//	Rotate the camera via mouse movement
-					Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
-					Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
-					//
-					//	Rotate the character via camera movement
+
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
-					if (Character && Character->_Camera)
+
+					if (isPrimary == true && isR == true)
 					{
-						Character->setYaw(Cam->getYaw());
+
+						if (Character->GetCurrentItem())
+						{
+
+							Character->GetCurrentItem()->ReceiveMouseMovement(m_PosX_Delta, m_PosY_Delta);
+
+						}
+
 					}
+					else
+					{
+
+						//
+						//	Rotate the camera via mouse movement
+						Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
+						Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
+						//
+						//	Rotate the character via camera movement
+						
+						if (Character && Character->_Camera)
+						{
+							Character->setYaw(Cam->getYaw());
+						}
+
+					}
+
 				}
 			}
 			//

@@ -5,14 +5,16 @@ class Item_Physgun : public Item
 public:
 	ndBodyNotify* SelectedNotify = nullptr;
 	SceneNode* SelectedNode = nullptr;
+	//ndJointKinematicController* m_pickJoint = nullptr;
 	ndVector OldFireAng = {};
 	ndFloat32 TgtDistance = -1.0f;
 	ndVector OldGravity = {};
+	ndVector contactOffset = {};
 	float AddDistance = 0.0f;
 	bool IsPrimary = false;
 
-	float ForceMult = 10;
-	float ZoomMult = 3;
+	float ForceMult = 100;
+	float ZoomMult = 1;
 
 	Item_Physgun()
 		: Item("PhysGun", "media/atom-icon.png")
@@ -21,10 +23,11 @@ public:
 	~Item_Physgun()
 	{}
 
-	void StartPrimaryAction(ndRayCastClosestHitCallback& CB)
+	void StartPrimaryAction(ndRayCastClosestHitCallback & CB)
 	{
+
 		printf("Start Item Primary - %s", _Name);
-		
+
 		if (CB.m_contact.m_body0)
 		{
 
@@ -33,39 +36,60 @@ public:
 			//	Store a pointer to our hit SceneNode
 			SelectedNotify = CB.m_contact.m_body0->GetNotifyCallback();
 			SelectedNode = (SceneNode*)SelectedNotify->GetUserData();
+			contactOffset = CB.m_contact.m_point - CB.m_contact.m_body0->GetPosition();
+			//+2 offset is required for reasons I'm not sure sure of at this moment in time. Works for box.gltf and BrickFrank.gltf
+			contactOffset.m_y += 2;
 
 			if (SelectedNode != nullptr)
 			{
-				//SelectedNotify->GetBody()->SetVelocity(ndVector(0.f, 100.f, 0.f, 0.f));
-				//((ndBody*)SelectedNode)->GetAsBodyDynamic()->SetVelocity(ndVector(0.f, 10.f, 0.f, 0.f));
-
 
 				if (SelectedNode->canPhys == false)
 				{
-					
+
 					SelectedNode = nullptr;
 
 				}
-				else 
+				else
 				{
-					
+
 					if (SelectedNode->isFrozen)
 					{
-						
+
 						SelectedNode->isFrozen = false;
-						SelectedNotify->SetGravity(OldGravity);
+						SelectedNotify->SetGravity(SelectedNode->gravity);
+						SelectedNotify->GetBody()->GetAsBodyDynamic()->SetSleepState(false);
+						SelectedNotify->GetBody()->GetAsBodyKinematic()->SetMassMatrix(SelectedNode->mass);
+
+						IsPrimary = true;
 
 					}
 					else
 					{
+
+						SelectedNode->gravity = SelectedNotify->GetGravity();
 						
-						OldGravity = SelectedNotify->GetGravity();
-						//printf("%i, %i, %i, %i\n\n", OldGravity.GetX(), OldGravity.GetY(), OldGravity.GetZ(), OldGravity.GetW());
-						//SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
 						SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
 						AddDistance = 0.0f;
 						IsPrimary = true;
 
+
+
+						/*if (((ndBody*)WorldEngine::SceneGraph::GetCharacter()))
+						{
+
+							printf("%f\n\n", vectorLength(SelectedNotify->GetBody()->GetPosition(), ((ndBody*)WorldEngine::SceneGraph::GetCharacter())->GetPosition()));
+
+						}
+
+						ZoomMult = vectorLength(SelectedNotify->GetBody()->GetPosition(), ((ndBody*)WorldEngine::SceneGraph::GetCharacter())->GetPosition());
+
+						if (ZoomMult < 1)
+						{
+
+							ZoomMult = 1.0f;
+
+						}*/
+						
 					}
 
 				}
@@ -73,7 +97,7 @@ public:
 			}
 
 		}
-		else 
+		else
 		{
 
 			printf(" - Miss\n");
@@ -84,14 +108,22 @@ public:
 
 	void StartSecondaryAction(ndRayCastClosestHitCallback& CB)
 	{
+		
 		printf("Start Item Secondary - %s\n", _Name);
 		if (IsPrimary && SelectedNode != nullptr && !SelectedNode->isFrozen)
 		{
 			SelectedNode->isFrozen = true;
+			SelectedNotify->GetBody()->GetAsBodyDynamic()->SetSleepState(true);
+			SelectedNotify->GetBody()->GetAsBodyKinematic()->SetMassMatrix(0.f);
+			OldGravity = SelectedNotify->GetGravity();
+			SelectedNotify->SetGravity(ndVector(0.f, 0.f, 0.f, 0.f));
 			//
 			//	Apply a constraint from our SceneNode to the world
 			//	effectively freezing the node in place.
+
+			SelectedNode = nullptr;
 			EndPrimaryAction();
+			
 		}
 	}
 
@@ -102,8 +134,8 @@ public:
 		//	Clear the pointer to our hit SceneNode
 		if (SelectedNode != nullptr)
 		{
-			
-			SelectedNotify->SetGravity(OldGravity);
+
+			SelectedNotify->SetGravity(SelectedNode->gravity);
 		
 		}
 
@@ -113,6 +145,8 @@ public:
 		TgtDistance = -1;
 		AddDistance = 0.0f;
 		IsPrimary = false;
+		ZoomMult = 1;
+
 	}
 
 	void EndSecondaryAction()
@@ -127,65 +161,117 @@ public:
 
 	}
 
-	void DoThink(ndVector FirePos, ndVector FireAng)
+	void ReceiveMouseMovement(const float& xDelta, const float& yDelta)
 	{
-		////
-		////	If we have a valid SelectedNode
-		////	Perform the 'PhysGun' logic
-		
+	
 		if (SelectedNode != nullptr)
 		{
 
-			
-			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition();
-			
+			SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector((xDelta * 50.f), 0.f, -(yDelta * 50.f), 0.f));
+
+		}
+	
+	}
+
+	void ReceiveMouseWheel(const double& Scrolled, const bool& shiftDown)
+	{
+		
+		if (Scrolled > 0 && TgtDistance != -1)//&& ZoomMult < 100.09f)
+		{
+
+			if (shiftDown)
+			{
+
+				TgtDistance += 0.1;
+
+			}
+			else
+			{
+
+				TgtDistance += 1.f;
+
+			}
+
+		}
+		else if (Scrolled < 0 && TgtDistance != -1)//&& ZoomMult > 1.09f)
+		{
+
+			if (shiftDown)
+			{
+
+				TgtDistance -= 0.1;
+
+			}
+			else
+			{
+
+				TgtDistance -= 1.f;
+
+			}
+
+		}
+
+	}
+
+	void DoThink(ndVector FirePos, ndVector FireAng)
+	{
+
+		////
+		////	If we have a valid SelectedNode
+		////	Perform the 'PhysGun' logic
+
+		if (SelectedNode != nullptr)
+		{
+
+			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition() + contactOffset;
+
 			if (OldFireAng.GetX() == 0.f && OldFireAng.GetY() == 0.f && OldFireAng.GetZ() == 0.f && OldFireAng.GetW() == 0.f)
 			{
 
 				OldFireAng = FireAng;
 
 			}
-			
+
 			if (TgtDistance == -1)
 			{
 
 				//TgtDistance = dBoxDistanceToOrigin2(FirePos, ObjPosition);
 				TgtDistance = vectorLength(FirePos, ObjPosition);
-				
+
 			}
-			
+
 			//
 			//	Move object forward/backward by scrolling mouse
 			//TgtDistance += GetMouseWheelMove() * ZoomMult;
 			//
 			//	Minimum distance to object from player
 
-			if (TgtDistance < 5)
+			if (TgtDistance < 4)
 			{
 
-				TgtDistance = 5.0f;
+				TgtDistance = 4.0f;
 
 			}
-			
-			ndVector TgtPosition = FirePos + (FireAng * TgtDistance);
-			
-			ndVector MoveVec = (TgtPosition - ObjPosition).Normalize();
-			//ndFloat32 MoveDist = btDistance(ObjPosition, TgtPosition) / 2;
-			
-			//ndVector newVec = TgtPosition - ObjPosition;
-			//ndFloat32 MoveDist = newVec.GetX() / 2;
 
-			//ndFloat32 MoveDist = dBoxDistanceToOrigin2(TgtPosition, ObjPosition) / 2;
+
+			ndVector TgtPosition = FirePos + ((FireAng * TgtDistance) * ZoomMult);
 			ndFloat32 MoveDist = vectorLength(TgtPosition, ObjPosition) / 2;
+			ndVector MoveVec = (TgtPosition - ObjPosition).Normalize() * (MoveDist * ForceMult);
 			
-			//SelectedNotify->GetBody()->SetVelocity(MoveVec * (MoveDist * 1000));
-			SelectedNotify->GetBody()->SetVelocity(MoveVec * (MoveDist * ForceMult));
-			
-			//SelectedNode->_RigidBody->activate(true);
-			//SelectedNode->_RigidBody->setLinearVelocity(MoveVec * (MoveDist * ForceMult));
-			//SelectedNode->_RigidBody->setAngularVelocity(btVector3(0, 0, 0));
-			//SelectedNode->_RigidBody->clearForces();
+
+			if (SelectedNotify->GetBody()->GetAsBodyDynamic() != nullptr)
+			{
+
+				SelectedNotify->GetBody()->GetAsBodyDynamic()->SetSleepState(false);
+				SelectedNotify->GetBody()->GetAsBodyDynamic()->SetOmega(ndVector::m_zero);
+
+				MoveVec.m_w = 0.f;
+				SelectedNotify->GetBody()->GetAsBodyDynamic()->SetVelocity(MoveVec);
+
+			}
+
 		}
+
 	}
 
 	void onDeselectItem()
@@ -203,7 +289,7 @@ public:
 			ImGui::TextDisabled("Physgun Force");
 			ImGui::SliderFloat("Force", &ForceMult, 1.0f, 100.0f, "%.1f");
 			ImGui::TextDisabled("Zoom Scale");
-			ImGui::SliderFloat("Scale", &ZoomMult, 1.0f, 10.0f, "%.1f");
+			ImGui::SliderFloat("Scale", &ZoomMult, 1.0f, 100.0f, "%.1f");
 			ImGui::End();
 		}
 	}

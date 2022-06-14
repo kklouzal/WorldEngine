@@ -373,11 +373,15 @@ namespace WorldEngine
 				_EventReceiver->OnUpdate();
 				//
 				//	Simulate Physics
-				_ndWorld->Update(deltaFrame);
-				SceneGraph::updateUniformBuffer(currentFrame);
-				//
-				//	Draw Frame
-				Render();
+				//printf("Delta Frame %f\n", deltaFrame);
+				if (deltaFrame > 0.0f)
+				{
+					_ndWorld->Update(deltaFrame);
+					SceneGraph::updateUniformBuffer(currentFrame);
+					//
+					//	Draw Frame
+					Render();
+				}
 				//
 				//	Mark Frame End Time and Calculate Delta
 				deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;

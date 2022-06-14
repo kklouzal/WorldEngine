@@ -9,6 +9,8 @@ public:
 	Camera* _Camera = nullptr;
 	bool isFrozen = false;
 	bool canPhys = true;
+	float mass = 1.f;
+	ndVector gravity = -10.f;
 	//
 	//	per frame check
 	bool bNeedsUpdate[3];
