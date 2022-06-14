@@ -76,24 +76,26 @@ public:
 	ndFloat32 ContactFrictionCallback(const ndVector&, const ndVector& normal, ndInt32, const ndBodyKinematic* const) const
 	{
 		//return ndFloat32(2.0f);
-		if (dAbs(normal.m_y) < 0.8f)
+		
+		if (dAbs(normal.m_y) < 1.f)
 		{
-			return 0.4f;
+			return 1.f;
 		}
-		return ndFloat32(1.0f);
+		return ndFloat32(1000.0f);
 	}
 
 	void ApplyInputs(ndFloat32 timestep)
 	{
 		//calculate the gravity contribution to the velocity, 
-		const ndVector gravity(GetNotifyCallback()->GetGravity());
+		//const ndVector gravity(GetNotifyCallback()->GetGravity());
+		const ndVector gravity(0.f,-98.1f,0.f, 1.f);
 		const ndVector totalImpulse(m_impulse + gravity.Scale(1.0f * timestep));
 		m_impulse = totalImpulse;
 
 		//dTrace(("  frame: %d    player camera: %f\n", m_scene->GetWorld()->GetFrameIndex(), m_playerInput.m_heading * dRadToDegree));
 		if (m_playerInput.m_jump)
 		{
-			ndFloat32 PLAYER_JUMP_SPEED = 1.0f;
+			ndFloat32 PLAYER_JUMP_SPEED = 7.0f;
 			ndVector jumpImpulse(0.0f, PLAYER_JUMP_SPEED * m_mass, 0.0f, 0.0f);
 			m_impulse += jumpImpulse;
 			m_playerInput.m_jump = false;
