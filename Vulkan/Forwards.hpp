@@ -13,6 +13,7 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_FORCE_INLINE
 #define GLM_FORCE_INTRINSICS
+#define GLM_FORCE_SSE2
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
