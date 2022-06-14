@@ -156,58 +156,6 @@ public:
 
 	ndFloat32 vectorLength(ndVector start, ndVector end)
 	{
-<<<<<<< Updated upstream
-=======
-		////
-		////	If we have a valid SelectedNode
-		////	Perform the 'PhysGun' logic
-		if (SelectedNode != nullptr)
-		{
-
-			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition();
-			
-			if (OldFireAng == ndVector(0.f, 0.f, 0.f, 0.f))
-			{
-
-				OldFireAng = FireAng;
-
-			}
-
-			if (TgtDistance == -1)
-			{
-
-				TgtDistance = btDistance(FirePos, ObjPosition);
-				glm_vec4_distance(FirePos, ObjPosition);
-			}
-			//
-			//	Move object forward/backward by scrolling mouse
-			//TgtDistance += GetMouseWheelMove() * ZoomMult;
-			//
-			//	Minimum distance to object from player
-			if (TgtDistance < 5)
-			{
-
-				TgtDistance = 5.0f;
-
-			}
-
-			ndVector TgtPosition = FirePos + (FireAng * TgtDistance);
-
-			ndVector MoveVec = (TgtPosition - ObjPosition).Normalize();
-			//dFloat32 MoveDist = btDistance(ObjPosition, TgtPosition) / 2;
-			dFloat32 MoveDist = (TgtPosition - ObjPosition) / 2;
-
-			SelectedNotify->GetBody()->GetAsBodyDynamic();
-
-			/*SelectedNode->_RigidBody->activate(true);
-			SelectedNode->_RigidBody->setLinearVelocity(MoveVec * (MoveDist * ForceMult));
-			SelectedNode->_RigidBody->setAngularVelocity(btVector3(0, 0, 0));
-			SelectedNode->_RigidBody->clearForces();*/
-
-		}
-
-	}
->>>>>>> Stashed changes
 
 		return sqrt(pow(start.GetX() - end.GetX(), 2) + pow(start.GetY() - end.GetY(), 2) + pow(start.GetZ() - end.GetZ(), 2));
 
