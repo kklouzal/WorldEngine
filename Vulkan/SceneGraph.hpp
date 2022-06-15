@@ -68,7 +68,7 @@ namespace WorldEngine
 		WorldSceneNode* createWorldSceneNode(const char* FileFBX);
 		CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const ndVector& Position);
 		TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
-		//SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
+		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
 
 		const bool& ShouldCleanupWorld()
 		{
@@ -254,7 +254,6 @@ namespace WorldEngine
 			MeshNode->SetMassMatrix(Mass, shape);
 			MeshNode->mass = Mass;
 
-
 			WorldEngine::VulkanDriver::_ndWorld->Sync();
 			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
 
@@ -266,39 +265,39 @@ namespace WorldEngine
 
 		//
 		//	SkinnedMesh Create Function
-		//SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
-		//{
-			/*Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
+		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
+		{
+			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh);
 
 			std::vector<ndVector> Verts;
-			for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-				auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+			for (unsigned int i = 0; i < Infos->Indices.size(); i++) {
+				auto& V1 = Infos->Vertices[Infos->Indices[i]].pos;/*
 				auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;*/
 				Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
 			}
 			ndShapeInstance shape(new ndShapeConvexHull((ndInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
 			ndMatrix matrix(dGetIdentityMatrix());
-			matrix.m_posit = ndVector(0, 0, 0, 0);
+			matrix.m_posit = Position;
 			matrix.m_posit.m_w = 1.0f;
 
 			MeshNode->SetNotifyCallback(new SkinnedMeshSceneNodeNotify(MeshNode));
 			MeshNode->SetMatrix(matrix);
 			MeshNode->SetCollisionShape(shape);
-			MeshNode->SetMassMatrix(1.0f, shape);
+			MeshNode->SetMassMatrix(Mass, shape);
+			MeshNode->mass = Mass;
 
 			WorldEngine::VulkanDriver::_ndWorld->Sync();
 			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
 
 			SceneNodes.push_back(MeshNode);
-			return MeshNode;*/
-			//return nullptr;
-		//}
+			return MeshNode;
+		}
 
 		//
 		//	Character Create Function

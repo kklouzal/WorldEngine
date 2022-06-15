@@ -77,10 +77,10 @@ public:
 	{
 		//return ndFloat32(2.0f);
 		
-		if (dAbs(normal.m_y) < 1.f)
-		{
-			return 1.f;
-		}
+		//if (dAbs(normal.m_y) < 1.f)
+		//{
+		//	return 1.f;
+		//}
 		return ndFloat32(1000.0f);
 	}
 

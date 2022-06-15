@@ -70,12 +70,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\VulkanSDK\1.2.198.1\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\newton\include\ndNewton;C:\Libraries\vhacd\include;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.2.198.1\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\freetype\lib;C:\Libraries\newton\lib;C:\Libraries\vhacd\lib\debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.3.211.0\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\newton\include\ndNewton;C:\Libraries\vhacd\include;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.3.211.0\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\freetype\lib;C:\Libraries\newton\lib;C:\Libraries\vhacd\lib\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\VulkanSDK\1.2.198.1\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\newton\include\ndNewton;C:\Libraries\vhacd\include;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.2.198.1\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\freetype\lib;C:\Libraries\newton\lib;C:\Libraries\vhacd\lib\release;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.3.211.0\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\newton\include\ndNewton;C:\Libraries\vhacd\include;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.3.211.0\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\freetype\lib;C:\Libraries\newton\lib;C:\Libraries\vhacd\lib\release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
