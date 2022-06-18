@@ -38,7 +38,7 @@ public:
 			}
 			if (isS) {
 				if (Character && Character->_Camera) {
-					Character->moveBackward(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
+					Character->moveForward(-5.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 				else {
 					Cam->GoBackward(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
@@ -46,7 +46,7 @@ public:
 			}
 			if (isA) {
 				if (Character && Character->_Camera) {
-					Character->moveLeft(8.0f * (WorldEngine::VulkanDriver::deltaFrame));
+					Character->moveLeft(-8.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 				else {
 					Cam->GoLeft(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
@@ -55,7 +55,7 @@ public:
 			if (isD) {
 				if (Character && Character->_Camera) {
 					
-					Character->moveRight(8.0f * (WorldEngine::VulkanDriver::deltaFrame));
+					Character->moveLeft(8.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 				else {
 					Cam->GoRight(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
