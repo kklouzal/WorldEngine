@@ -121,6 +121,7 @@ public:
 		startFrame = endFrame;
 
 		ubo.model = Model;
+		ubo.Animated = true;
 
 		controller_.Update(animation_, deltaFrame);
 

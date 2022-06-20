@@ -22,11 +22,24 @@ layout(std140, push_constant) uniform CameraPushConstant {
 layout(std140, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 bones[128];
+    bool animated;
 } ubo;
 
 void main() {
-    outWorldPos = ubo.model * vec4(inPosition, 1.0);
-    gl_Position = PushConstants.view_proj * outWorldPos;
+    //outWorldPos = ubo.model * vec4(inPosition, 1.0);
+
+    if (ubo.animated)
+    {
+        mat4 skinMat =
+            inWeights.x * ubo.bones[int(inBones.x)] +
+            inWeights.y * ubo.bones[int(inBones.y)] +
+            inWeights.y * ubo.bones[int(inBones.z)] +
+            inWeights.y * ubo.bones[int(inBones.w)];
+
+        gl_Position = PushConstants.view_proj * ubo.model * skinMat * vec4(inPosition, 1.0);
+    } else {
+        gl_Position = PushConstants.view_proj * ubo.model * vec4(inPosition, 1.0);
+    }
     
     outUV = inTexCoord;
     

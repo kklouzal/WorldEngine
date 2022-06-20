@@ -86,6 +86,7 @@ struct CameraPushConstant {
 struct UniformBufferObject {
 	glm::mat4 model{};
 	glm::mat4 bones[128]{};
+	bool Animated;
 };
 
 //
