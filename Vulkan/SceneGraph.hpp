@@ -122,7 +122,7 @@ namespace WorldEngine
 			//
 			//	Load World/Charater/Etc..
 			_World = createWorldSceneNode("media/models/CurrentWorld.gltf");
-			_Character = createCharacterSceneNode("media/models/box.gltf", ndVector(0, 15, 0, 0));
+			_Character = createCharacterSceneNode("media/models/brickFrank.gltf", ndVector(0, 15, 0, 0));
 			_Character->_Camera = &_Camera;
 
 			isWorld = true;

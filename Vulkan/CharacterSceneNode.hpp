@@ -211,41 +211,80 @@ public:
 	void moveForward(const ndFloat32& Speed) {
 		ndMatrix Trans = GetMatrix();
 
-		Trans.m_posit.m_x += _Camera->front.x * Speed;
-		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
-		Trans.m_posit.m_z += _Camera->front.z * Speed;
+		if (true)
+		{
+
+			Trans.m_posit.m_x += Trans.m_front.m_x * Speed;
+			Trans.m_posit.m_z += Trans.m_front.m_z * Speed;
+
+		}
+		else
+		{
+			//This is for directional movement
+			//AKA water / flight / space movement.
+			Trans.m_posit.m_x += _Camera->front.x * Speed;
+			Trans.m_posit.m_y += _Camera->front.y * Speed;
+			Trans.m_posit.m_z += _Camera->front.z * Speed;
+
+		}
 
 		SetMatrix(Trans);
 
 		//m_playerInput.m_forwardSpeed = Speed;
 
 	}
-
-	void moveBackward(const ndFloat32& Speed) {
-
-		ndMatrix Trans = GetMatrix();
-
-		Trans.m_posit.m_x += _Camera->front.x * -Speed;
-		//Trans.m_posit.m_y += _Camera->front.y * -Speed;
-		Trans.m_posit.m_z += _Camera->front.z * -Speed;
-
-		SetMatrix(Trans);
-
-		//m_playerInput.m_forwardSpeed = -Speed;
-
-	}
-
 	void moveLeft(const ndFloat32& Speed) {
 
 		ndMatrix Trans = GetMatrix();
 
-		Trans.m_posit.m_x += _Camera->right.x * -Speed;
-		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
-		Trans.m_posit.m_z += _Camera->right.z * -Speed;
+		if (true)
+		{
+			
+			Trans.m_posit.m_x += Trans.m_right.m_x * Speed;
+			Trans.m_posit.m_z += Trans.m_right.m_z * Speed;
+
+		}
+		else
+		{
+
+			Trans.m_posit.m_x += _Camera->right.x * Speed;
+			Trans.m_posit.m_y += _Camera->right.y * Speed;
+			Trans.m_posit.m_z += _Camera->right.z * Speed;
+
+		}
 
 		SetMatrix(Trans);
 
 		//m_playerInput.m_strafeSpeed = -Speed;
+
+	}
+
+	/*
+	void moveBackward(const ndFloat32& Speed) {
+
+		ndMatrix Trans = GetMatrix();
+
+		if (true)
+		{
+
+			Trans.m_posit.m_x += _Camera->front.x * -Speed;
+			//Trans.m_posit.m_y += _Camera->front.y * -Speed;
+			Trans.m_posit.m_z += _Camera->front.z * -Speed;
+
+		}
+		else
+		{
+			//This is for directional movement
+			//AKA water / flight / space movement.
+			Trans.m_posit.m_x += _Camera->front.x * -Speed;
+			Trans.m_posit.m_y += _Camera->front.y * -Speed;
+			Trans.m_posit.m_z += _Camera->front.z * -Speed;
+
+		}
+
+		SetMatrix(Trans);
+
+		//m_playerInput.m_forwardSpeed = -Speed;
 
 	}
 
@@ -262,6 +301,7 @@ public:
 		//m_playerInput.m_strafeSpeed = Speed;
 
 	}
+	*/
 
 	void setPosition(const ndFloat32& NewPosition) {
 		ndMatrix Trans = GetMatrix();
@@ -383,7 +423,7 @@ public:
 	void OnApplyExternalForce(ndInt32, ndFloat32)
 	{
 	}
-
+	
 	void OnTransform(ndInt32 threadIndex, const ndMatrix& matrix)
 	{
 		// apply this transformation matrix to the application user data.
@@ -392,16 +432,27 @@ public:
 		_Node->bNeedsUpdate[2] = true;
 		if (_Node->_Camera)
 		{
+
+			//ndMatrix newMatrix = matrix;
+			//newMatrix.m_front.m_x = newMatrix.m_front.m_x - 0.001f;
+			//Forcably move a little baby.
+			//newMatrix.m_posit.m_x++;
+			
+			_Node->SetHeadingAngle(-_Node->_Camera->getYaw() / 57.325);
+			//If we want closer above we need to do Yaw * (180 / pi), otherwise this float is close enough for now.
+
 			const ndVector Pos = matrix.m_posit;
 			_Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + _Node->_Camera->getOffset());
-		}
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
 
+		}
+
+		//	[x][y][z][w]
+		//	[x][y][z][w]
+		//	[x][y][z][w]
+		//	[x][y][z][w]
+		
 		ModelPtr[0] = matrix.m_front.m_x;
-		ModelPtr[1] = matrix.m_front.m_y;
+		ModelPtr[1] = matrix.m_front.m_y;	
 		ModelPtr[2] = matrix.m_front.m_z;
 		ModelPtr[3] = matrix.m_front.m_w;
 
@@ -418,6 +469,8 @@ public:
 		ModelPtr[12] = matrix.m_posit.m_x;
 		ModelPtr[13] = matrix.m_posit.m_y;
 		ModelPtr[14] = matrix.m_posit.m_z;
-		ModelPtr[15] = matrix.m_posit.m_w;
+		//Setting W to 1 fixes Character Model vanishing into non-existence. 
+		ModelPtr[15] = 1;
+		
 	}
 };
