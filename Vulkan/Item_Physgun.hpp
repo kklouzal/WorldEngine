@@ -175,10 +175,10 @@ public:
 	
 		if (SelectedNode != nullptr)
 		{
-			printf("%f, %f, %f\n", CurrentFireAng.m_x, CurrentFireAng.m_y, CurrentFireAng.m_z);
+			
 			//SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector(CurrentFireAng.m_z * yDelta, xDelta, -CurrentFireAng.m_x * yDelta, 0.f));
 			SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector(FireAng.m_z * yDelta, xDelta, -FireAng.m_x * yDelta, 0.f));
-
+			
 		}
 	
 	}
