@@ -175,11 +175,10 @@ public:
 	
 		if (SelectedNode != nullptr)
 		{
-
-			SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector(0 + CurrentFireAng.m_x + yDelta, xDelta, 0 - CurrentFireAng.m_x + yDelta, 0.f));
-			//SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector(0.f, (xDelta * 15.f), (yDelta * 15.f), 0.f));
-			//printf("%f, %f, %f\n", newVec.GetX(), newVec.GetY(), newVec.GetZ());
-
+			
+			//SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector(CurrentFireAng.m_z * yDelta, xDelta, -CurrentFireAng.m_x * yDelta, 0.f));
+			SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector(FireAng.m_z * yDelta, xDelta, -FireAng.m_x * yDelta, 0.f));
+			
 		}
 	
 	}
