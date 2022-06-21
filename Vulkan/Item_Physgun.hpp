@@ -9,7 +9,9 @@ public:
 	ndVector OldFireAng = {};
 	ndFloat32 TgtDistance = -1.0f;
 	ndVector OldGravity = {};
-	ndVector contactOffset = {};
+	ndVector ContactOffset = {};
+	ndVector CurrentFireAng = {};
+	ndVector CurrentObjectAng = {};
 	float AddDistance = 0.0f;
 	bool IsPrimary = false;
 
@@ -23,7 +25,7 @@ public:
 	~Item_Physgun()
 	{}
 
-	void StartPrimaryAction(ndRayCastClosestHitCallback & CB)
+	void StartPrimaryAction(ndRayCastClosestHitCallback & CB, ndVector FireAng)
 	{
 
 		printf("Start Item Primary - %s", _Name);
@@ -36,12 +38,15 @@ public:
 			//	Store a pointer to our hit SceneNode
 			SelectedNotify = CB.m_contact.m_body0->GetNotifyCallback();
 			SelectedNode = (SceneNode*)SelectedNotify->GetUserData();
-			contactOffset = CB.m_contact.m_point - CB.m_contact.m_body0->GetPosition();
+			ContactOffset = CB.m_contact.m_point - CB.m_contact.m_body0->GetPosition();
 			//+2 offset is required for reasons I'm not sure sure of at this moment in time. Works for box.gltf and BrickFrank.gltf
-			contactOffset.m_y += 2;
+			ContactOffset.m_y += 2;
 
 			if (SelectedNode != nullptr)
 			{
+
+				CurrentFireAng = FireAng;
+				CurrentObjectAng = SelectedNotify->GetBody()->GetRotation();
 
 				if (SelectedNode->canPhys == false)
 				{
@@ -51,6 +56,8 @@ public:
 				}
 				else
 				{
+
+					SelectedNotify->GetBody()->GetAsBodyDynamic()->SetOmega(ndVector::m_zero);
 
 					if (SelectedNode->isFrozen)
 					{
@@ -106,7 +113,7 @@ public:
 
 	}
 
-	void StartSecondaryAction(ndRayCastClosestHitCallback& CB)
+	void StartSecondaryAction(ndRayCastClosestHitCallback& CB, ndVector FireAng)
 	{
 		
 		printf("Start Item Secondary - %s\n", _Name);
@@ -146,6 +153,8 @@ public:
 		AddDistance = 0.0f;
 		IsPrimary = false;
 		ZoomMult = 1;
+		CurrentFireAng = {};
+		CurrentObjectAng = {};
 
 	}
 
@@ -161,13 +170,15 @@ public:
 
 	}
 
-	void ReceiveMouseMovement(const float& xDelta, const float& yDelta)
+	void ReceiveMouseMovement(const float& xDelta, const float& yDelta, ndVector FireAng)
 	{
 	
 		if (SelectedNode != nullptr)
 		{
 
-			SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector((xDelta * 50.f), 0.f, -(yDelta * 50.f), 0.f));
+			SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector(0 + CurrentFireAng.m_x + yDelta, xDelta, 0 - CurrentFireAng.m_x + yDelta, 0.f));
+			//SelectedNotify->GetBody()->SetOmega(SelectedNotify->GetBody()->GetOmega() + ndVector(0.f, (xDelta * 15.f), (yDelta * 15.f), 0.f));
+			//printf("%f, %f, %f\n", newVec.GetX(), newVec.GetY(), newVec.GetZ());
 
 		}
 	
@@ -223,7 +234,7 @@ public:
 		if (SelectedNode != nullptr)
 		{
 
-			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition() + contactOffset;
+			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition() + ContactOffset;
 
 			if (OldFireAng.GetX() == 0.f && OldFireAng.GetY() == 0.f && OldFireAng.GetZ() == 0.f && OldFireAng.GetW() == 0.f)
 			{
@@ -262,8 +273,11 @@ public:
 			if (SelectedNotify->GetBody()->GetAsBodyDynamic() != nullptr)
 			{
 
+				ndVector curOmega = SelectedNotify->GetBody()->GetAsBodyDynamic()->GetOmega();
+
 				SelectedNotify->GetBody()->GetAsBodyDynamic()->SetSleepState(false);
-				SelectedNotify->GetBody()->GetAsBodyDynamic()->SetOmega(ndVector::m_zero);
+				//SelectedNotify->GetBody()->GetAsBodyDynamic()->SetOmega(ndVector::m_zero);
+				SelectedNotify->GetBody()->GetAsBodyDynamic()->SetOmega(ndVector(curOmega.GetX() / 2, curOmega.GetY() / 2, curOmega.GetZ() / 2, 0.f));
 
 				MoveVec.m_w = 0.f;
 				SelectedNotify->GetBody()->GetAsBodyDynamic()->SetVelocity(MoveVec);

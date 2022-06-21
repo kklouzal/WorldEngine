@@ -13,6 +13,7 @@ public:
 		: _Mesh(Mesh), SceneNode(), ndBodyKinematic() {
 		printf("Create WorldSceneNode\n");
 		Name = "World";
+		canPhys = false;
 	}
 
 	~WorldSceneNode() {

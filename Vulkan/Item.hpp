@@ -11,12 +11,12 @@ public:
 	: _Name(Name), _Icon(Icon), bShowGUI(true) {}
 	virtual ~Item() {}
 
-	virtual void StartPrimaryAction(ndRayCastClosestHitCallback& CB)
+	virtual void StartPrimaryAction(ndRayCastClosestHitCallback& CB, ndVector fireAng)
 	{
 		printf("Start Item Primary - %s\n", _Name);
 	}
 
-	virtual void StartSecondaryAction(ndRayCastClosestHitCallback& CB)
+	virtual void StartSecondaryAction(ndRayCastClosestHitCallback& CB, ndVector fireAng)
 	{
 		printf("Start Item Secondary - %s\n", _Name);
 	}
@@ -34,10 +34,10 @@ public:
 	virtual void ReceiveMouseWheel(const double& Scrolled, const bool& shiftDown)
 	{}
 
-	virtual void ReceiveReloadAction()
+	virtual void ReceiveReloadAction(const bool primaryAction)
 	{}
 
-	virtual void ReceiveMouseMovement(const float& xDelta, const float& yDelta)
+	virtual void ReceiveMouseMovement(const float& xDelta, const float& yDelta, ndVector fireAng)
 	{}
 
 	virtual void DoThink(ndVector FirePos, ndVector FireAng)

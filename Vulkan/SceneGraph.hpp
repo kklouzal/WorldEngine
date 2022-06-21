@@ -253,6 +253,8 @@ namespace WorldEngine
 			MeshNode->SetCollisionShape(shape);
 			MeshNode->SetMassMatrix(Mass, shape);
 			MeshNode->mass = Mass;
+			MeshNode->SetAngularDamping(ndVector(1.f,1.f,1.f,1.f));
+			MeshNode->SetLinearDamping(0.1f);
 
 			WorldEngine::VulkanDriver::_ndWorld->Sync();
 			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
@@ -291,6 +293,8 @@ namespace WorldEngine
 			MeshNode->SetCollisionShape(shape);
 			MeshNode->SetMassMatrix(Mass, shape);
 			MeshNode->mass = Mass;
+			MeshNode->SetAngularDamping(ndVector(1.f, 1.f, 1.f, 1.f));
+			MeshNode->SetLinearDamping(0.1f);
 
 			WorldEngine::VulkanDriver::_ndWorld->Sync();
 			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
@@ -317,6 +321,11 @@ namespace WorldEngine
 			ndFloat32 mass = 10.0f;
 
 			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh, localAxis, mass, radius, height, height / 4.0f);
+
+
+
+			MeshNode->SetAngularDamping(ndVector(1.f, 1.f, 1.f, 1.f));
+			MeshNode->SetLinearDamping(0.1f);
 
 			//std::vector<dVector> Verts;
 			//for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {

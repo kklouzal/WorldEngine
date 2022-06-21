@@ -71,13 +71,13 @@ public:
 					if (isPrimary == false)
 					{
 
-						
+						Character->GetCurrentItem()->ReceiveReloadAction(true);
 
 					}
 					else if (Character->GetCurrentItem())
 					{
 
-						Character->GetCurrentItem()->ReceiveReloadAction();
+						Character->GetCurrentItem()->ReceiveReloadAction(false);
 
 					}
 
@@ -240,14 +240,14 @@ public:
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
 								
-								CurItem->StartPrimaryAction(CB);
+								CurItem->StartPrimaryAction(CB, ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
 								isPrimary = true;
 
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT) 
 							{
 
-								CurItem->StartSecondaryAction(CB);
+								CurItem->StartSecondaryAction(CB, ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
 								isSecondary = true;
 
 							}
@@ -318,13 +318,15 @@ public:
 
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 
+					Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
+
 					if (isPrimary == true && isR == true)
 					{
 
 						if (Character->GetCurrentItem())
 						{
 
-							Character->GetCurrentItem()->ReceiveMouseMovement(m_PosX_Delta, m_PosY_Delta);
+							Character->GetCurrentItem()->ReceiveMouseMovement(m_PosX_Delta, m_PosY_Delta, ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
 
 						}
 
@@ -334,7 +336,6 @@ public:
 
 						//
 						//	Rotate the camera via mouse movement
-						Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
 						Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
 						//
 						//	Rotate the character via camera movement
