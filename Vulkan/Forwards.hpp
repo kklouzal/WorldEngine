@@ -50,6 +50,36 @@
 #include "VulkanFrameBuffer.hpp"
 #include "VulkanSwapChain.hpp"
 
+//
+//	Include OZZ Headers
+#include "ozz/animation/runtime/animation.h"
+#include "ozz/animation/runtime/local_to_model_job.h"
+#include "ozz/animation/runtime/sampling_job.h"
+#include "ozz/animation/runtime/skeleton.h"
+#include "ozz/animation/runtime/skeleton_utils.h"
+
+#include "ozz/animation/offline/additive_animation_builder.h"
+#include "ozz/animation/offline/animation_builder.h"
+#include "ozz/animation/offline/animation_optimizer.h"
+#include "ozz/animation/offline/raw_animation.h"
+#include "ozz/animation/offline/raw_skeleton.h"
+#include "ozz/animation/offline/skeleton_builder.h"
+
+#include "ozz/base/maths/box.h"
+#include "ozz/base/maths/simd_math.h"
+#include "ozz/base/maths/simd_quaternion.h"
+#include "ozz/base/maths/soa_transform.h"
+#include "ozz/base/maths/vec_float.h"
+
+#include "ozz/base/containers/vector.h"
+#include "ozz/base/io/archive.h"
+#include "ozz/base/io/stream.h"
+
+//#include "ozz_utils.h"
+//s#include "ozz_mesh.h"
+
+#include <ozz/options/options.h>
+
 // Texture properties
 constexpr auto FB_DIM = 2048;
 constexpr auto TEX_DIM = 2048;
@@ -85,7 +115,7 @@ struct CameraPushConstant {
 //	Model Uniform Buffer Object
 struct UniformBufferObject {
 	glm::mat4 model{};
-	glm::mat4 bones[128]{};
+	ozz::math::Float4x4 bones[64]{};
 	bool Animated;
 };
 

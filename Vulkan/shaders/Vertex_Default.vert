@@ -21,7 +21,7 @@ layout(std140, push_constant) uniform CameraPushConstant {
 
 layout(std140, binding = 0) uniform UniformBufferObject {
     mat4 model;
-    mat4 bones[128];
+    mat4 bones[64];
     bool animated;
 } ubo;
 
@@ -33,10 +33,12 @@ void main() {
         mat4 skinMat =
             inWeights.x * ubo.bones[int(inBones.x)] +
             inWeights.y * ubo.bones[int(inBones.y)] +
-            inWeights.y * ubo.bones[int(inBones.z)] +
-            inWeights.y * ubo.bones[int(inBones.w)];
+            inWeights.z * ubo.bones[int(inBones.z)] +
+            inWeights.w * ubo.bones[int(inBones.w)];
 
-        gl_Position = PushConstants.view_proj * ubo.model * skinMat * vec4(inPosition, 1.0);
+        vec4 Pos = skinMat * vec4(inPosition, 1.0);
+
+        gl_Position = PushConstants.view_proj * ubo.model * Pos;
     } else {
         gl_Position = PushConstants.view_proj * ubo.model * vec4(inPosition, 1.0);
     }

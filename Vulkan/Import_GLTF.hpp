@@ -4,6 +4,7 @@ struct GLTFInfo
 {
     std::vector<Vertex> Vertices;
     std::vector<uint32_t> Indices;
+    std::vector<ozz::math::Float4x4> InverseBindMatrices;
     const char* TexDiffuse;
     TextureObject* DiffuseTex = nullptr;
     TextureObject* NormalTex = nullptr;
@@ -408,6 +409,25 @@ public:
                             Infos->NormalTex = Pipe->createTextureImage2(model.images[NormalTex]);
                         }
                     }
+                }
+            }
+            //
+            // Load SKIN
+            //  TODO: This doesn't take into account that model with multiple meshes has a unique SKIN per MESH and should be handled accordingly.
+            //  TODO: This assumes only a single MESH and SKIN.
+            for (size_t i = 0; i < model.skins.size(); i++)
+            {
+                tinygltf::Skin _Skin = model.skins[i];
+
+                if (_Skin.inverseBindMatrices > -1)
+                {
+                    const tinygltf::Accessor& acc = model.accessors[_Skin.inverseBindMatrices];
+                    const tinygltf::BufferView& bufview = model.bufferViews[acc.bufferView];
+                    const tinygltf::Buffer& buf = model.buffers[bufview.buffer];
+                    Infos->InverseBindMatrices.resize(acc.count);
+
+                    memcpy(Infos->InverseBindMatrices.data(), &buf.data[acc.byteOffset + bufview.byteOffset], acc.count * sizeof(ozz::math::Float4x4));
+                    break;
                 }
             }
             //

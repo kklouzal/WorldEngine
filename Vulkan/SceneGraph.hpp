@@ -273,7 +273,7 @@ namespace WorldEngine
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
-			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh);
+			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, Infos->InverseBindMatrices);
 
 			std::vector<ndVector> Verts;
 			for (unsigned int i = 0; i < Infos->Indices.size(); i++) {

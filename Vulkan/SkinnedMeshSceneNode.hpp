@@ -1,32 +1,6 @@
 #pragma once
 
-#include "ozz/animation/runtime/animation.h"
-#include "ozz/animation/runtime/local_to_model_job.h"
-#include "ozz/animation/runtime/sampling_job.h"
-#include "ozz/animation/runtime/skeleton.h"
-#include "ozz/animation/runtime/skeleton_utils.h"
 
-#include "ozz/animation/offline/additive_animation_builder.h"
-#include "ozz/animation/offline/animation_builder.h"
-#include "ozz/animation/offline/animation_optimizer.h"
-#include "ozz/animation/offline/raw_animation.h"
-#include "ozz/animation/offline/raw_skeleton.h"
-#include "ozz/animation/offline/skeleton_builder.h"
-
-#include "ozz/base/maths/box.h"
-#include "ozz/base/maths/simd_math.h"
-#include "ozz/base/maths/simd_quaternion.h"
-#include "ozz/base/maths/soa_transform.h"
-#include "ozz/base/maths/vec_float.h"
-
-#include "ozz/base/containers/vector.h"
-#include "ozz/base/io/archive.h"
-#include "ozz/base/io/stream.h"
-
-//#include "ozz_utils.h"
-//s#include "ozz_mesh.h"
-
-#include <ozz/options/options.h>
 
 #include "PlaybackController.hpp"
 
@@ -53,11 +27,14 @@ class SkinnedMeshSceneNode : public SceneNode, public ndBodyDynamic
 	// Sampling cache.
 	ozz::animation::SamplingJob::Context context_;
 
+
+	std::vector<ozz::math::Float4x4> InverseBindMatrices_;
+
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	SkinnedMeshSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), SceneNode(), ndBodyDynamic() {
+	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<ozz::math::Float4x4> Inverse)
+		: _Mesh(Mesh), InverseBindMatrices_(Inverse), SceneNode(), ndBodyDynamic() {
 		printf("Create SkinnedMeshSceneNode\n");
 		Name = "SkinnedMeshSceneNode";
 		printf("Loading Skeleton\n");
@@ -150,38 +127,40 @@ public:
 		//printf("UBO Joints %i\n", joints);
 		for (int i = 0; i < joints; i++) {
 
-			//	glm_row* == Final Bone Matrix Sent To GPU
-			//	ozz_row* == Bone Matrix After Animation
 
-			glm::vec4* glm_row1 = &ubo.bones[i][0];
-			ozz::math::SimdFloat4 ozz_row1 = models_[i].cols[0];
-			glm_row1->x = ozz_row1.m128_f32[0];
-			glm_row1->y = ozz_row1.m128_f32[1];
-			glm_row1->z = ozz_row1.m128_f32[2];
-			glm_row1->w = ozz_row1.m128_f32[3];
+			ubo.bones[i] = models_[i] * InverseBindMatrices_[i];
 
-			glm::vec4* glm_row2 = &ubo.bones[i][1];
+
+			/*ozz::math::SimdFloat4 ozz_row1 = models_[i].cols[0];
+			ubo.bones[i][0].x = ozz_row1.m128_f32[0];
+			ubo.bones[i][0].y = ozz_row1.m128_f32[1];
+			ubo.bones[i][0].z = ozz_row1.m128_f32[2];
+			ubo.bones[i][0].w = ozz_row1.m128_f32[3];
+
 			ozz::math::SimdFloat4 ozz_row2 = models_[i].cols[1];
-			glm_row2->x = ozz_row2.m128_f32[0];
-			glm_row2->y = ozz_row2.m128_f32[1];
-			glm_row2->z = ozz_row2.m128_f32[2];
-			glm_row2->w = ozz_row2.m128_f32[3];
+			ubo.bones[i][1].x = ozz_row2.m128_f32[0];
+			ubo.bones[i][1].y = ozz_row2.m128_f32[1];
+			ubo.bones[i][1].z = ozz_row2.m128_f32[2];
+			ubo.bones[i][1].w = ozz_row2.m128_f32[3];
 
-			glm::vec4* glm_row3 = &ubo.bones[i][2];
 			ozz::math::SimdFloat4 ozz_row3 = models_[i].cols[2];
-			glm_row3->x = ozz_row3.m128_f32[0];
-			glm_row3->y = ozz_row3.m128_f32[1];
-			glm_row3->z = ozz_row3.m128_f32[2];
-			glm_row3->w = ozz_row3.m128_f32[3];
+			ubo.bones[i][2].x = ozz_row3.m128_f32[0];
+			ubo.bones[i][2].y = ozz_row3.m128_f32[1];
+			ubo.bones[i][2].z = ozz_row3.m128_f32[2];
+			ubo.bones[i][2].w = ozz_row3.m128_f32[3];
 
-			glm::vec4* glm_row4 = &ubo.bones[i][3];
 			ozz::math::SimdFloat4 ozz_row4 = models_[i].cols[3];
-			glm_row4->x = ozz_row4.m128_f32[0];
-			glm_row4->y = ozz_row4.m128_f32[1];
-			glm_row4->z = ozz_row4.m128_f32[2];
-			glm_row4->w = ozz_row4.m128_f32[3];
+			ubo.bones[i][3].x = ozz_row4.m128_f32[0];
+			ubo.bones[i][3].y = ozz_row4.m128_f32[1];
+			ubo.bones[i][3].z = ozz_row4.m128_f32[2];
+			ubo.bones[i][3].w = ozz_row4.m128_f32[3];*/
 
-			ubo.bones[i] = glm::transpose(ubo.bones[i]);
+
+			//ubo.bones[i] = glm::transpose(ubo.bones[i]);
+			//ubo.bones[i][0] = ubo.bones[i][0] * InverseBindMatrices_[i][0];
+			//ubo.bones[i][1] = ubo.bones[i][1] * InverseBindMatrices_[i][1];
+			//ubo.bones[i][2] = ubo.bones[i][2] * InverseBindMatrices_[i][2];
+			//ubo.bones[i][3] = ubo.bones[i][3] * InverseBindMatrices_[i][3];
 
 		}
 		//	Send updated bone matrices to GPU
