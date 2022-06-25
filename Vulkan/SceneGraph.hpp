@@ -121,7 +121,8 @@ namespace WorldEngine
 			if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 			//
 			//	Load World/Charater/Etc..
-			_World = createWorldSceneNode("media/models/CurrentWorld.gltf");
+			//_World = createWorldSceneNode("media/models/CurrentWorld.gltf");
+			_World = createWorldSceneNode("media/models/newMap.gltf");
 			_Character = createCharacterSceneNode("media/models/brickFrank.gltf", ndVector(0, 15, 0, 0));
 			_Character->_Camera = &_Camera;
 

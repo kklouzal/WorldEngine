@@ -29,8 +29,21 @@ public:
 
 			if (isW) {
 				if (Character && Character->_Camera) {
+
+					if (isShift)
+					{
+
+						Character->moveForward(25.0f * (WorldEngine::VulkanDriver::deltaFrame));
+
+					}
+					else
+					{
+
+						Character->moveForward(10.0f * (WorldEngine::VulkanDriver::deltaFrame));
+
+					}
 					
-					Character->moveForward(10.0f * (WorldEngine::VulkanDriver::deltaFrame));
+					
 				}
 				else {
 					Cam->GoForward(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
