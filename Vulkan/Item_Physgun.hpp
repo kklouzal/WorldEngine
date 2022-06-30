@@ -163,7 +163,14 @@ public:
 		printf("End Item Secondary - %s\n", _Name);
 	}
 
-	ndFloat32 vectorLength(ndVector start, ndVector end)
+	ndFloat32 VectorLength(ndVector vector)
+	{
+
+		return sqrt(pow(vector.GetX(), 2) + pow(vector.GetY(), 2) + pow(vector.GetZ(), 2));
+
+	}
+
+	ndFloat32 MultiVectorLength(ndVector start, ndVector end = {})
 	{
 
 		return sqrt(pow(start.GetX() - end.GetX(), 2) + pow(start.GetY() - end.GetY(), 2) + pow(start.GetZ() - end.GetZ(), 2));
@@ -234,6 +241,8 @@ public:
 		{
 
 			ndVector ObjPosition = SelectedNotify->GetBody()->GetPosition() + ContactOffset;
+			//ndFloat32 minOffset = vectorLength(SelectedNotify->GetBody()->GetPosition(), FirePos);
+			ndFloat32 minOffset = abs(MultiVectorLength(ContactOffset) - MultiVectorLength(FirePos));
 
 			if (OldFireAng.GetX() == 0.f && OldFireAng.GetY() == 0.f && OldFireAng.GetZ() == 0.f && OldFireAng.GetW() == 0.f)
 			{
@@ -246,7 +255,7 @@ public:
 			{
 
 				//TgtDistance = dBoxDistanceToOrigin2(FirePos, ObjPosition);
-				TgtDistance = vectorLength(FirePos, ObjPosition);
+				TgtDistance = MultiVectorLength(FirePos, ObjPosition);
 
 			}
 
@@ -255,17 +264,16 @@ public:
 			//TgtDistance += GetMouseWheelMove() * ZoomMult;
 			//
 			//	Minimum distance to object from player
-
-			if (TgtDistance < 4)
+			if (TgtDistance < minOffset - 1)
 			{
 
-				TgtDistance = 4.0f;
+				TgtDistance = minOffset - 1;
 
 			}
 
 
 			ndVector TgtPosition = FirePos + ((FireAng * TgtDistance) * ZoomMult);
-			ndFloat32 MoveDist = vectorLength(TgtPosition, ObjPosition) / 2;
+			ndFloat32 MoveDist = MultiVectorLength(TgtPosition, ObjPosition) / 2;
 			ndVector MoveVec = (TgtPosition - ObjPosition).Normalize() * (MoveDist * ForceMult);
 			
 
