@@ -165,7 +165,7 @@ public:
                         }
                         else if (_Attribute.first == "JOINTS_0")
                         {
-
+                            printf("FOUND JOINTS\n");
                             #ifdef _DEBUG
                             printf("[GLTF]: JOINTS_0\n");
                             printf("\tAccessor ID %i\n", AccessorID);
@@ -189,20 +189,20 @@ public:
                                 Vertex& Vert = Infos->Vertices[VertexID];
                                 if (Accessor.type == TINYGLTF_TYPE_VEC4)
                                 {
-                                    if (Accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE)
+                                    if (Accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
                                     {
                                         //
                                         // Parse buffer returning Vector4_Int's
                                         // Vec4(int, int, int, int)
-                                        Vert.Bones.x = *reinterpret_cast<const unsigned char*>(&Buffer.data()[DataPos]);
-                                        DataPos += sizeof(unsigned char);
-                                        Vert.Bones.y = *reinterpret_cast<const unsigned char*>(&Buffer.data()[DataPos]);
-                                        DataPos += sizeof(unsigned char);
-                                        Vert.Bones.z = *reinterpret_cast<const unsigned char*>(&Buffer.data()[DataPos]);
-                                        DataPos += sizeof(unsigned char);
-                                        Vert.Bones.w = *reinterpret_cast<const unsigned char*>(&Buffer.data()[DataPos]);
-                                        DataPos += sizeof(unsigned char);// +DataStride;
-                                        //printf("\tBones: Vec4(%i, %i, %i, %i)\n", BoneID1, BoneID2, BoneID3, BoneID4);
+                                        Vert.Bones.x = *reinterpret_cast<unsigned short*>(&Buffer.data()[DataPos]);
+                                        DataPos += sizeof(unsigned short);
+                                        Vert.Bones.y = *reinterpret_cast<unsigned short*>(&Buffer.data()[DataPos]);
+                                        DataPos += sizeof(unsigned short);
+                                        Vert.Bones.z = *reinterpret_cast<unsigned short*>(&Buffer.data()[DataPos]);
+                                        DataPos += sizeof(unsigned short);
+                                        Vert.Bones.w = *reinterpret_cast<unsigned short*>(&Buffer.data()[DataPos]);
+                                        DataPos += sizeof(unsigned short);// +DataStride;
+                                        //printf("\tBones: Vec4(%f, %f, %f, %f)\n", Vert.Bones.x, Vert.Bones.y, Vert.Bones.z, Vert.Bones.w);
                                     }
                                 }
                             }
@@ -415,6 +415,7 @@ public:
             // Load SKIN
             //  TODO: This doesn't take into account that model with multiple meshes has a unique SKIN per MESH and should be handled accordingly.
             //  TODO: This assumes only a single MESH and SKIN.
+            printf("Skins Count %i\n", model.skins.size());
             for (size_t i = 0; i < model.skins.size(); i++)
             {
                 tinygltf::Skin _Skin = model.skins[i];

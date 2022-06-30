@@ -101,7 +101,7 @@ public:
 		ubo.Animated = true;
 
 		controller_.Update(animation_, deltaFrame);
-
+		controller_.set_playback_speed(5.f);
 		//	Samples optimized animation at t = animation_time_
 		ozz::animation::SamplingJob sampling_job;
 		sampling_job.animation = &animation_;
@@ -127,40 +127,9 @@ public:
 		//printf("UBO Joints %i\n", joints);
 		for (int i = 0; i < joints; i++) {
 
+			//ubo.bones[i] = ozz::math::Float4x4::identity();
 
-			ubo.bones[i] = models_[i] * InverseBindMatrices_[i];
-
-
-			/*ozz::math::SimdFloat4 ozz_row1 = models_[i].cols[0];
-			ubo.bones[i][0].x = ozz_row1.m128_f32[0];
-			ubo.bones[i][0].y = ozz_row1.m128_f32[1];
-			ubo.bones[i][0].z = ozz_row1.m128_f32[2];
-			ubo.bones[i][0].w = ozz_row1.m128_f32[3];
-
-			ozz::math::SimdFloat4 ozz_row2 = models_[i].cols[1];
-			ubo.bones[i][1].x = ozz_row2.m128_f32[0];
-			ubo.bones[i][1].y = ozz_row2.m128_f32[1];
-			ubo.bones[i][1].z = ozz_row2.m128_f32[2];
-			ubo.bones[i][1].w = ozz_row2.m128_f32[3];
-
-			ozz::math::SimdFloat4 ozz_row3 = models_[i].cols[2];
-			ubo.bones[i][2].x = ozz_row3.m128_f32[0];
-			ubo.bones[i][2].y = ozz_row3.m128_f32[1];
-			ubo.bones[i][2].z = ozz_row3.m128_f32[2];
-			ubo.bones[i][2].w = ozz_row3.m128_f32[3];
-
-			ozz::math::SimdFloat4 ozz_row4 = models_[i].cols[3];
-			ubo.bones[i][3].x = ozz_row4.m128_f32[0];
-			ubo.bones[i][3].y = ozz_row4.m128_f32[1];
-			ubo.bones[i][3].z = ozz_row4.m128_f32[2];
-			ubo.bones[i][3].w = ozz_row4.m128_f32[3];*/
-
-
-			//ubo.bones[i] = glm::transpose(ubo.bones[i]);
-			//ubo.bones[i][0] = ubo.bones[i][0] * InverseBindMatrices_[i][0];
-			//ubo.bones[i][1] = ubo.bones[i][1] * InverseBindMatrices_[i][1];
-			//ubo.bones[i][2] = ubo.bones[i][2] * InverseBindMatrices_[i][2];
-			//ubo.bones[i][3] = ubo.bones[i][3] * InverseBindMatrices_[i][3];
+			ubo.bones[i] = models_[i] *InverseBindMatrices_[i];
 
 		}
 		//	Send updated bone matrices to GPU
