@@ -24,19 +24,27 @@ public:
 	std::vector<VkBuffer> uniformBuffers = {};
 	std::vector<VmaAllocation> uniformAllocations = {};
 
+	std::vector <VkBuffer> storagespaceBuffers = {};
+	std::vector <VmaAllocation> stragespaceAllocations = {};
+
 	TextureObject* Texture_Albedo;
 	TextureObject* Texture_Normal;
 	DescriptorObject* Descriptor;
 
 public:
 	
+	//
+	//	TOD: SSBOSize needs passed down differently..
+	//	this is dirty..
 	TriangleMesh(Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
 		: Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
+		const size_t SSBOSize = sizeof(glm::mat4) * GLTF->InverseBindMatrices.size();
 		createVertexBuffer();
 		createUniformBuffers();
+		createStorageBuffer(SSBOSize);
 		Texture_Albedo = Albedo;
 		Texture_Normal = Normal;
-		Descriptor = Pipe->createDescriptor(Albedo, Normal, uniformBuffers);
+		Descriptor = Pipe->createDescriptor(Albedo, Normal, uniformBuffers, storagespaceBuffers, SSBOSize);
 	}
 
 	~TriangleMesh() {
@@ -48,9 +56,30 @@ public:
 		for (size_t i = 0; i < uniformBuffers.size(); i++) {
 			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, uniformBuffers[i], uniformAllocations[i]);
 		}
+		for (size_t i = 0; i < storagespaceBuffers.size(); i++) {
+			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, storagespaceBuffers[i], stragespaceAllocations[i]);
+		}
 		delete Descriptor;
 	}
 
+	void createStorageBuffer(size_t SSBO_Size)
+	{
+		storagespaceBuffers.resize(WorldEngine::VulkanDriver::swapChain.images.size());
+		stragespaceAllocations.resize(WorldEngine::VulkanDriver::swapChain.images.size());
+
+		for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
+			VkBufferCreateInfo ssboBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			ssboBufferInfo.size = SSBO_Size;
+			ssboBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			ssboBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+			VmaAllocationCreateInfo ssboAllocInfo = {};
+			ssboAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+			ssboAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo, &ssboAllocInfo, &storagespaceBuffers[i], &stragespaceAllocations[i], nullptr);
+		}
+	}
 
 	void createUniformBuffers()
 	{
@@ -153,5 +182,10 @@ public:
 	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo)
 	{
 		memcpy(uniformAllocations[currentImage]->GetMappedData(), &ubo, sizeof(ubo));
+	}
+
+	void updateSSBuffer(const uint32_t& currentImage, void* Data, size_t Size)
+	{
+		memcpy(stragespaceAllocations[currentImage]->GetMappedData(), Data, Size);
 	}
 };

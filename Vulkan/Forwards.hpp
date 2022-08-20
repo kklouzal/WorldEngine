@@ -115,7 +115,7 @@ struct CameraPushConstant {
 //	Model Uniform Buffer Object
 struct UniformBufferObject {
 	glm::mat4 model{};
-	ozz::math::Float4x4 bones[64]{};
+	//ozz::math::Float4x4 bones[32]{};
 	bool Animated;
 };
 

@@ -1,8 +1,8 @@
 #version 450
 
-layout(binding = 1) uniform sampler2D samplerposition;
-layout(binding = 2) uniform sampler2D samplerNormal;
-layout(binding = 3) uniform sampler2D samplerAlbedo;
+layout(binding = 2) uniform sampler2D samplerposition;
+layout(binding = 3) uniform sampler2D samplerNormal;
+layout(binding = 4) uniform sampler2D samplerAlbedo;
 
 layout(location = 0) in vec2 inUV;
 
@@ -19,7 +19,7 @@ layout(std140, push_constant) uniform CameraPushConstant {
     vec4 pos;
 } PushConstants;
 
-layout(std140, binding = 4) uniform DComposition
+layout(std140, binding = 5) uniform DComposition
 {
 	DLight lights[6];
 	int displayDebugTarget;

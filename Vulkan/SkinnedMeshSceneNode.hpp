@@ -78,6 +78,8 @@ public:
 		// Allocates a cache that matches animation requirements.
 		context_.Resize(num_joints);
 
+		controller_.set_playback_speed(0.001f);
+
 		printf("%i Joints - %i Joints\n", num_soa_joints, num_joints);
 	}
 
@@ -101,7 +103,6 @@ public:
 		ubo.Animated = true;
 
 		controller_.Update(animation_, deltaFrame);
-		controller_.set_playback_speed(5.f);
 		//	Samples optimized animation at t = animation_time_
 		ozz::animation::SamplingJob sampling_job;
 		sampling_job.animation = &animation_;
@@ -125,15 +126,20 @@ public:
 
 		auto joints = skeleton_.num_joints();
 		//printf("UBO Joints %i\n", joints);
+		std::vector<ozz::math::Float4x4> Jnts;
 		for (int i = 0; i < joints; i++) {
 
 			//ubo.bones[i] = ozz::math::Float4x4::identity();
 
-			ubo.bones[i] = models_[i] *InverseBindMatrices_[i];
+			Jnts.push_back(models_[i] * InverseBindMatrices_[i]);
 
 		}
 		//	Send updated bone matrices to GPU
 		_Mesh->updateUniformBuffer(currentImage, ubo);
+		if (Jnts.size() > 0)
+		{
+			_Mesh->updateSSBuffer(currentImage, Jnts.data(), Jnts.size() * sizeof(ozz::math::Float4x4));
+		}
 	}
 
 	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
