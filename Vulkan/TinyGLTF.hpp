@@ -26,6 +26,8 @@
 // THE SOFTWARE.
 
 // Version:
+//  - v2.6.0 Support serializing sparse accessor(Thanks to @fynv).
+//           Disable expanding file path for security(no use of awkward `wordexp` anymore).
 //  - v2.5.0 Add SetPreserveImageChannels() option to load image data as is.
 //  - v2.4.3 Fix null object output when when material has all default
 //  parameters.
@@ -108,7 +110,11 @@ namespace tinygltf {
 #define TINYGLTF_COMPONENT_TYPE_INT (5124)
 #define TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT (5125)
 #define TINYGLTF_COMPONENT_TYPE_FLOAT (5126)
-#define TINYGLTF_COMPONENT_TYPE_DOUBLE (5130)
+#define TINYGLTF_COMPONENT_TYPE_DOUBLE \
+  (5130)  // OpenGL double type. Note that some of glTF 2.0 validator does not
+    // support double type even the schema seems allow any value of
+    // integer:
+    // https://github.com/KhronosGroup/glTF/blob/b9884a2fd45130b4d673dd6c8a706ee21ee5c5f7/specification/2.0/schema/accessor.schema.json#L22
 
 #define TINYGLTF_TEXTURE_FILTER_NEAREST (9728)
 #define TINYGLTF_TEXTURE_FILTER_LINEAR (9729)
@@ -121,7 +127,7 @@ namespace tinygltf {
 #define TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE (33071)
 #define TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT (33648)
 
-    // Redeclarations of the above for technique.parameters.
+// Redeclarations of the above for technique.parameters.
 #define TINYGLTF_PARAMETER_TYPE_BYTE (5120)
 #define TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE (5121)
 #define TINYGLTF_PARAMETER_TYPE_SHORT (5122)
@@ -630,7 +636,8 @@ namespace tinygltf {
         int wrapT =
             TINYGLTF_TEXTURE_WRAP_REPEAT;  // ["CLAMP_TO_EDGE", "MIRRORED_REPEAT",
                                            // "REPEAT"], default "REPEAT"
-        //int wrapR = TINYGLTF_TEXTURE_WRAP_REPEAT;  // TinyGLTF extension. currently not used.
+        // int wrapR = TINYGLTF_TEXTURE_WRAP_REPEAT;  // TinyGLTF extension. currently
+        // not used.
 
         Value extras;
         ExtensionMap extensions;
@@ -1320,8 +1327,10 @@ namespace tinygltf {
         ///
         /// Loads glTF ASCII asset from string(memory).
         /// `length` = strlen(str);
-        /// Set warning message to `warn` for example it fails to load asserts.
-        /// Returns false and set error string to `err` if there's an error.
+        /// `base_dir` is a search path of glTF asset(e.g. images). Path Must be an
+        /// expanded path (e.g. no tilde(`~`), no environment variables). Set warning
+        /// message to `warn` for example it fails to load asserts. Returns false and
+        /// set error string to `err` if there's an error.
         ///
         bool LoadASCIIFromString(Model* model, std::string* err, std::string* warn,
             const char* str, const unsigned int length,
@@ -1340,6 +1349,8 @@ namespace tinygltf {
         ///
         /// Loads glTF binary asset from memory.
         /// `length` = strlen(str);
+        /// `base_dir` is a search path of glTF asset(e.g. images). Path Must be an
+        /// expanded path (e.g. no tilde(`~`), no environment variables).
         /// Set warning message to `warn` for example it fails to load asserts.
         /// Returns false and set error string to `err` if there's an error.
         ///
@@ -1441,6 +1452,10 @@ namespace tinygltf {
 
         bool preserve_image_channels_ = false;  /// Default false(expand channels to
                                                 /// RGBA) for backward compatibility.
+
+        // Warning & error messages
+        std::string warn_;
+        std::string err_;
 
         FsCallbacks fs = {
       #ifndef TINYGLTF_NO_FS
@@ -1623,10 +1638,10 @@ namespace tinygltf {
 #endif
 
 #elif !defined(__ANDROID__) && !defined(__OpenBSD__)
-#include <wordexp.h>
+//#include <wordexp.h>
 #endif
 
-#if defined(__sparcv9)
+#if defined(__sparcv9) || defined(__powerpc__)
 // Big endian
 #else
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || MINIZ_X86_OR_X64_CPU
@@ -1951,9 +1966,9 @@ namespace tinygltf {
         return this->extensions == other.extensions && this->extras == other.extras &&
             this->magFilter == other.magFilter &&
             this->minFilter == other.minFilter && this->name == other.name &&
-            this->wrapT == other.wrapT;
+            this->wrapS == other.wrapS && this->wrapT == other.wrapT;
 
-        //this->wrapR == other.wrapR && this->wrapS == other.wrapS &&
+        // this->wrapR == other.wrapR
     }
     bool Scene::operator==(const Scene& other) const {
         return this->extensions == other.extensions && this->extras == other.extras &&
@@ -2060,10 +2075,8 @@ namespace tinygltf {
     }
 
     static std::string GetBaseFilename(const std::string& filepath) {
-        constexpr char path_separators[2] = { '/', '\\' };
-        auto idx = filepath.find_last_of(path_separators);
-        if (idx != std::string::npos)
-            return filepath.substr(idx + 1);
+        auto idx = filepath.find_last_of("/\\");
+        if (idx != std::string::npos) return filepath.substr(idx + 1);
         return filepath;
     }
 
@@ -2236,7 +2249,7 @@ namespace tinygltf {
     // FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
     // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
     // DEALINGS IN THE SOFTWARE.
-    // 
+    //
     namespace dlib {
 
         inline unsigned char from_hex(unsigned char ch) {
@@ -2636,6 +2649,18 @@ namespace tinygltf {
     }
 
     std::string ExpandFilePath(const std::string& filepath, void*) {
+        // https://github.com/syoyo/tinygltf/issues/368
+        //
+        // No file path expansion in built-in FS function anymore, since glTF URI
+        // should not contain tilde('~') and environment variables, and for security
+        // reason(`wordexp`).
+        //
+        // Users need to supply `base_dir`(in `LoadASCIIFromString`,
+        // `LoadBinaryFromMemory`) in expanded absolute path.
+
+        return filepath;
+
+#if 0
 #ifdef _WIN32
         // Assume input `filepath` is encoded in UTF-8
         std::wstring wfilepath = UTF8ToWchar(filepath);
@@ -2683,6 +2708,7 @@ namespace tinygltf {
 #endif
 
         return s;
+#endif
 #endif
     }
 
@@ -3136,12 +3162,18 @@ namespace tinygltf {
             StringBuffer buffer;
             if (spacing == -1) {
                 Writer<StringBuffer> writer(buffer);
-                o.Accept(writer);
+                // TODO: Better error handling.
+                // https://github.com/syoyo/tinygltf/issues/332
+                if (!o.Accept(writer)) {
+                    return "tiny_gltf::JsonToString() failed rapidjson conversion";
+                }
             }
             else {
                 PrettyWriter<StringBuffer> writer(buffer);
                 writer.SetIndent(' ', uint32_t(spacing));
-                o.Accept(writer);
+                if (!o.Accept(writer)) {
+                    return "tiny_gltf::JsonToString() failed rapidjson conversion";
+                }
             }
             return buffer.GetString();
 #else
@@ -3238,6 +3270,7 @@ namespace tinygltf {
             break;
         case json::value_t::null:
         case json::value_t::discarded:
+        case json::value_t::binary:
             // default:
             break;
         }
@@ -4275,7 +4308,9 @@ namespace tinygltf {
         accessor->sparse.isSparse = true;
 
         int count = 0;
-        ParseIntegerProperty(&count, err, o, "count", true);
+        if (!ParseIntegerProperty(&count, err, o, "count", true, "SparseAccessor")) {
+            return false;
+        }
 
         json_const_iterator indices_iterator;
         json_const_iterator values_iterator;
@@ -4293,18 +4328,24 @@ namespace tinygltf {
         const json& values_obj = GetValue(values_iterator);
 
         int indices_buffer_view = 0, indices_byte_offset = 0, component_type = 0;
-        ParseIntegerProperty(&indices_buffer_view, err, indices_obj, "bufferView",
-            true);
+        if (!ParseIntegerProperty(&indices_buffer_view, err, indices_obj,
+            "bufferView", true, "SparseAccessor")) {
+            return false;
+        }
         ParseIntegerProperty(&indices_byte_offset, err, indices_obj, "byteOffset",
-            true);
-        ParseIntegerProperty(&component_type, err, indices_obj, "componentType",
-            true);
+            false);
+        if (!ParseIntegerProperty(&component_type, err, indices_obj, "componentType",
+            true, "SparseAccessor")) {
+            return false;
+        }
 
         int values_buffer_view = 0, values_byte_offset = 0;
-        ParseIntegerProperty(&values_buffer_view, err, values_obj, "bufferView",
-            true);
+        if (!ParseIntegerProperty(&values_buffer_view, err, values_obj, "bufferView",
+            true, "SparseAccessor")) {
+            return false;
+        }
         ParseIntegerProperty(&values_byte_offset, err, values_obj, "byteOffset",
-            true);
+            false);
 
         accessor->sparse.count = count;
         accessor->sparse.indices.bufferView = indices_buffer_view;
@@ -4312,8 +4353,6 @@ namespace tinygltf {
         accessor->sparse.indices.componentType = component_type;
         accessor->sparse.values.bufferView = values_buffer_view;
         accessor->sparse.values.byteOffset = values_byte_offset;
-
-        // todo check theses values
 
         return true;
     }
@@ -5154,12 +5193,13 @@ namespace tinygltf {
         int magFilter = -1;
         int wrapS = TINYGLTF_TEXTURE_WRAP_REPEAT;
         int wrapT = TINYGLTF_TEXTURE_WRAP_REPEAT;
-        //int wrapR = TINYGLTF_TEXTURE_WRAP_REPEAT;
+        // int wrapR = TINYGLTF_TEXTURE_WRAP_REPEAT;
         ParseIntegerProperty(&minFilter, err, o, "minFilter", false);
         ParseIntegerProperty(&magFilter, err, o, "magFilter", false);
         ParseIntegerProperty(&wrapS, err, o, "wrapS", false);
         ParseIntegerProperty(&wrapT, err, o, "wrapT", false);
-        //ParseIntegerProperty(&wrapR, err, o, "wrapR", false);  // tinygltf extension
+        // ParseIntegerProperty(&wrapR, err, o, "wrapR", false);  // tinygltf
+        // extension
 
         // TODO(syoyo): Check the value is alloed one.
         // (e.g. we allow 9728(NEAREST), but don't allow 9727)
@@ -5168,7 +5208,7 @@ namespace tinygltf {
         sampler->magFilter = magFilter;
         sampler->wrapS = wrapS;
         sampler->wrapT = wrapT;
-        //sampler->wrapR = wrapR;
+        // sampler->wrapR = wrapR;
 
         ParseExtensionsProperty(&(sampler->extensions), err, o);
         ParseExtrasProperty(&(sampler->extras), o);
@@ -6763,6 +6803,27 @@ namespace tinygltf {
         if (accessor.extras.Type() != NULL_TYPE) {
             SerializeValue("extras", accessor.extras, o);
         }
+
+        // sparse
+        if (accessor.sparse.isSparse)
+        {
+            json sparse;
+            SerializeNumberProperty<int>("count", accessor.sparse.count, sparse);
+            {
+                json indices;
+                SerializeNumberProperty<int>("bufferView", accessor.sparse.indices.bufferView, indices);
+                SerializeNumberProperty<int>("byteOffset", accessor.sparse.indices.byteOffset, indices);
+                SerializeNumberProperty<int>("componentType", accessor.sparse.indices.componentType, indices);
+                JsonAddMember(sparse, "indices", std::move(indices));
+            }
+            {
+                json values;
+                SerializeNumberProperty<int>("bufferView", accessor.sparse.values.bufferView, values);
+                SerializeNumberProperty<int>("byteOffset", accessor.sparse.values.byteOffset, values);
+                JsonAddMember(sparse, "values", std::move(values));
+            }
+            JsonAddMember(o, "sparse", std::move(sparse));
+        }
     }
 
     static void SerializeGltfAnimationChannel(AnimationChannel& channel, json& o) {
@@ -7246,7 +7307,7 @@ namespace tinygltf {
         if (sampler.minFilter != -1) {
             SerializeNumberProperty("minFilter", sampler.minFilter, o);
         }
-        //SerializeNumberProperty("wrapR", sampler.wrapR, o);
+        // SerializeNumberProperty("wrapR", sampler.wrapR, o);
         SerializeNumberProperty("wrapS", sampler.wrapS, o);
         SerializeNumberProperty("wrapT", sampler.wrapT, o);
 
@@ -7602,7 +7663,7 @@ namespace tinygltf {
         return WriteGltfStream(gltfFile, content);
     }
 
-    static void WriteBinaryGltfStream(std::ostream& stream,
+    static bool WriteBinaryGltfStream(std::ostream& stream,
         const std::string& content,
         const std::vector<unsigned char>& binBuffer) {
         const std::string header = "glTF";
@@ -7611,8 +7672,10 @@ namespace tinygltf {
         const uint32_t content_size = uint32_t(content.size());
         const uint32_t binBuffer_size = uint32_t(binBuffer.size());
         // determine number of padding bytes required to ensure 4 byte alignment
-        const uint32_t content_padding_size = content_size % 4 == 0 ? 0 : 4 - content_size % 4;
-        const uint32_t bin_padding_size = binBuffer_size % 4 == 0 ? 0 : 4 - binBuffer_size % 4;
+        const uint32_t content_padding_size =
+            content_size % 4 == 0 ? 0 : 4 - content_size % 4;
+        const uint32_t bin_padding_size =
+            binBuffer_size % 4 == 0 ? 0 : 4 - binBuffer_size % 4;
 
         // 12 bytes for header, JSON content length, 8 bytes for JSON chunk info.
         // Chunk data must be located at 4-byte boundary, which may require padding
@@ -7656,9 +7719,12 @@ namespace tinygltf {
                     std::streamsize(padding.size()));
             }
         }
+
+        // TODO: Check error on stream.write
+        return true;
     }
 
-    static void WriteBinaryGltfFile(const std::string& output,
+    static bool WriteBinaryGltfFile(const std::string& output,
         const std::string& content,
         const std::vector<unsigned char>& binBuffer) {
 #ifdef _WIN32
@@ -7676,7 +7742,7 @@ namespace tinygltf {
 #else
         std::ofstream gltfFile(output.c_str(), std::ios::binary);
 #endif
-        WriteBinaryGltfStream(gltfFile, content, binBuffer);
+        return WriteBinaryGltfStream(gltfFile, content, binBuffer);
     }
 
     bool TinyGLTF::WriteGltfSceneToStream(Model* model, std::ostream& stream,
@@ -7716,7 +7782,7 @@ namespace tinygltf {
                 // UpdateImageObject need baseDir but only uses it if embeddedImages is
                 // enabled, since we won't write separate images when writing to a stream
                 // we
-                UpdateImageObject(model->images[i], dummystring, int(i), false,
+                UpdateImageObject(model->images[i], dummystring, int(i), true,
                     &this->WriteImageData, this->write_image_user_data_);
                 SerializeGltfImage(model->images[i], image);
                 JsonPushBack(images, std::move(image));
@@ -7725,13 +7791,12 @@ namespace tinygltf {
         }
 
         if (writeBinary) {
-            WriteBinaryGltfStream(stream, JsonToString(output), binBuffer);
+            return WriteBinaryGltfStream(stream, JsonToString(output), binBuffer);
         }
         else {
-            WriteGltfStream(stream, JsonToString(output, prettyPrint ? 2 : -1));
+            return WriteGltfStream(stream, JsonToString(output, prettyPrint ? 2 : -1));
         }
 
-        return true;
     }
 
     bool TinyGLTF::WriteGltfSceneToFile(Model* model, const std::string& filename,
@@ -7819,13 +7884,12 @@ namespace tinygltf {
         }
 
         if (writeBinary) {
-            WriteBinaryGltfFile(filename, JsonToString(output), binBuffer);
+            return WriteBinaryGltfFile(filename, JsonToString(output), binBuffer);
         }
         else {
-            WriteGltfFile(filename, JsonToString(output, (prettyPrint ? 2 : -1)));
+            return WriteGltfFile(filename, JsonToString(output, (prettyPrint ? 2 : -1)));
         }
 
-        return true;
     }
 
 }  // namespace tinygltf

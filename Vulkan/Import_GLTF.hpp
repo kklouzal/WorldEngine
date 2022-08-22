@@ -7,47 +7,51 @@ struct GLTFInfo
 
     std::vector<Vertex> Vertices;
     std::vector<uint32_t> Indices;
-    std::vector<ozz::math::Float4x4> InverseBindMatrices;
+    std::vector<glm::mat4> InverseBindMatrices;
     const char* TexDiffuse;
     TextureObject* DiffuseTex = nullptr;
     TextureObject* NormalTex = nullptr;
+    std::map<std::string, uint16_t> JointMap;
 };
 
 class ImportGLTF
 {
     std::unordered_map<const char*, GLTFInfo*> Model_Cache;
 public:
-    
-    //tinygltf::Node* findNode(tinygltf::Node* parent, uint32_t index)
-    //{
-    //    tinygltf::Node* nodeFound = nullptr;
-    //    if (parent->index == index)
-    //    {
-    //        return parent;
-    //    }
-    //    for (auto& child : parent->children)
-    //    {
-    //        nodeFound = findNode(child, index);
-    //        if (nodeFound)
-    //        {
-    //            break;
-    //        }
-    //    }
-    //    return nodeFound;
-    //}
 
-    //tinygltf::Node* nodeFromIndex(uint32_t index)
+    //struct SKNode
     //{
-    //    tinygltf::Node* nodeFound = nullptr;
-    //    for (auto& node : nodes)
+    //    SKNode*                 parent;
+    //    uint32_t                index;
+    //    std::vector<SKNode*>    children;
+    //};
+
+    //std::vector<SKNode*>        nodes;
+    //
+    //void LoadNode(const tinygltf::Node inputNode, tinygltf::Model inputModel, SKNode* parent, uint32_t nodeIndex)
+    //{
+    //    SKNode* _Node = new SKNode{};
+    //    _Node->parent = parent;
+    //    _Node->index = nodeIndex;
+
+    //    // Load node's children
+    //    if (inputNode.children.size() > 0)
     //    {
-    //        nodeFound = findNode(node, index);
-    //        if (nodeFound)
+    //        for (size_t i = 0; i < inputNode.children.size(); i++)
     //        {
-    //            break;
+    //            LoadNode(inputModel.nodes[inputNode.children[i]], inputModel, _Node, inputNode.children[i]);
     //        }
     //    }
-    //    return nodeFound;
+
+    //    if (parent)
+    //    {
+    //        parent->children.push_back(_Node);
+    //        printf("LOAD NODE %i\n", nodeIndex);
+    //    }
+    //    else
+    //    {
+    //        nodes.push_back(_Node);
+    //    }
     //}
 
     GLTFInfo* loadModel(const char* filename, PipelineObject* Pipe)
@@ -89,6 +93,7 @@ public:
                 for (size_t j = 0; j < _Mesh.primitives.size(); j++)
                 {
                     const tinygltf::Primitive _Primitive = _Mesh.primitives[j];
+
                     for (auto& _Attribute : _Primitive.attributes)
                     {
                         bool hasSkin = false;
@@ -166,6 +171,8 @@ public:
 
                             hasSkin = (jointBuffer && weightBuffer);
 
+                            //
+                            //  Store our loaded data into the individual vertices
                             for (size_t VertexID = 0; VertexID < vertexCount; VertexID++)
                             {
                                 if (Infos->Vertices.size() == VertexID)
@@ -257,23 +264,50 @@ public:
                     }
                 }
             }
+            
             //
             // Load SKIN
             //  TODO: This doesn't take into account that model with multiple meshes has a unique SKIN per MESH and should be handled accordingly.
             //  TODO: This assumes only a single MESH and SKIN.
             printf("Skins Count %i\n", model.skins.size());
+
             for (size_t i = 0; i < model.skins.size(); i++)
             {
                 tinygltf::Skin _Skin = model.skins[i];
 
                 if (_Skin.inverseBindMatrices > -1)
                 {
+                    for (size_t i = 0; i < model.nodes.size(); i++)
+                    {
+                        const tinygltf::Node& node = model.nodes[i];
+                        Infos->JointMap[node.name] = i;
+                        printf("%i -> NODE NAME: %s\n", i, node.name.c_str());
+                    }
+
                     const tinygltf::Accessor& acc = model.accessors[_Skin.inverseBindMatrices];
                     const tinygltf::BufferView& bufview = model.bufferViews[acc.bufferView];
                     const tinygltf::Buffer& buf = model.buffers[bufview.buffer];
                     Infos->InverseBindMatrices.resize(acc.count);
-
+                    for (auto J : _Skin.joints)
+                    {
+                        printf("GLTF JOINTS %i\n", J);
+                    }
                     memcpy(Infos->InverseBindMatrices.data(), &buf.data[acc.byteOffset + bufview.byteOffset], acc.count * sizeof(glm::mat4));
+
+                    /*for (size_t i = 0; i < model.scenes[0].nodes.size(); i++)
+                    {
+                        const tinygltf::Node node = model.nodes[i];
+                        LoadNode(node, model, nullptr, model.scenes[0].nodes[i]);
+                    }
+                    std::vector<size_t> DepthOrder;
+                    for (size_t i = 0; i < nodes.size(); i++)
+                    {
+                        DepthOrder.push_back(nodes[i]->index);
+                    }
+                    for (size_t i = 0; i < DepthOrder.size(); i++)
+                    {
+                        printf("DEPTH: %i\n", DepthOrder[i]);
+                    }*/
                     break;
                 }
             }

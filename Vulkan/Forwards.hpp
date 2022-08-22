@@ -371,3 +371,10 @@ void setImageLayout(
 	subresourceRange.layerCount = 1;
 	setImageLayout(cmdbuffer, image, oldImageLayout, newImageLayout, subresourceRange, srcStageMask, dstStageMask);
 }
+
+glm::mat4 to_mat4(const ozz::math::Float4x4& m) {
+	glm::mat4 result{};
+	for (uint8_t i{ 0 }; i < 4; ++i)
+		ozz::math::StorePtr(m.cols[i], &result[i].x);
+	return result;
+}

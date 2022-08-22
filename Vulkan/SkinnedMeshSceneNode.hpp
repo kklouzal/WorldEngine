@@ -28,13 +28,15 @@ class SkinnedMeshSceneNode : public SceneNode, public ndBodyDynamic
 	ozz::animation::SamplingJob::Context context_;
 
 
-	std::vector<ozz::math::Float4x4> InverseBindMatrices_;
+	std::vector<glm::mat4> InverseBindMatrices_;
+	std::map<std::string, uint16_t> _JointMap;
+	std::map<std::string, uint16_t> _OZZJointMap;
 
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<ozz::math::Float4x4> Inverse)
-		: _Mesh(Mesh), InverseBindMatrices_(Inverse), SceneNode(), ndBodyDynamic() {
+	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<glm::mat4> Inverse, std::map<std::string, uint16_t> Joints)
+		: _Mesh(Mesh), InverseBindMatrices_(Inverse), _JointMap(Joints), SceneNode(), ndBodyDynamic() {
 		printf("Create SkinnedMeshSceneNode\n");
 		Name = "SkinnedMeshSceneNode";
 		printf("Loading Skeleton\n");
@@ -81,6 +83,16 @@ public:
 		controller_.set_playback_speed(0.001f);
 
 		printf("%i Joints - %i Joints\n", num_soa_joints, num_joints);
+
+		for (size_t i = 0; i < skeleton_.joint_names().size(); i++)
+		{
+			const char* const JointName = skeleton_.joint_names()[i];
+			_OZZJointMap[JointName] = i;
+		}
+		for (auto jm : _OZZJointMap)
+		{
+			printf("OZZ JOINT MAPPED %s -> %u\n", jm.first.c_str(), jm.second);
+		}
 	}
 
 	~SkinnedMeshSceneNode() {
@@ -101,7 +113,6 @@ public:
 
 		ubo.model = Model;
 		ubo.Animated = true;
-
 		controller_.Update(animation_, deltaFrame);
 		//	Samples optimized animation at t = animation_time_
 		ozz::animation::SamplingJob sampling_job;
@@ -124,21 +135,30 @@ public:
 			return;
 		}
 
+		//
+		//	Iterate through OZZ LocalToModel job
+		//	and build a vector of joint matrices
 		auto joints = skeleton_.num_joints();
-		//printf("UBO Joints %i\n", joints);
-		std::vector<ozz::math::Float4x4> Jnts;
-		for (int i = 0; i < joints; i++) {
+		std::vector<glm::mat4> Jnts;
+		for (int i = 0; i < joints; i++)
+		{
+			std::string OZZ_JointName = skeleton_.joint_names()[i];
+			uint16_t GLFW_JointIndex = _OZZJointMap[OZZ_JointName];
 
-			//ubo.bones[i] = ozz::math::Float4x4::identity();
+			glm::mat4 OZZ_Matrix = to_mat4(models_[i]);
+			glm::mat4 GLFW_Matrix = InverseBindMatrices_[GLFW_JointIndex];
 
-			Jnts.push_back(models_[i] * InverseBindMatrices_[i]);
-
+			Jnts.push_back(OZZ_Matrix * GLFW_Matrix);
+			//Jnts.push_back(to_mat4(models_[i]) * InverseBindMatrices_[i]);
 		}
-		//	Send updated bone matrices to GPU
+		//
+		//	Send updated uniform buffer to GPU
 		_Mesh->updateUniformBuffer(currentImage, ubo);
+		//
+		//	Send updated bone matrices to GPU
 		if (Jnts.size() > 0)
 		{
-			_Mesh->updateSSBuffer(currentImage, Jnts.data(), Jnts.size() * sizeof(ozz::math::Float4x4));
+			_Mesh->updateSSBuffer(currentImage, Jnts.data(), Jnts.size() * sizeof(glm::mat4));
 		}
 	}
 
