@@ -170,6 +170,8 @@ namespace WorldEngine
 #include "MaterialCache.hpp"
 #include "GUI.hpp"
 
+#include "CEF.hpp"
+
 #include "SceneGraph.hpp"
 
 #include "EventReceiver.hpp"

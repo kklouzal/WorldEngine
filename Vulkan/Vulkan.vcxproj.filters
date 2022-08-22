@@ -223,6 +223,9 @@
     <ClInclude Include="Item_Hands.hpp">
       <Filter>Header Files\Items</Filter>
     </ClInclude>
+    <ClInclude Include="CEF.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">
