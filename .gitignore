@@ -341,3 +341,6 @@ healthchecksdb
 
 #large files
 *.dll
+
+#CEF GPU Cache
+**/GPUCache
