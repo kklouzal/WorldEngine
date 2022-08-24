@@ -178,6 +178,7 @@
     <ClInclude Include="Item_Physgun.hpp" />
     <ClInclude Include="Item_Toolgun.hpp" />
     <ClInclude Include="Menu.hpp" />
+    <ClInclude Include="Pipe_CEF.hpp" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="Thread_Pool.hpp" />
@@ -213,6 +214,8 @@
     <ClInclude Include="WorldSceneNode.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="shaders\cef.frag" />
+    <None Include="shaders\cef.vert" />
     <None Include="shaders\deferred.frag" />
     <None Include="shaders\deferred.vert" />
     <None Include="shaders\Fragment_Default.frag" />

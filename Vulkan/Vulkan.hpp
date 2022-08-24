@@ -76,6 +76,7 @@ namespace WorldEngine
 		std::vector<VkCommandBuffer> commandBuffers;			//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_Push;		//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_GUI;		//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_CEF;		//	Doesnt Need Cleanup
 
 		DComposition uboComposition;							//	Doesnt Need Cleanup
 		std::vector<VkBuffer> uboCompositionBuff = {};			//	Cleaned Up
@@ -167,10 +168,10 @@ namespace WorldEngine
 
 #include "PipelineObject.hpp"
 #include "Import_GLTF.hpp"
+#include "CEF.hpp"
 #include "MaterialCache.hpp"
 #include "GUI.hpp"
 
-#include "CEF.hpp"
 
 #include "SceneGraph.hpp"
 
@@ -184,6 +185,9 @@ namespace WorldEngine
 		//	Initialize
 		void Initialize()
 		{
+			//
+			//	CEF Initialization
+			CEF::Initialize();
 			//
 			//	GLFW Window Initialization
 			glfwInit();
@@ -258,6 +262,14 @@ namespace WorldEngine
 				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_GUI, &commandBuffers_GUI[i]));
 			}
 			//
+			//	Per-Frame Secondary CEF Command Buffers
+			commandBuffers_CEF.resize(frameBuffers_Main.size());
+			for (int i = 0; i < frameBuffers_Main.size(); i++)
+			{
+				VkCommandBufferAllocateInfo cmdBufAllocateInfo_CEF = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_CEF, &commandBuffers_CEF[i]));
+			}
+			//
 			//	Per-Frame Synchronization Objects
 			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
@@ -284,6 +296,9 @@ namespace WorldEngine
 			_ndWorld->SetSubSteps(3);
 			_ndWorld->SetSolverIterations(2);
 			//
+			//	CEF Post Initialization
+			CEF::PostInitialize();
+			//
 			//	LUA Initialization
 			initLua();
 			//
@@ -296,6 +311,7 @@ namespace WorldEngine
 		//	Deinitialize
 		void Deinitialize()
 		{
+			CEF::Deinitialize();
 			//
 			SceneGraph::Deinitialize();
 			//
@@ -359,6 +375,7 @@ namespace WorldEngine
 			//
 			while (!glfwWindowShouldClose(_Window))
 			{
+				CefDoMessageLoopWork();
 				//
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
 				startFrame = std::chrono::high_resolution_clock::now();
@@ -528,11 +545,31 @@ namespace WorldEngine
 			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 			vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
+
 			//
 			//
 			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers[currentFrame]);
+
+			//
+			//		START DRAWING CEF
+			// 
+			//
+			//	Begin recording
+			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_CEF[currentFrame], &commandBufferBeginInfo));
+			vkCmdSetViewport(commandBuffers_CEF[currentFrame], 0, 1, &viewport_Main);
+			vkCmdSetScissor(commandBuffers_CEF[currentFrame], 0, 1, &scissor_Main);
+			//
+			//	Draw CEF fullscreen triangle
+			vkCmdBindPipeline(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->graphicsPipeline);
+			vkCmdBindDescriptorSets(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_CEF()->DescriptorSets_Composition[currentFrame], 0, nullptr);
+			vkCmdDraw(commandBuffers_CEF[currentFrame], 3, 1, 0, 0);
+			//
+			//
+			//	End recording state
+			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_CEF[currentFrame]));
+			secondaryCommandBuffers.push_back(commandBuffers_CEF[currentFrame]);
 
 			//
 			//		START DRAWING GUI

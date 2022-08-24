@@ -25,7 +25,7 @@ struct PipelineObject
 		vkDestroySampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, DeferredSampler, nullptr);
 	}
 
-	virtual TextureObject* createTextureImage(const std::string& File) = 0;
+	virtual TextureObject* createTextureImage(const std::string& File) { return nullptr; };
 	virtual TextureObject* createTextureImage2(tinygltf::Image& ImgData) { return nullptr; };
 
 	void EmptyCache() {

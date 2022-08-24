@@ -94,5 +94,5 @@ void main()
 			fragcolor += diff + spec;
 		}
 	}
-	outFragcolor = vec4(fragcolor, 1.0);	
+	outFragcolor = vec4(fragcolor, 1.0);
 }

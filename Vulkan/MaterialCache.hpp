@@ -2,10 +2,12 @@
 
 #include "Pipe_Default.hpp"
 #include "Pipe_GUI.hpp"
+#include "Pipe_CEF.hpp"
 
 enum Pipelines {
 	Default,
-	GUI
+	GUI,
+	CEF
 };
 
 namespace WorldEngine
@@ -32,9 +34,17 @@ namespace WorldEngine
 		}
 
 		//
+		//	Create CEF Pipe
+		void CreateCEF() {
+			printf("Create CEF Pipe\n");
+			Pipes.emplace_back(new Pipeline::CEF(pipelineCache));
+		}
+
+		//
 		void Initialize() {
 			CreateDefault();
 			CreateGUI();
+			CreateCEF();
 			VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 			pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 			if (vkCreatePipelineCache(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) != VK_SUCCESS)
@@ -53,10 +63,13 @@ namespace WorldEngine
 		}
 
 		Pipeline::Default* GetPipe_Default() {
-			return static_cast<Pipeline::Default*>(Pipes[Default]);
+			return static_cast<Pipeline::Default*>(Pipes[Pipelines::Default]);
 		}
 		Pipeline::GUI* GetPipe_GUI() {
-			return static_cast<Pipeline::GUI*>(Pipes[GUI]);
+			return static_cast<Pipeline::GUI*>(Pipes[Pipelines::GUI]);
+		}
+		Pipeline::CEF* GetPipe_CEF() {
+			return static_cast<Pipeline::CEF*>(Pipes[Pipelines::CEF]);
 		}
 	}
 }

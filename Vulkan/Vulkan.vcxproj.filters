@@ -226,6 +226,9 @@
     <ClInclude Include="CEF.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Pipe_CEF.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">
@@ -254,6 +257,12 @@
     </None>
     <None Include="Tool_NPC.hpp">
       <Filter>Header Files\Items\Tools</Filter>
+    </None>
+    <None Include="shaders\cef.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
+    <None Include="shaders\cef.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -161,6 +161,14 @@ public:
 					printf("Change Debug View\n");
 					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 4;
 				}
+				else if (NewEvent.Key == GLFW_KEY_F6) {
+					printf("Reload GUI->main.html\n");
+					WorldEngine::CEF::browser->GetMainFrame()->LoadURL("file:///./html/main.html");
+				}
+				else if (NewEvent.Key == GLFW_KEY_F7) {
+					printf("Reload GUI->google.com\n");
+					WorldEngine::CEF::browser->GetMainFrame()->LoadURL("google.com");
+				}
 				else if (NewEvent.Key == GLFW_KEY_C) {
 					//
 					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
