@@ -39,7 +39,7 @@ public:
 	//	A8R8G8B8
 	void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
 	{
-		printf("CEF: PAINT\n");
+		//printf("CEF: PAINT\n");
 
 		//lodepng::encode(std::string("out.png"), (const unsigned char*)buffer, 1024, 768);
 
@@ -129,6 +129,8 @@ namespace WorldEngine
 			CefRefPtr<CefBrowser> browser;
 			CefRefPtr<BrowserClient> browserClient;
 
+			CefMouseEvent MouseState;
+
 			TextureObject* CEFTex = nullptr;
 
 			VkSampler sampler = VK_NULL_HANDLE;
@@ -182,7 +184,83 @@ namespace WorldEngine
 			browser = CefBrowserHost::CreateBrowserSync(window_info, browserClient.get(), "about:blank", browserSettings, nullptr, nullptr);
 			browser->GetMainFrame()->LoadURL("file:///./html/main.html");
 			//browser->GetHost()->SendKeyEvent(..);
-			//browser->GetHost()->SendMouseMoveEvent(..);
+		}
+
+		void MouseEvent(const int x, const int y)
+		{
+			MouseState.x = x;
+			MouseState.y = y;
+			browser->GetHost()->SendMouseMoveEvent(MouseState, false);
+		}
+
+		void MouseButtonLeft(bool isDown)
+		{
+			if (isDown && MouseState.modifiers == cef_event_flags_t::EVENTFLAG_NONE)
+			{
+				MouseState.modifiers = cef_event_flags_t::EVENTFLAG_LEFT_MOUSE_BUTTON;
+			}
+			else if (!isDown && MouseState.modifiers == cef_event_flags_t::EVENTFLAG_LEFT_MOUSE_BUTTON) {
+				MouseState.modifiers = cef_event_flags_t::EVENTFLAG_NONE;
+			}
+			browser->GetHost()->SendMouseClickEvent(MouseState, CefBrowserHost::MouseButtonType::MBT_LEFT, !isDown, 1);
+		}
+
+		void MouseButtonRight(bool isDown)
+		{
+			if (isDown && MouseState.modifiers == cef_event_flags_t::EVENTFLAG_NONE)
+			{
+				MouseState.modifiers = cef_event_flags_t::EVENTFLAG_RIGHT_MOUSE_BUTTON;
+			}
+			else if (!isDown && MouseState.modifiers == cef_event_flags_t::EVENTFLAG_RIGHT_MOUSE_BUTTON) {
+				MouseState.modifiers = cef_event_flags_t::EVENTFLAG_NONE;
+			}
+			browser->GetHost()->SendMouseClickEvent(MouseState, CefBrowserHost::MouseButtonType::MBT_RIGHT, !isDown, 1);
+		}
+
+		void KeyboardCharacter(unsigned int scancode)
+		{
+			CefKeyEvent KeyEvent;
+			
+			KeyEvent.windows_key_code = scancode;
+			KeyEvent.native_key_code = scancode;
+			KeyEvent.type = cef_key_event_type_t::KEYEVENT_CHAR;
+			KeyEvent.focus_on_editable_field = true;
+			KeyEvent.modifiers = 0;
+			KeyEvent.is_system_key = false;
+			browser->GetHost()->SendKeyEvent(KeyEvent);
+			printf("CHR SCANCODE: %i\n", scancode);
+		}
+
+		void KeyboardKey(unsigned int scancode, bool bDown)
+		{
+			CefKeyEvent KeyEvent;
+			if (scancode == GLFW_KEY_BACKSPACE)
+				KeyEvent.windows_key_code = VK_BACK;
+			if (scancode == GLFW_KEY_DELETE)
+				KeyEvent.windows_key_code = VK_DELETE;
+			if (scancode == GLFW_KEY_LEFT)
+				KeyEvent.windows_key_code = VK_LEFT;
+			if (scancode == GLFW_KEY_RIGHT)
+				KeyEvent.windows_key_code = VK_RIGHT;
+			if (scancode == GLFW_KEY_UP)
+				KeyEvent.windows_key_code = VK_UP;
+			if (scancode == GLFW_KEY_DOWN)
+				KeyEvent.windows_key_code = VK_DOWN;
+			if (scancode == GLFW_KEY_ENTER)
+				KeyEvent.windows_key_code = VK_RETURN;
+
+			if (bDown)
+			{
+				KeyEvent.type = cef_key_event_type_t::KEYEVENT_RAWKEYDOWN;
+			}
+			else {
+				KeyEvent.type = cef_key_event_type_t::KEYEVENT_KEYUP;
+			}
+			KeyEvent.focus_on_editable_field = true;
+			KeyEvent.modifiers = 0;
+			KeyEvent.is_system_key = false;
+			browser->GetHost()->SendKeyEvent(KeyEvent);
+			printf("KEY SCANCODE: %i\n", scancode);
 		}
 
 		void Deinitialize()

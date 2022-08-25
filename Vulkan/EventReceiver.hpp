@@ -277,6 +277,7 @@ void EventReceiver::char_callback(GLFWwindow* window, unsigned int codepoint)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		io.AddInputCharacter(codepoint);
+		WorldEngine::CEF::KeyboardCharacter(codepoint);
 	}
 }
 
@@ -284,23 +285,32 @@ void EventReceiver::key_callback(GLFWwindow* window, int key, int scancode, int 
 {
 	EventReceiver* Rcvr = static_cast<EventReceiver*>(glfwGetWindowUserPointer(window));
 
+	bool bDown = false;
+	if (action == GLFW_RELEASE) { bDown = false; }
+	else if (action == GLFW_PRESS || action == GLFW_REPEAT) { bDown = true; }
+
 	if (Rcvr->isCursorActive)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		if (action == GLFW_PRESS)
+		{
 			io.KeysDown[key] = true;
-		if (action == GLFW_RELEASE)
+		}
+		else if (action == GLFW_RELEASE)
+		{
 			io.KeysDown[key] = false;
+		}
 
 		io.KeyCtrl = io.KeysDown[GLFW_KEY_LEFT_CONTROL] || io.KeysDown[GLFW_KEY_RIGHT_CONTROL];
 		io.KeyShift = io.KeysDown[GLFW_KEY_LEFT_SHIFT] || io.KeysDown[GLFW_KEY_RIGHT_SHIFT];
 		io.KeyAlt = io.KeysDown[GLFW_KEY_LEFT_ALT] || io.KeysDown[GLFW_KEY_RIGHT_ALT];
 		io.KeySuper = io.KeysDown[GLFW_KEY_LEFT_SUPER] || io.KeysDown[GLFW_KEY_RIGHT_SUPER];
-	}
 
-	bool bDown = false;
-	if (action == GLFW_RELEASE) { bDown = false; }
-	else if (action == GLFW_PRESS || action == GLFW_REPEAT) { bDown = true; }
+		if (key == GLFW_KEY_BACKSPACE || key == GLFW_KEY_DELETE || key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT || key == GLFW_KEY_UP || key == GLFW_KEY_DOWN || key == GLFW_KEY_ENTER)
+		{
+			WorldEngine::CEF::KeyboardKey(key, bDown);
+		}
+	}
 
 	if (action == GLFW_PRESS && key == GLFW_KEY_GRAVE_ACCENT) {
 		Rcvr->_ConsoleMenu->Toggle();
@@ -356,15 +366,19 @@ void EventReceiver::mouse_button_callback(GLFWwindow* window, int button, int ac
 		ImGuiIO& io = ImGui::GetIO();
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 			io.MouseDown[0] = true;
+			WorldEngine::CEF::MouseButtonLeft(true);
 		}
 		else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
 			io.MouseDown[0] = false;
+			WorldEngine::CEF::MouseButtonLeft(false);
 		}
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
 			io.MouseDown[1] = true;
+			WorldEngine::CEF::MouseButtonRight(true);
 		}
 		else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
 			io.MouseDown[1] = false;
+			WorldEngine::CEF::MouseButtonRight(false);
 		}
 	}
 
@@ -410,6 +424,7 @@ void EventReceiver::cursor_position_callback(GLFWwindow* window, double xpos, do
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		io.MousePos = ImVec2(xpos, ypos);
+		WorldEngine::CEF::MouseEvent(xpos, ypos);
 	}
 
 	if (Rcvr->m_Pos_First)
