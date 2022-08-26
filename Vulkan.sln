@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29102.190
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32819.101
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Vulkan", "Vulkan\Vulkan.vcxproj", "{6AA4E29A-200C-4A44-8398-C871DC157009}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Server", "Server\Server.vcxproj", "{C25AAA35-E5EB-4B70-8441-3A20DD68A501}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,14 @@ Global
 		{6AA4E29A-200C-4A44-8398-C871DC157009}.Release|x64.Build.0 = Release|x64
 		{6AA4E29A-200C-4A44-8398-C871DC157009}.Release|x86.ActiveCfg = Release|Win32
 		{6AA4E29A-200C-4A44-8398-C871DC157009}.Release|x86.Build.0 = Release|Win32
+		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Debug|x64.ActiveCfg = Debug|x64
+		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Debug|x64.Build.0 = Debug|x64
+		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Debug|x86.ActiveCfg = Debug|Win32
+		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Debug|x86.Build.0 = Debug|Win32
+		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Release|x64.ActiveCfg = Release|x64
+		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Release|x64.Build.0 = Release|x64
+		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Release|x86.ActiveCfg = Release|Win32
+		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
