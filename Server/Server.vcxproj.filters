@@ -13,10 +13,42 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\GLTF">
+      <UniqueIdentifier>{ba655b56-aece-4298-933a-b4d2f32853ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\SceneNodes">
+      <UniqueIdentifier>{752615d1-3ec5-4378-be98-50b2edd724a1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SceneGraph.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Import_GLTF.hpp">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="TinyGLTF.hpp">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneNode.h">
+      <Filter>Header Files\SceneNodes</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldSceneNode.hpp">
+      <Filter>Header Files\SceneNodes</Filter>
+    </ClInclude>
+    <ClInclude Include="json.hpp">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image_write.h">
+      <Filter>Header Files\GLTF</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

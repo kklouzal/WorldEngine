@@ -136,7 +136,7 @@ namespace WorldEngine
 				DF += F;
 			}
 			return DF / Frames.size();
-		} const
+		}
 
 		//
 		//	Return CommandBuffer for single immediate use
