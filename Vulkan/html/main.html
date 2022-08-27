@@ -1,28 +1,207 @@
-<html>
-	<head>
-		<title>doesn't really matter.</title>
-	</head>
-	
-	<body style="background-color: transparent;">
-		<center>
-		<br>
-		<br>
-		<h1>Hello CEF</h1>
-		<br>
-		<h2>Some smaller text..</h2>
-		<br>
-		<div class="rendered-form">
-    <div class="">
-        <h1 access="false" id="control-3074283">Header</h1></div>
-    <div class="formbuilder-button form-group field-button-1661318676534">
-        <button type="button" class="btn-default btn" name="button-1661318676534" access="false" style="default" id="button-1661318676534">Button</button>
-    </div>
-    <div class="formbuilder-button form-group field-button-1661318679909">
-        <button type="button" class="btn-default btn" name="button-1661318679909" access="false" style="default" id="button-1661318679909">Button</button>
-    </div>
-</div>
-<br>
-		<img src="img.png">
-		</center>
-	</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Visual IFrame Test</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Gantari:wght@100;400;700&display=swap" rel="stylesheet">
+
+    <style>
+
+        *{
+            box-sizing: border-box;
+            font-family: 'Gantari', sans-serif;
+        }
+
+        body{
+            /*background-color: #a5ccb5;*/
+        }
+
+        :root{
+            /*Default Colors*/
+            --bg-color: rgba(0,0,0,0.4);
+            --div-content-header: #2B2D42;
+            --font-color: #EDF2F4;
+            --accent-color: #EF233C;
+            --transparent: rgba(0,0,0,0);
+
+        /*    Default Shadows   */
+            --default-box-shadow: rgba(0, 0, 0, 0.25) 0px 14px 28px, rgba(0, 0, 0, 0.22) 0px 10px 10px;
+        }
+
+
+        iframe{
+            background-color: var(--bg-color);
+            border: none;
+            outline: none;
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+            border: 2px solid var(--div-content-header);
+            z-index: 1;
+
+        }
+
+
+
+        .divContent {
+            overflow: hidden;
+            resize: both;
+        }
+
+        .divContentHeader {
+            display: flex;
+            justify-content: space-between;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            padding: 10px;
+            cursor: move;
+            font-weight: bold;
+            background-color: var(--div-content-header);
+            color: var(--font-color);
+            max-width: 640px;
+        }
+
+        .divCloseHeader {
+            background-color: var(--transparent);
+            outline: none;
+            border: none;
+            font-weight: bold;
+            color: var(--font-color);
+            transition: color 0.2s ease-in;
+        }
+
+        .divCloseHeader:hover{
+            color: var(--accent-color);
+            cursor: pointer;
+        }
+
+    </style>
+
+</head>
+<body onload = "onLoad()" id="body" style="width: 98vw">
+
+<script>
+
+    let counter = 0;
+
+    function onLoad()
+    {
+        //Func here uses webpage name / location as a literal string.
+        prepareFrame('mainmenu.html');
+
+    }
+
+    function dragElement(elmnt)
+    {
+
+        let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+            if (document.getElementById(elmnt.id + "Header"))
+            {
+
+                // if present, the header is where you move the DIV from:
+                document.getElementById(elmnt.id + "Header").onmousedown = dragMouseDown;
+
+            }
+            else
+            {
+
+                // otherwise, move the DIV from anywhere inside the DIV:
+                elmnt.onmousedown = dragMouseDown;
+
+            }
+
+
+        function dragMouseDown(e)
+        {
+
+            e = e || window.event;
+            e.preventDefault();
+            // get the mouse cursor position at startup:
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            document.onmouseup = closeDragElement;
+            // call a function whenever the cursor moves:
+            document.onmousemove = elementDrag;
+
+        }
+
+        function elementDrag(e)
+        {
+
+            e = e || window.event;
+            e.preventDefault();
+            // calculate the new cursor position:
+            pos1 = pos3 - e.clientX;
+            pos2 = pos4 - e.clientY;
+            pos3 = e.clientX;
+            pos4 = e.clientY;
+            // set the element's new position:
+            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+
+        }
+
+        function closeDragElement()
+        {
+
+            // stop moving when mouse button is released:
+            document.onmouseup = null;
+            document.onmousemove = null;
+
+        }
+
+    }
+
+    function closeHeader(divToClose)
+    {
+
+        document.body.removeChild(divToClose.value);
+
+    }
+
+    function prepareFrame(nameToLoad)
+    {
+
+        let ifrm = document.createElement('iframe');
+        ifrm.setAttribute('src', nameToLoad);
+        ifrm.style.width = '320px';
+        ifrm.style.height = '240px';
+
+        let divToAppend = document.createElement('div');
+        divToAppend.id = 'iFrame' + counter;
+        divToAppend.style.position = 'absolute';
+        divToAppend.classList.add('divContent');
+
+        counter++;
+
+
+        let divHeader = document.createElement('div');
+        divHeader.id = 'iFrameHeader' + counter;
+        divHeader.classList.add('divContentHeader');
+
+        divHeader.innerHTML += `
+                                <div>
+                                I'm a Title. (pls love me)
+                                </div>
+                                <button onclick="closeHeader(${divHeader.id})" class="divCloseHeader">X</button>
+                                `;
+
+
+        divHeader.value = divToAppend;
+
+        divToAppend.appendChild(divHeader);
+
+        divToAppend.appendChild(ifrm);
+
+
+        document.body.appendChild(divToAppend);
+        dragElement(divToAppend);
+
+    }
+
+</script>
+
+</body>
 </html>

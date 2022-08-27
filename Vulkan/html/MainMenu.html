@@ -1,0 +1,30 @@
+<html>
+	<head>
+	
+		<style>
+			body{
+				background-color: #a5ccb5;
+			}
+		</style>
+		<title>SomeTitle</title>
+		
+		<script type="text/javascript">
+		
+			function ConnectToServer()
+			{
+				test.myfunc(document.getElementById("IP_IN").value, Number(document.getElementById("PORT_IN").value));
+			}
+		
+		</script>
+	</head>
+	
+	<body>
+		<center>
+			<h1>Connect To Server</h1>
+			<input type="text" id="IP_IN" value="127.0.0.1" size=12><input type="text" id="PORT_IN" value="9001" size=3>
+			<br>
+			<input type="button" value="Connect To Server" onclick="ConnectToServer()">
+		</center>
+	</body>
+</html>
+	

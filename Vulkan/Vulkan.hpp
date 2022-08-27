@@ -299,6 +299,9 @@ namespace WorldEngine
 			//	CEF Post Initialization
 			CEF::PostInitialize();
 			//
+			//	KNet Initialization
+			NetCode::Initialize("127.0.0.1", 8000, 8001);
+			//
 			//	LUA Initialization
 			initLua();
 			//
@@ -318,6 +321,8 @@ namespace WorldEngine
 			MaterialCache::Deinitialize();
 			//
 			lua_close(state);
+			//
+			NetCode::Deinitialize();
 			//
 			delete _ndWorld;
 			//

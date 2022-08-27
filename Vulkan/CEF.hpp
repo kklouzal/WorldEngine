@@ -8,6 +8,8 @@
 
 class RenderHandler : public CefRenderHandler
 {
+	VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+	VkBufferImageCopy region = {};
 public:
 	VkDeviceSize uploadSize;
 	TextureObject* CEFTex;
@@ -17,6 +19,19 @@ public:
 
 	RenderHandler()
 	{
+		imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		imgMemBarrier.subresourceRange.baseMipLevel = 0;
+		imgMemBarrier.subresourceRange.levelCount = 1;
+		imgMemBarrier.subresourceRange.baseArrayLayer = 0;
+		imgMemBarrier.subresourceRange.layerCount = 1;
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.layerCount = 1;
+		region.imageExtent.width = WorldEngine::VulkanDriver::WIDTH;
+		region.imageExtent.height = WorldEngine::VulkanDriver::HEIGHT;
+		region.imageExtent.depth = 1;
 	}
 
 	bool frameStarted()
@@ -39,24 +54,12 @@ public:
 	//	A8R8G8B8
 	void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList& dirtyRects, const void* buffer, int width, int height)
 	{
-		//printf("CEF: PAINT\n");
 
-		//lodepng::encode(std::string("out.png"), (const unsigned char*)buffer, 1024, 768);
-
-
-		//memcpy(CEFBufferAlloc_Staging->GetMappedData(), CEFTex->Pixels.data(), static_cast<size_t>(uploadSize));
 		memcpy(CEFBufferAlloc_Staging->GetMappedData(), buffer, static_cast<size_t>(uploadSize));
 		//
 		//	CPU->GPU Copy
 		VkCommandBuffer commandBuffer = WorldEngine::VulkanDriver::beginSingleTimeCommands();
-		VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-		imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imgMemBarrier.subresourceRange.baseMipLevel = 0;
-		imgMemBarrier.subresourceRange.levelCount = 1;
-		imgMemBarrier.subresourceRange.baseArrayLayer = 0;
-		imgMemBarrier.subresourceRange.layerCount = 1;
+
 		imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 		imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		imgMemBarrier.image = CEFTex->Image;
@@ -72,18 +75,10 @@ public:
 			0, nullptr,
 			1, &imgMemBarrier);
 
-		VkBufferImageCopy region = {};
-		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.imageSubresource.layerCount = 1;
-		region.imageExtent.width = WorldEngine::VulkanDriver::WIDTH;
-		region.imageExtent.height = WorldEngine::VulkanDriver::HEIGHT;
-		region.imageExtent.depth = 1;
-
 		vkCmdCopyBufferToImage(commandBuffer, CEFBuffer_Staging, CEFTex->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
 		imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		imgMemBarrier.image = CEFTex->Image;
 		imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
@@ -114,9 +109,101 @@ public:
 		return m_renderHandler;
 	}
 
+	bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId process, CefRefPtr<CefProcessMessage> message)
+	{
+		printf("[CEF] BrowserClient:ProcessMessage %s\n", message->GetName().ToString().c_str());
+		if (message->GetName() == "My_Message")
+		{
+			std::string RemoteIP = message->GetArgumentList()->GetString(0).ToString();
+			unsigned int RemotePort = message->GetArgumentList()->GetInt(1);
+			printf("My_Message %s %u\n", RemoteIP.c_str(), RemotePort);
+			WorldEngine::NetCode::ConnectToServer(RemoteIP.c_str(), RemotePort);
+			return true;
+		}
+		return false;
+	}
+
 	CefRefPtr<CefRenderHandler> m_renderHandler;
 
 	IMPLEMENT_REFCOUNTING(BrowserClient);
+};
+
+class MyV8Handler : public CefV8Handler {
+public:
+
+	bool Execute(const CefString& name,	CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception)
+	{
+		printf("[CEF] V8Handler:Execute %S\n", name.c_str());
+
+		if (name == "myfunc")
+		{
+			if (arguments.size() == 2)
+			{
+				std::string RemoteIP = arguments[0]->GetStringValue().ToString();
+				unsigned int RemotePort = arguments[1]->GetUIntValue();
+				printf("MYFUNC %s %u\n", RemoteIP.c_str(), RemotePort);
+
+				CefRefPtr<CefProcessMessage> msg = CefProcessMessage::Create("My_Message");
+				CefRefPtr<CefListValue> args = msg->GetArgumentList();
+				args->SetString(0, arguments[0]->GetStringValue());
+				args->SetInt(1, arguments[1]->GetIntValue());
+				
+				CefRefPtr<CefV8Context> context = CefV8Context::GetCurrentContext();
+				context->GetBrowser()->GetMainFrame()->SendProcessMessage(PID_BROWSER, msg);
+				return true;
+			}
+		}
+
+		// Function does not exist.
+		return false;
+	}
+
+	// Provide the reference counting implementation for this class.
+	IMPLEMENT_REFCOUNTING(MyV8Handler);
+};
+
+class MyCefApp : public CefApp, public CefRenderProcessHandler
+{
+public:
+
+	bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
+	{
+		printf("[CEF] CefAPP:ProcessMessage %s\n", message->GetName().ToString().c_str());
+		return false;
+	}
+
+	CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler()
+	{
+		return this;
+	}
+
+	void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context)
+	{
+		CefRefPtr<CefV8Value> object = context->GetGlobal();
+		CefRefPtr<CefV8Handler> handler = new MyV8Handler();
+		object->SetValue("register", CefV8Value::CreateFunction("register", handler), V8_PROPERTY_ATTRIBUTE_NONE);
+	}
+
+	void OnWebKitInitialized()
+	{
+		printf("WEBKIT\n");
+
+		std::string extensionCode =
+			"var test;"
+			"if (!test)"
+			"test = {};"
+			"(function() {"
+			"test.myfunc = function(RemoteAddr, RemotePort) {"
+			"native function myfunc(RemoteAddr, RemotePort);"
+			"return myfunc(RemoteAddr, RemotePort);"
+			"};"
+			"})();";
+		
+		CefRefPtr<CefV8Handler> handler = new MyV8Handler();
+		CefRegisterExtension("v8/test", extensionCode, handler);
+	}
+
+	IMPLEMENT_REFCOUNTING(MyCefApp);
 };
 
 namespace WorldEngine
@@ -128,6 +215,8 @@ namespace WorldEngine
 			RenderHandler* renderHandler;
 			CefRefPtr<CefBrowser> browser;
 			CefRefPtr<BrowserClient> browserClient;
+
+			MyCefApp* CEFAPP;
 
 			CefMouseEvent MouseState;
 
@@ -144,9 +233,10 @@ namespace WorldEngine
 
 		void Initialize()
 		{
+			CEFAPP = new MyCefApp();
 			CefMainArgs args(::GetModuleHandle(NULL));
 
-			int result = CefExecuteProcess(args, nullptr, nullptr);
+			int result = CefExecuteProcess(args, CEFAPP, nullptr);
 			if (result >= 0)
 			{
 				printf("CEF Process Ended; Exit (%i)\n", result);
@@ -174,10 +264,11 @@ namespace WorldEngine
 			renderHandler = new RenderHandler();
 
 			CefBrowserSettings browserSettings;
-			browserSettings.windowless_frame_rate = 60;
+			browserSettings.windowless_frame_rate = 30;
 
 			CefWindowInfo window_info;
-			window_info.SetAsWindowless(NULL);
+			window_info.parent_window = glfwGetWin32Window(WorldEngine::VulkanDriver::_Window);
+			window_info.SetAsWindowless(glfwGetWin32Window(WorldEngine::VulkanDriver::_Window));
 
 			browserClient = new BrowserClient(renderHandler);
 

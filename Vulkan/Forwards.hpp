@@ -3,6 +3,10 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <glfw/glfw3native.h>
+
+#include "NetCode.hpp"
 
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
