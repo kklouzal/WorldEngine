@@ -1,9 +1,4 @@
-#include <include\cef_app.h>
-#include <include\cef_client.h>
-#include <include\cef_render_handler.h>
-
-#include <iostream>
-#include <fstream>
+#pragma once
 
 
 class RenderHandler : public CefRenderHandler
@@ -142,15 +137,7 @@ public:
 	bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId process, CefRefPtr<CefProcessMessage> message)
 	{
 		printf("[CEF] BrowserClient:ProcessMessage %s\n", message->GetName().ToString().c_str());
-		if (message->GetName() == "My_Message")
-		{
-			std::string RemoteIP = message->GetArgumentList()->GetString(0).ToString();
-			unsigned int RemotePort = message->GetArgumentList()->GetInt(1);
-			printf("My_Message %s %u\n", RemoteIP.c_str(), RemotePort);
-			WorldEngine::NetCode::ConnectToServer(RemoteIP.c_str(), RemotePort);
-			return true;
-		}
-		return false;
+		return WorldEngine::VulkanDriver::_EventReceiver->OnCEF(message);
 	}
 
 	CefRefPtr<CefRenderHandler> m_renderHandler;

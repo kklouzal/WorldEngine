@@ -1,7 +1,5 @@
 #pragma once
 
-#include <KNet.hpp>
-
 namespace WorldEngine
 {
 	namespace NetCode
@@ -83,16 +81,17 @@ namespace WorldEngine
 						printf("Incoming Packet: OpID %i\n", OperationID);
 					}
 					char MapFile[255];
-					_Packet->read<char>(*MapFile);
-					//if ()
-					//{
+					if (_Packet->read<char>(*MapFile))
+					{
 						printf("\tMapFile: %s\n", MapFile);
-					//}
+					}
 					unsigned int TestVar;
 					if (_Packet->read<unsigned int>(TestVar))
 					{
 						printf("Incoming Packet: TestVar %i\n", TestVar);
 					}
+
+					WorldEngine::VulkanDriver::_EventReceiver->OnGUI("Play");
 					//handle packet
 					LocalPoint->ReleasePacket(_Packet);
 				}

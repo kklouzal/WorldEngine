@@ -6,7 +6,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glfw/glfw3native.h>
 
-#include "NetCode.hpp"
+#include <KNet.hpp>
 
 #define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
@@ -29,12 +29,18 @@
 #define TINYGLTF_USE_CPP14
 #include "TinyGLTF.hpp"
 
+#include <include\cef_app.h>
+#include <include\cef_client.h>
+#include <include\cef_render_handler.h>
+
 #define _D_CORE_DLL
 #define _D_NEWTON_DLL
 #define _D_COLLISION_DLL
 #include <ndNewton.h>
 
 #include "LuaScripting.hpp"
+
+#include "imgui.h"
 
 #include <functional>
 #include <algorithm>
