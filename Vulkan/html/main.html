@@ -89,6 +89,7 @@
     {
         //Func here uses webpage name / location as a literal string.
         prepareFrame('mainmenu.html');
+        prepareFrame('mainmenu.html');
 
     }
 
@@ -167,7 +168,7 @@
         let ifrm = document.createElement('iframe');
         ifrm.setAttribute('src', nameToLoad);
         ifrm.style.width = '320px';
-        ifrm.style.height = '240px';
+        ifrm.style.height = '320px';
 
         let divToAppend = document.createElement('div');
         divToAppend.id = 'iFrame' + counter;

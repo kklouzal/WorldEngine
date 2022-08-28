@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Vulkan", "Vulkan\Vulkan.vcx
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Server", "Server\Server.vcxproj", "{C25AAA35-E5EB-4B70-8441-3A20DD68A501}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CEFBrowserSubprocess", "CEFBrowserSubprocess\CEFBrowserSubprocess.vcxproj", "{9669E86C-7314-42B3-9B74-72241561EF90}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Release|x64.Build.0 = Release|x64
 		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Release|x86.ActiveCfg = Release|Win32
 		{C25AAA35-E5EB-4B70-8441-3A20DD68A501}.Release|x86.Build.0 = Release|Win32
+		{9669E86C-7314-42B3-9B74-72241561EF90}.Debug|x64.ActiveCfg = Debug|x64
+		{9669E86C-7314-42B3-9B74-72241561EF90}.Debug|x64.Build.0 = Debug|x64
+		{9669E86C-7314-42B3-9B74-72241561EF90}.Debug|x86.ActiveCfg = Debug|Win32
+		{9669E86C-7314-42B3-9B74-72241561EF90}.Debug|x86.Build.0 = Debug|Win32
+		{9669E86C-7314-42B3-9B74-72241561EF90}.Release|x64.ActiveCfg = Release|x64
+		{9669E86C-7314-42B3-9B74-72241561EF90}.Release|x64.Build.0 = Release|x64
+		{9669E86C-7314-42B3-9B74-72241561EF90}.Release|x86.ActiveCfg = Release|Win32
+		{9669E86C-7314-42B3-9B74-72241561EF90}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

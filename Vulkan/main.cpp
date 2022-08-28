@@ -6,7 +6,7 @@
 
 int main() {
 #ifdef _DEBUG
-	std::system("PAUSE");
+	//std::system("PAUSE");
 #endif
 	//
 	//	Vulkan Initialization

@@ -13,7 +13,6 @@ namespace WorldEngine
 			KNet::NetPoint* LocalPoint;
 			//
 			KNet::NetAddress* RemoteAddr;
-			KNet::NetPoint* RemotePoint;
 			//
 			//	Clients Connected To Us
 			std::deque<KNet::NetClient*> ConnectedClients;
@@ -30,6 +29,8 @@ namespace WorldEngine
 			//
 			//	Start Listening
 			LocalPoint = new KNet::NetPoint(LocalSendAddr, LocalRecvAddr);
+			//
+			RemoteAddr = KNet::AddressPool->GetFreeObject();
 		}
 
 		void Deinitialize()
@@ -51,6 +52,44 @@ namespace WorldEngine
 				Pkt->SetPID(KNet::PacketID::Handshake);
 				Pkt->SetCID(KNet::ClientID::Client);
 				LocalPoint->SendPacket(Pkt);
+			}
+		}
+
+		void Tick()
+		{
+			const auto Packets_OOB = LocalPoint->GetPackets();
+			for (auto _Packet : Packets_OOB.first)
+			{
+				printf("INCOMING PACKET\n");
+				//
+				//	Handle incoming Out-Of-Band packets
+				LocalPoint->ReleasePacket(_Packet);
+			}
+
+			for (auto _Client : Packets_OOB.second)
+			{
+				printf("INCOMING CLIENT\n");
+				ConnectedClients.push_back(_Client);
+			}
+
+			for (auto _Client : ConnectedClients)
+			{
+				const auto Packets_Client = _Client->GetPackets();
+				for (auto _Packet : Packets_Client)
+				{
+					//handle packet
+					LocalPoint->ReleasePacket(_Packet);
+				}
+
+				//
+				//	send them back a packet
+
+				/*KNet::NetPacket_Send* Pkt1 = _Client->GetFreePacket<KNet::ChannelID::Unreliable_Any>();
+				if (Pkt1) {
+					Pkt1->write<const char*>("This is an Unreliable_Any packet");
+					LocalPoint->SendPacket(Pkt1);
+				}
+				else { printf("PKT1 UNAVAILABLE!\n"); }*/
 			}
 		}
 	}

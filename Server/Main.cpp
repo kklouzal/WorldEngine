@@ -215,8 +215,8 @@ void MyFrame::OnTimer(wxTimerEvent&)
     //  Check for new clients
     for (auto _Client : Packets1.second)
     {
-        ConnectedClients.push_back(_Client);
         wxLogMessage("[HANDLE NEW CLIENT]");
+        ConnectedClients.push_back(_Client);
     }
     //
     //  Loop all connected clients

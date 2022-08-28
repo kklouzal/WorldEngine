@@ -300,7 +300,7 @@ namespace WorldEngine
 			CEF::PostInitialize();
 			//
 			//	KNet Initialization
-			NetCode::Initialize("127.0.0.1", 8000, 8001);
+			NetCode::Initialize("192.168.1.98", 8000, 8001);
 			//
 			//	LUA Initialization
 			initLua();
@@ -380,7 +380,6 @@ namespace WorldEngine
 			//
 			while (!glfwWindowShouldClose(_Window))
 			{
-				CefDoMessageLoopWork();
 				//
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
 				startFrame = std::chrono::high_resolution_clock::now();
@@ -388,8 +387,14 @@ namespace WorldEngine
 				//	Push previous delta to rolling average
 				PushFrameDelta(deltaFrame);
 				//
+				//	CEF Loop
+				CefDoMessageLoopWork();
+				//
 				//	Push previous delta to ImGui
 				ImGui::GetIO().DeltaTime = deltaFrame;
+				//
+				//	Net Updates
+				WorldEngine::NetCode::Tick();
 				//
 				//	Handle and perform Inputs
 				glfwPollEvents();
