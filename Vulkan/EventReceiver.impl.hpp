@@ -138,8 +138,7 @@ void EventReceiver::OnGUI(const char* EventID)
 		glfwSetWindowShouldClose(WorldEngine::VulkanDriver::_Window, GLFW_TRUE);
 	}
 	else if (EventID == "Play") {
-		if (!isWorldInitialized && !WorldEngine::SceneGraph::isWorld) {
-			WorldEngine::SceneGraph::initWorld();
+		if (!isWorldInitialized) {
 			isWorldInitialized = true;
 
 			_SpawnMenu->Hide(false);

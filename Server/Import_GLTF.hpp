@@ -253,7 +253,7 @@ public:
                     {
                         const tinygltf::Node& node = model.nodes[i];
                         //Infos->JointMap[node.name] = i;
-                        printf("%i -> NODE NAME: %s\n", i, node.name.c_str());
+                        printf("%zi -> NODE NAME: %s\n", i, node.name.c_str());
                     }
 
                     const tinygltf::Accessor& acc = model.accessors[_Skin.inverseBindMatrices];

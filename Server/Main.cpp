@@ -13,6 +13,7 @@ namespace WorldEngine
         ndWorld* _ndWorld;
 
         std::string CurrentMap;
+        std::string DefaultPlayerModel;
     }
 
     ndWorld* GetPhysicsWorld()
@@ -74,7 +75,7 @@ public:
     void OnTimer(wxTimerEvent& event);
 
     MyFrame(const wxString& title)
-        : wxFrame(NULL, wxID_ANY, title)
+        : wxFrame(NULL, wxID_ANY, title, wxDefaultPosition, wxSize(640, 480))
     {
         // set the frame icon
         SetIcon(wxICON(sample));
@@ -110,12 +111,17 @@ public:
         const long ini_Recv_Port = conf->ReadLong("recv_port", 8001);
         const long ini_Tickrate = conf->ReadLong("tickrate", 60);
         wxLogMessage("[Load settings.ini]");
+        wxLogMessage("[NET]");
         wxLogMessage("\tIP: %s", ini_IP);
         wxLogMessage("\tSend Port: %ld", ini_Send_Port);
         wxLogMessage("\tRecv Port: %ld", ini_Recv_Port);
         wxLogMessage("\tTickrate: %ld\n", ini_Tickrate);
+        wxLogMessage("[GAME]");
         conf->SetPath("/game");
         WorldEngine::CurrentMap = conf->Read("map", "./media/models/newMap.gltf").ToStdString();
+        WorldEngine::DefaultPlayerModel = conf->Read("player", "./media/models/brickFrank.gltf").ToStdString();
+        wxLogMessage("\tMap File: %s", WorldEngine::CurrentMap.c_str());
+        wxLogMessage("\tPlayer Model: %s\n", WorldEngine::DefaultPlayerModel.c_str());
 
         //
         //	Physics Initialization

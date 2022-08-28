@@ -210,7 +210,7 @@ namespace WorldEngine
                         const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
                         const GUITexture* Tex = (GUITexture*)pcmd->GetTexID();
                         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &Tex->descriptorSet, 0, nullptr);
-                        VkRect2D scissorRect;
+                        VkRect2D scissorRect = {};
                         scissorRect.offset.x = std::max((int32_t)(pcmd->ClipRect.x), 0);
                         scissorRect.offset.y = std::max((int32_t)(pcmd->ClipRect.y), 0);
                         scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
@@ -233,7 +233,7 @@ namespace WorldEngine
 
             delete _FontTex;
 
-            for (auto Tex : _Textures) {
+            for (auto& Tex : _Textures) {
                 delete Tex.second;
             }
 

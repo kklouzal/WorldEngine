@@ -69,7 +69,7 @@ namespace WorldEngine
             }
             //
             //  Loop all connected clients
-            for (auto _Client : ConnectedClients)
+            for (auto& _Client : ConnectedClients)
             {
                 //
                 //  Check if each client has any new packets

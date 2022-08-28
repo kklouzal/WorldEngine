@@ -269,7 +269,7 @@ public:
             // Load SKIN
             //  TODO: This doesn't take into account that model with multiple meshes has a unique SKIN per MESH and should be handled accordingly.
             //  TODO: This assumes only a single MESH and SKIN.
-            printf("Skins Count %i\n", model.skins.size());
+            //printf("Skins Count %i\n", model.skins.size());
 
             for (size_t i = 0; i < model.skins.size(); i++)
             {
@@ -281,7 +281,7 @@ public:
                     {
                         const tinygltf::Node& node = model.nodes[i];
                         Infos->JointMap[node.name] = i;
-                        printf("%i -> NODE NAME: %s\n", i, node.name.c_str());
+                        //printf("%i -> NODE NAME: %s\n", i, node.name.c_str());
                     }
 
                     const tinygltf::Accessor& acc = model.accessors[_Skin.inverseBindMatrices];

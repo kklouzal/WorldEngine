@@ -32,7 +32,8 @@ namespace WorldEngine
 
 		bool tryCleanupWorld = false;
 		bool isWorld = false;
-		void initWorld();
+		void initWorld(const char* MapFile);
+		void initPlayer(const char* CharacterFile, ndVector CharacterPosition);
 		void cleanupWorld(const bool& bForce = false);
 
 		std::deque<SceneNode*> SceneNodes = {};
@@ -116,17 +117,21 @@ namespace WorldEngine
 {
 	namespace SceneGraph
 	{
-		void SceneGraph::initWorld()
+		void SceneGraph::initWorld(const char* MapFile)
 		{
 			if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 			//
 			//	Load World/Charater/Etc..
-			//_World = createWorldSceneNode("media/models/CurrentWorld.gltf");
-			_World = createWorldSceneNode("media/models/newMap.gltf");
-			_Character = createCharacterSceneNode("media/models/brickFrank.gltf", ndVector(0, 15, 0, 0));
-			_Character->_Camera = &_Camera;
+			_World = createWorldSceneNode(MapFile);
 
 			isWorld = true;
+		}
+		void SceneGraph::initPlayer(const char* CharacterFile, ndVector CharacterPosition)
+		{
+			//
+			//	Load World/Charater/Etc..
+			_Character = createCharacterSceneNode(CharacterFile, CharacterPosition);
+			_Character->_Camera = &_Camera;
 		}
 
 		void SceneGraph::cleanupWorld(const bool& bForce)

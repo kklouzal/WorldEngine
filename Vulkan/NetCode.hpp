@@ -70,7 +70,7 @@ namespace WorldEngine
 				ConnectedClients.push_back(_Client);
 			}
 
-			for (auto _Client : ConnectedClients)
+			for (auto& _Client : ConnectedClients)
 			{
 				const auto Packets_Client = _Client->GetPackets();
 				for (auto _Packet : Packets_Client)
@@ -80,16 +80,28 @@ namespace WorldEngine
 					{
 						printf("Incoming Packet: OpID %i\n", OperationID);
 					}
-					char MapFile[255];
+					bool bIsServer;
+					if (_Packet->read<bool>(bIsServer))
+					{
+						printf("Incoming Packet: bIsServer %i\n", bIsServer);
+					}
+					char MapFile[255] = "";
 					if (_Packet->read<char>(*MapFile))
 					{
 						printf("\tMapFile: %s\n", MapFile);
+						WorldEngine::SceneGraph::initWorld(MapFile);
 					}
-					unsigned int TestVar;
-					if (_Packet->read<unsigned int>(TestVar))
+					char CharacterFile[255] = "";
+					if (_Packet->read<char>(*CharacterFile))
 					{
-						printf("Incoming Packet: TestVar %i\n", TestVar);
+						printf("\CharacterFile: %s\n", CharacterFile);
 					}
+					float xPos, yPos, zPos;
+					if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
+					{
+						printf("\Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
+					}
+					WorldEngine::SceneGraph::initPlayer(CharacterFile, ndVector(xPos, yPos, zPos, 0.0f));
 
 					WorldEngine::VulkanDriver::_EventReceiver->OnGUI("Play");
 					//handle packet

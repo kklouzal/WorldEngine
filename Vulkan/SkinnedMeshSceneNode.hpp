@@ -89,7 +89,7 @@ public:
 			const char* const JointName = skeleton_.joint_names()[i];
 			_OZZJointMap[JointName] = i;
 		}
-		for (auto jm : _OZZJointMap)
+		for (auto& jm : _OZZJointMap)
 		{
 			printf("OZZ JOINT MAPPED %s -> %u\n", jm.first.c_str(), jm.second);
 		}
