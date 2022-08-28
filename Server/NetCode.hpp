@@ -76,13 +76,20 @@ namespace WorldEngine
                 const auto Packets = _Client.first->GetPackets();
                 for (auto _Packet : Packets)
                 {
-                    wxLogMessage("[HANDLE CLIENT PACKET]");
                     //
                     //  Read out the data we sent
-                    const char* Dat;
-                    if (_Packet->read<const char*>(Dat))
+                    unsigned int OperationID;
+                    if (_Packet->read<unsigned int>(OperationID))
                     {
                         //printf("%s\n", Dat);
+                    }
+                    if (OperationID == 100)     //  Player Position Update
+                    {
+                        float xPos, yPos, zPos;
+                        if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
+                        {
+                            //wxLogMessage("\New Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
+                        }
                     }
                     //
                     //  Release our packet when we're done with it

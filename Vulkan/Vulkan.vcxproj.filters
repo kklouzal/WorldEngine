@@ -235,6 +235,9 @@
     <ClInclude Include="EventReceiver.impl.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NetCode.impl.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">

@@ -166,6 +166,7 @@ namespace WorldEngine
 	}
 }
 #include "EventReceiver.hpp"
+#include "NetCode.hpp"
 
 #include "PipelineObject.hpp"
 #include "Import_GLTF.hpp"
@@ -176,7 +177,7 @@ namespace WorldEngine
 
 #include "SceneGraph.hpp"
 
-#include "NetCode.hpp"
+#include "NetCode.impl.hpp"
 #include "EventReceiver.impl.hpp"
 
 
