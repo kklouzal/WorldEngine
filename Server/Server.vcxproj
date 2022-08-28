@@ -73,10 +73,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>C:\Libraries\wxWidgets\include;C:\Libraries\wxWidgets\include\msvc;C:\Libraries\KNet\include;C:\Libraries\zstd\include;C:\Libraries\newton\include\ndNewton;C:\Libraries\GLM;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Libraries\wxWidgets\lib\vc_x64_lib;C:\Libraries\zstd\lib;C:\Libraries\newton\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\_Server</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\Libraries\wxWidgets\include;C:\Libraries\wxWidgets\include\msvc;C:\Libraries\KNet\include;C:\Libraries\zstd\include;C:\Libraries\newton\include\ndNewton;C:\Libraries\GLM;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Libraries\wxWidgets\lib\vc_x64_lib;C:\Libraries\zstd\lib;C:\Libraries\newton\lib;$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\_Server</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -144,8 +146,10 @@
     <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Client.hpp" />
     <ClInclude Include="Import_GLTF.hpp" />
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="NetCode.hpp" />
     <ClInclude Include="SceneGraph.hpp" />
     <ClInclude Include="SceneNode.h" />
     <ClInclude Include="stb_image.h" />

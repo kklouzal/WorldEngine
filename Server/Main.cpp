@@ -11,6 +11,8 @@ namespace WorldEngine
     namespace
     {
         ndWorld* _ndWorld;
+
+        std::string CurrentMap;
     }
 
     ndWorld* GetPhysicsWorld()
@@ -18,6 +20,8 @@ namespace WorldEngine
         return _ndWorld;
     }
 }
+
+#include "NetCode.hpp"
 
 #include "Import_GLTF.hpp"
 #include "SceneGraph.hpp"
@@ -66,11 +70,6 @@ class MyFrame : public wxFrame
         return DF / Frames.size();
     }
 
-    KNet::NetAddress* SendAddr;
-    KNet::NetAddress* RecvAddr;
-    KNet::NetPoint* Point;
-    std::deque<KNet::NetClient*> ConnectedClients;
-
 public:
     void OnTimer(wxTimerEvent& event);
 
@@ -116,7 +115,7 @@ public:
         wxLogMessage("\tRecv Port: %ld", ini_Recv_Port);
         wxLogMessage("\tTickrate: %ld\n", ini_Tickrate);
         conf->SetPath("/game");
-        std::string ini_Map(conf->Read("map", "./media/models/newMap.gltf").c_str());
+        WorldEngine::CurrentMap = conf->Read("map", "./media/models/newMap.gltf").ToStdString();
 
         //
         //	Physics Initialization
@@ -128,22 +127,11 @@ public:
 
         //
         //  World Initialization
-        WorldEngine::SceneGraph::Initialize(ini_Map.c_str());
+        WorldEngine::SceneGraph::Initialize(WorldEngine::CurrentMap.c_str());
 
         //
-        //  Initialize KNet
-        KNet::Initialize();
-        wxLogMessage("Networking Initialized");
-        //
-        //  Resolve our send and receive addresses
-        SendAddr = KNet::AddressPool->GetFreeObject();
-        RecvAddr = KNet::AddressPool->GetFreeObject();
-        SendAddr->Resolve(ini_IP, ini_Send_Port);
-        RecvAddr->Resolve(ini_IP, ini_Recv_Port);
-        //
-        //  Create the socket
-        Point = new KNet::NetPoint(SendAddr, RecvAddr);
-        wxLogMessage("Listening..\n");
+        //  Initialize NetCode
+        WorldEngine::NetCode::Initialize(ini_IP.c_str(), ini_Send_Port, ini_Recv_Port);
 
         TickTimer = new wxTimer();
         TickTimer->Bind(wxEVT_TIMER, &MyFrame::OnTimer, this);
@@ -153,13 +141,10 @@ public:
     ~MyFrame()
     {
         wxLogMessage("[Shutting Down]");
-        //
-        //  Delete the socket
-        delete Point;
 
         //
-        //  Deinitialize the library
-        KNet::Deinitialize();
+        //  Deinitialize NetCode
+        WorldEngine::NetCode::Deinitialize();
 
         //
         //  Delete the Physics World
@@ -195,64 +180,22 @@ private:
 void MyFrame::OnTimer(wxTimerEvent&)
 {
     startFrame = std::chrono::high_resolution_clock::now();
-    //	Push previous delta to rolling average
     PushFrameDelta(deltaFrame);
+    //==============================
     //
     // 
-    //      Process incoming packets
-    //
-    // 
-    //  Get any received out-of-band packets
-    const auto Packets1 = Point->GetPackets();
-    for (auto _Packet : Packets1.first)
-    {
-        wxLogMessage("[HANDLE OUT_OF_BAND PACKET]");
-        //
-        //  Release our packet when we're done with it
-        Point->ReleasePacket(_Packet);
-    }
-    //
-    //  Check for new clients
-    for (auto _Client : Packets1.second)
-    {
-        wxLogMessage("[HANDLE NEW CLIENT]");
-        ConnectedClients.push_back(_Client);
-    }
-    //
-    //  Loop all connected clients
-    for (auto _Client : ConnectedClients)
-    {
-        //
-        //  Check if each client has any new packets
-        const auto Packets = _Client->GetPackets();
-        for (auto _Packet : Packets)
-        {
-            wxLogMessage("[HANDLE CLIENT PACKET]");
-            //
-            //  Read out the data we sent
-            const char* Dat;
-            if (_Packet->read<const char*>(Dat))
-            {
-                //printf("%s\n", Dat);
-            }
-            //
-            //  Release our packet when we're done with it
-            Point->ReleasePacket(_Packet);
-        }
-    }
+    //  NetCode Tick
+    WorldEngine::NetCode::Tick();
 
-    //
     // 
-    //      Update the world
-    //
-    // 
+    //  Update the world
     if (deltaFrame > 0.0f)
     {
         WorldEngine::_ndWorld->Update(deltaFrame);
     }
     //
     //
-    //std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    //==============================
     deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
     SetStatusText("Tick Time " + wxString(std::to_string(GetDeltaFrames() * 1000)) + "ms");
 }

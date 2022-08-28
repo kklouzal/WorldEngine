@@ -77,6 +77,22 @@ namespace WorldEngine
 				const auto Packets_Client = _Client->GetPackets();
 				for (auto _Packet : Packets_Client)
 				{
+					unsigned int OperationID;
+					if (_Packet->read<unsigned int>(OperationID))
+					{
+						printf("Incoming Packet: OpID %i\n", OperationID);
+					}
+					char MapFile[255];
+					_Packet->read<char>(*MapFile);
+					//if ()
+					//{
+						printf("\tMapFile: %s\n", MapFile);
+					//}
+					unsigned int TestVar;
+					if (_Packet->read<unsigned int>(TestVar))
+					{
+						printf("Incoming Packet: TestVar %i\n", TestVar);
+					}
 					//handle packet
 					LocalPoint->ReleasePacket(_Packet);
 				}
