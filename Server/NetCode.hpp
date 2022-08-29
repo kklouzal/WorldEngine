@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Client.hpp"
-
 namespace WorldEngine
 {
 	namespace NetCode
@@ -12,40 +10,39 @@ namespace WorldEngine
 			KNet::NetAddress* RecvAddr;
 			KNet::NetPoint* Point;
 
-            std::unordered_map<KNet::NetClient*, Client*> ConnectedClients;
+            std::unordered_map<KNet::NetClient*, Player*> ConnectedClients;
 		}
 
-		void Initialize(const char* BindIP, const unsigned int SendPort, const unsigned int RecvPort)
-		{
-			//
-			//  Initialize KNet
-			KNet::Initialize();
-			wxLogMessage("Networking Initialized");
-			//
-			//  Resolve our send and receive addresses
-			SendAddr = KNet::AddressPool->GetFreeObject();
-			RecvAddr = KNet::AddressPool->GetFreeObject();
-			SendAddr->Resolve(BindIP, SendPort);
-			RecvAddr->Resolve(BindIP, RecvPort);
-			//
-			//  Create the socket
-			Point = new KNet::NetPoint(SendAddr, RecvAddr);
-			wxLogMessage("Listening..\n");
-		}
+        void Initialize(const char* BindIP, const unsigned int SendPort, const unsigned int RecvPort)
+        {
+            //
+            //  Initialize KNet
+            KNet::Initialize();
+            wxLogMessage("Networking Initialized");
+            //
+            //  Resolve our send and receive addresses
+            SendAddr = KNet::AddressPool->GetFreeObject();
+            RecvAddr = KNet::AddressPool->GetFreeObject();
+            SendAddr->Resolve(BindIP, SendPort);
+            RecvAddr->Resolve(BindIP, RecvPort);
+            //
+            //  Create the socket
+            Point = new KNet::NetPoint(SendAddr, RecvAddr);
+            wxLogMessage("Listening..\n");
+        }
 
-		void Deinitialize()
-		{
-			//
-			//  Delete the socket
-			delete Point;
+        void Deinitialize()
+        {
+            //
+            //  Delete the socket
+            delete Point;
+            //
+            //  Deinitialize the library
+            KNet::Deinitialize();
+        }
 
-			//
-			//  Deinitialize the library
-			KNet::Deinitialize();
-		}
-
-		void Tick()
-		{
+        void Tick()
+        {
             //
             // 
             //      Process incoming packets
@@ -65,37 +62,10 @@ namespace WorldEngine
             for (auto _Client : Packets1.second)
             {
                 wxLogMessage("[HANDLE NEW CLIENT]");
-                ConnectedClients[_Client] = new Client(_Client, Point);
+                Player* NewPlayer = new Player(_Client, Point);
+                ConnectedClients[_Client] = NewPlayer;
+                WorldEngine::SceneGraph::AddSceneNode(NewPlayer);
             }
-            //
-            //  Loop all connected clients
-            for (auto& _Client : ConnectedClients)
-            {
-                //
-                //  Check if each client has any new packets
-                const auto Packets = _Client.first->GetPackets();
-                for (auto _Packet : Packets)
-                {
-                    //
-                    //  Read out the data we sent
-                    unsigned int OperationID;
-                    if (_Packet->read<unsigned int>(OperationID))
-                    {
-                        //printf("%s\n", Dat);
-                    }
-                    if (OperationID == 100)     //  Player Position Update
-                    {
-                        float xPos, yPos, zPos;
-                        if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
-                        {
-                            //wxLogMessage("\New Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
-                        }
-                    }
-                    //
-                    //  Release our packet when we're done with it
-                    Point->ReleasePacket(_Packet);
-                }
-            }
-		}
+        }
 	}
 }

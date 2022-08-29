@@ -14,6 +14,7 @@ namespace WorldEngine
 
         std::string CurrentMap;
         std::string DefaultPlayerModel;
+        std::chrono::seconds ClientTimeout;
     }
 
     ndWorld* GetPhysicsWorld()
@@ -22,10 +23,10 @@ namespace WorldEngine
     }
 }
 
-#include "NetCode.hpp"
-
 #include "Import_GLTF.hpp"
 #include "SceneGraph.hpp"
+
+#include "NetCode.hpp"
 
 // Define a new application type, each program should derive a class from wxApp
 class MyApp : public wxApp
@@ -110,18 +111,20 @@ public:
         const long ini_Send_Port = conf->ReadLong("send_port", 8000);
         const long ini_Recv_Port = conf->ReadLong("recv_port", 8001);
         const long ini_Tickrate = conf->ReadLong("tickrate", 60);
-        wxLogMessage("[Load settings.ini]");
-        wxLogMessage("[NET]");
-        wxLogMessage("\tIP: %s", ini_IP);
-        wxLogMessage("\tSend Port: %ld", ini_Send_Port);
-        wxLogMessage("\tRecv Port: %ld", ini_Recv_Port);
-        wxLogMessage("\tTickrate: %ld\n", ini_Tickrate);
-        wxLogMessage("[GAME]");
+        WorldEngine::ClientTimeout = std::chrono::seconds(conf->ReadLong("client_timeout", 300));
+        wxLogMessage("[Load settings.ini]\n");
+        wxLogMessage("\t[NET]");
+        wxLogMessage("\t\tIP: %s", ini_IP);
+        wxLogMessage("\t\tSend Port: %ld", ini_Send_Port);
+        wxLogMessage("\t\tRecv Port: %ld", ini_Recv_Port);
+        wxLogMessage("\t\tTickrate: %ld", ini_Tickrate);
+        wxLogMessage("\t\tClient Timeout: %ld\n", WorldEngine::ClientTimeout.count());
+        wxLogMessage("\t[GAME]");
         conf->SetPath("/game");
         WorldEngine::CurrentMap = conf->Read("map", "./media/models/newMap.gltf").ToStdString();
         WorldEngine::DefaultPlayerModel = conf->Read("player", "./media/models/brickFrank.gltf").ToStdString();
-        wxLogMessage("\tMap File: %s", WorldEngine::CurrentMap.c_str());
-        wxLogMessage("\tPlayer Model: %s\n", WorldEngine::DefaultPlayerModel.c_str());
+        wxLogMessage("\t\tMap File: %s", WorldEngine::CurrentMap.c_str());
+        wxLogMessage("\t\tPlayer Model: %s\n", WorldEngine::DefaultPlayerModel.c_str());
 
         //
         //	Physics Initialization
@@ -192,6 +195,10 @@ void MyFrame::OnTimer(wxTimerEvent&)
     // 
     //  NetCode Tick
     WorldEngine::NetCode::Tick();
+
+    //
+    //  SceneNode Tick
+    WorldEngine::SceneGraph::Tick(startFrame);
 
     // 
     //  Update the world

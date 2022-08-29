@@ -50,11 +50,11 @@
     <ClInclude Include="stb_image_write.h">
       <Filter>Header Files\GLTF</Filter>
     </ClInclude>
-    <ClInclude Include="Client.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="NetCode.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Player.hpp">
+      <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
