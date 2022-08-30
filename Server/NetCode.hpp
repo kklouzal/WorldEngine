@@ -63,7 +63,7 @@ namespace WorldEngine
             //  Handle Out-Of-Band Packets
             for (auto& Packet : Packets.Packets)
             {
-                wxLogMessage("[HANDLE OUT_OF_BAND PACKET]");
+                wxLogMessage("[NET] Handle Out_Of_Band Packet");
                 //
                 //  Release our packet when we're done with it
                 Point->ReleasePacket(Packet);
@@ -72,7 +72,7 @@ namespace WorldEngine
             //  Handle New Clients
             for (auto& Client : Packets.Clients_Connected)
             {
-                wxLogMessage("[HANDLE NEW CLIENT]");
+                wxLogMessage("[NET] Handle New Client");
                 Player* NewPlayer = new Player(Client, Point);
                 ConnectedClients[Client] = NewPlayer;
                 WorldEngine::SceneGraph::AddSceneNode(NewPlayer);
@@ -81,16 +81,23 @@ namespace WorldEngine
             //  Handle Disconnected Clients
             for (auto& Client : Packets.Clients_Disconnected)
             {
-                wxLogMessage("[HANDLE DISCONNECTED CLIENT]");
-                Player* CurrentPlayer = ConnectedClients[Client];
                 //
-                //  Mark player for deletion in the SceneGraph
-                //  Handles updating other clients of our disconnect
-                CurrentPlayer->Disconnect();
-                //
-                //  Once finnished, release the client away
-                ConnectedClients.erase(Client);
-                Point->ReleaseClient(Client);
+                //  Check if this client is still marked as connected
+                if (ConnectedClients.count(Client))
+                {
+                    wxLogMessage("[NET] Handle Disconnected Client");
+                    Player* CurrentPlayer = ConnectedClients[Client];
+                    //
+                    //  Mark player for deletion in the SceneGraph
+                    //  Handles updating other clients of our disconnect
+                    CurrentPlayer->Disconnect();
+                    //
+                    //  Mark the client as no longer connected
+                    ConnectedClients.erase(Client);
+                    //
+                    //  Once finnished with it, release the client away
+                    Point->ReleaseClient(Client);
+                }
             }
         }
 	}

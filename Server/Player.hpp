@@ -34,13 +34,15 @@ public:
             Pkt1->write<float>(_Position.GetY());							//	Player Position - Y
             Pkt1->write<float>(_Position.GetZ());							//	Player Position - Z
             _Point->SendPacket(Pkt1);
-            wxLogMessage("Send Client Initial Packet");
+            wxLogMessage("[Player] Send Initial Packet");
         }
         else { printf("PKT1 UNAVAILABLE!\n"); }
     }
 
 	~Player()
-	{}
+	{
+        wxLogMessage("[Player] Deleted!");
+    }
 
 	void Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
 	{
