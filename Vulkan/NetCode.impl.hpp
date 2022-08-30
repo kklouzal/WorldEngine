@@ -40,23 +40,36 @@ namespace WorldEngine
 			}
 		}
 
-		void Tick()
+		void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime)
 		{
+			//
+			//  Check for timeouts every 1 second
+			if (LastTimeoutCheck + std::chrono::seconds(1) <= CurTime)
+			{
+				LocalPoint->CheckForTimeouts();
+			}
+			//
+			// 
+			//      Process NetCode Updates
+			//
+			//
 			const auto Packets_OOB = LocalPoint->GetPackets();
-			for (auto _Packet : Packets_OOB.first)
+			for (auto& _Packet : Packets_OOB.Packets)
 			{
 				printf("INCOMING PACKET\n");
 				//
 				//	Handle incoming Out-Of-Band packets
 				LocalPoint->ReleasePacket(_Packet);
 			}
-
-			for (auto _Client : Packets_OOB.second)
+			//
+			//  Handle Out-Of-Band Packets
+			for (auto& _Client : Packets_OOB.Clients_Connected)
 			{
 				printf("INCOMING CLIENT\n");
 				ConnectedClients.push_back(_Client);
 			}
-
+			//
+			//  Handle New Clients
 			for (auto& _Client : ConnectedClients)
 			{
 				const auto Packets_Client = _Client->GetPackets();
@@ -108,6 +121,23 @@ namespace WorldEngine
 					LocalPoint->SendPacket(Pkt1);
 				}
 				else { printf("PKT1 UNAVAILABLE!\n"); }*/
+			}
+			//
+			//  Handle Disconnected Clients
+			for (auto& Client : Packets_OOB.Clients_Disconnected)
+			{
+				printf("DISCONNECT CLIENT\n");
+				for (std::deque<KNet::NetClient*>::iterator it = ConnectedClients.begin(); it != ConnectedClients.end();)
+				{
+					if (*it == Client)
+					{
+						ConnectedClients.erase(it);
+						//
+						//	Once finnished, release the client away
+						LocalPoint->ReleaseClient(Client);
+						break;
+					}
+				}
 			}
 		}
 	}

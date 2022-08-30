@@ -10,6 +10,7 @@ namespace WorldEngine
 			KNet::NetAddress* RecvAddr;
 			KNet::NetPoint* Point;
 
+            std::chrono::time_point<std::chrono::steady_clock> LastTimeoutCheck;
             std::unordered_map<KNet::NetClient*, Player*> ConnectedClients;
 		}
 
@@ -28,6 +29,9 @@ namespace WorldEngine
             //
             //  Create the socket
             Point = new KNet::NetPoint(SendAddr, RecvAddr);
+            //
+            //
+            LastTimeoutCheck = std::chrono::steady_clock::now();
             wxLogMessage("Listening..\n");
         }
 
@@ -41,30 +45,52 @@ namespace WorldEngine
             KNet::Deinitialize();
         }
 
-        void Tick()
+        void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime)
         {
             //
-            // 
-            //      Process incoming packets
+            //  Check for timeouts every 1 second
+            if (LastTimeoutCheck + std::chrono::seconds(1) <= CurTime)
+            {
+                Point->CheckForTimeouts();
+            }
             //
             // 
-            //  Get any received out-of-band packets
-            const auto Packets1 = Point->GetPackets();
-            for (auto _Packet : Packets1.first)
+            //      Process NetCode Updates
+            //
+            //
+            const auto& Packets = Point->GetPackets();
+            //
+            //  Handle Out-Of-Band Packets
+            for (auto& Packet : Packets.Packets)
             {
                 wxLogMessage("[HANDLE OUT_OF_BAND PACKET]");
                 //
                 //  Release our packet when we're done with it
-                Point->ReleasePacket(_Packet);
+                Point->ReleasePacket(Packet);
             }
             //
-            //  Check for new clients
-            for (auto _Client : Packets1.second)
+            //  Handle New Clients
+            for (auto& Client : Packets.Clients_Connected)
             {
                 wxLogMessage("[HANDLE NEW CLIENT]");
-                Player* NewPlayer = new Player(_Client, Point);
-                ConnectedClients[_Client] = NewPlayer;
+                Player* NewPlayer = new Player(Client, Point);
+                ConnectedClients[Client] = NewPlayer;
                 WorldEngine::SceneGraph::AddSceneNode(NewPlayer);
+            }
+            //
+            //  Handle Disconnected Clients
+            for (auto& Client : Packets.Clients_Disconnected)
+            {
+                wxLogMessage("[HANDLE DISCONNECTED CLIENT]");
+                Player* CurrentPlayer = ConnectedClients[Client];
+                //
+                //  Mark player for deletion in the SceneGraph
+                //  Handles updating other clients of our disconnect
+                CurrentPlayer->Disconnect();
+                //
+                //  Once finnished, release the client away
+                ConnectedClients.erase(Client);
+                Point->ReleaseClient(Client);
             }
         }
 	}

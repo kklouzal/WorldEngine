@@ -13,6 +13,7 @@ namespace WorldEngine
 			KNet::NetAddress* RemoteAddr;
 			//
 			//	Clients Connected To Us
+			std::chrono::time_point<std::chrono::steady_clock> LastTimeoutCheck;
 			std::deque<KNet::NetClient*> ConnectedClients;
 			//
 			//	Server-side Client
@@ -26,6 +27,6 @@ namespace WorldEngine
 
 		void ConnectToServer(const char* RemoteIP, const unsigned int RemotePort);
 
-		void Tick();
+		void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime);
 	}
 }

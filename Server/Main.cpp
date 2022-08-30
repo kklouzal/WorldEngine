@@ -194,7 +194,7 @@ void MyFrame::OnTimer(wxTimerEvent&)
     //
     // 
     //  NetCode Tick
-    WorldEngine::NetCode::Tick();
+    WorldEngine::NetCode::Tick(startFrame);
 
     //
     //  SceneNode Tick

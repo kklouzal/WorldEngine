@@ -9,9 +9,6 @@ class Player : public SceneNode
     //	Our NetPoint Object
     KNet::NetPoint* _Point;
     //
-    //	When was our last packet received
-    std::chrono::time_point<std::chrono::steady_clock> LastPacketTime = std::chrono::high_resolution_clock::now();
-    //
     //
     std::string PlayerModel;
     //
@@ -73,35 +70,12 @@ public:
                 //  Release our packet when we're done with it
                 _Point->ReleasePacket(_Packet);
             }
-            //
-            //  Update our LastPacketTime
-            LastPacketTime = CurTime;
-        }
-        //
-        //  Check if we need to disconnect and cleanup the player
-        else {
-            //
-            //  TODO: MAYBE need to add this SceneNode to a list of nodes that need cleaned up on the next tick.
-            //  TODO: Update all other clients about this disconnect
-            if (LastPacketTime + std::chrono::seconds(WorldEngine::ClientTimeout) <= CurTime)
-            {
-                wxLogMessage("CLIENT HAS TIMED OUT");
-                //
-                //  Mark ourselves for deletion during next tick
-                NeedsDelete = true;
-                //
-                //  Remove our NetClient from the NetPoint (KNet cleanup)
-                /*bool CleanedUp = _Point->CleanupClient(_Client);
-                if (CleanedUp)
-                {
-                    wxLogMessage("CLIENT KNet Cleaned");
-                }
-                else {
-                    wxLogMessage("CLIENT KNet Not Cleaned");
-                }*/
-                //
-                //  TODO: Update all other clients about this disconnect
-            }
         }
 	}
+
+    //  TODO: Notify other players of our disconnect.
+    void Disconnect()
+    {
+        NeedsDelete = true;
+    }
 };

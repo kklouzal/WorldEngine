@@ -399,7 +399,7 @@ namespace WorldEngine
 				ImGui::GetIO().DeltaTime = deltaFrame;
 				//
 				//	Net Updates
-				WorldEngine::NetCode::Tick();
+				WorldEngine::NetCode::Tick(startFrame);
 				//
 				//	Handle and perform Inputs
 				glfwPollEvents();
