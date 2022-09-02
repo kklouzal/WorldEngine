@@ -2,6 +2,7 @@
 
 #include "SceneNode.h"
 #include "Player.hpp"
+#include "MeshSceneNode.hpp"
 
 namespace WorldEngine
 {
@@ -23,6 +24,11 @@ namespace WorldEngine
 			const uintmax_t NodeID = NextNodeID++;
 			SceneNodes.emplace(NodeID, Node);
 			Node->SetNodeID(NodeID);
+		}
+
+		GLTFInfo* LoadModel(const char* File)
+		{
+			return _ImportGLTF->loadModel(File);
 		}
 
 		void Initialize(const char* WorldFile_GLTF)

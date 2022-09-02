@@ -155,6 +155,7 @@
   <ItemGroup>
     <ClInclude Include="Import_GLTF.hpp" />
     <ClInclude Include="json.hpp" />
+    <ClInclude Include="MeshSceneNode.hpp" />
     <ClInclude Include="NetCode.hpp" />
     <ClInclude Include="Player.hpp" />
     <ClInclude Include="SceneGraph.hpp" />

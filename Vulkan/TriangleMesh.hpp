@@ -34,7 +34,7 @@ public:
 public:
 	
 	//
-	//	TOD: SSBOSize needs passed down differently..
+	//	TODO: SSBOSize needs passed down differently..
 	//	this is dirty..
 	TriangleMesh(Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
 		: Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {

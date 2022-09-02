@@ -4,9 +4,9 @@ class SceneNode {
 protected:
 	uintmax_t NodeID;
 	bool NeedsDelete;
+	//
+	ndVector Position;
 public:
-	glm::vec3 Pos{};
-	glm::vec3 Rot{};
 	std::string Name = "N/A";
 	bool isFrozen = false;
 	bool canPhys = true;
@@ -14,8 +14,8 @@ public:
 	ndVector gravity = -10.f;
 
 public:
-	SceneNode() :
-		NodeID(0), NeedsDelete(false) {}
+	SceneNode(ndVector Position = ndVector(0.0f, 0.0f, 0.0f, 1.0f)) :
+		NodeID(0), NeedsDelete(false), Position(Position) {}
 
 	virtual ~SceneNode()
 	{

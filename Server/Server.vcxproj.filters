@@ -56,5 +56,8 @@
     <ClInclude Include="Player.hpp">
       <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
+    <ClInclude Include="MeshSceneNode.hpp">
+      <Filter>Header Files\SceneNodes</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
