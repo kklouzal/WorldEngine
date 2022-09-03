@@ -2,7 +2,6 @@
 
 #include "SceneNode.h"
 #include "Player.hpp"
-#include "MeshSceneNode.hpp"
 
 namespace WorldEngine
 {
@@ -140,3 +139,5 @@ namespace WorldEngine
 		}
 	}
 }
+
+#include "MeshSceneNode.hpp"

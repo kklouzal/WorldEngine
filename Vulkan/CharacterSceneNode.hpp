@@ -478,10 +478,10 @@ public:
 		KNet::NetPacket_Send* Pkt = WorldEngine::NetCode::_Server->GetFreePacket<KNet::ChannelID::Unreliable_Latest>();
 		if (Pkt)
 		{
-			Pkt->write<unsigned int>(100);							//	100 = Player Values Update
-			Pkt->write<float>(matrix.m_posit.m_x);					//	Player Position - X
-			Pkt->write<float>(matrix.m_posit.m_y);					//	Player Position - Y
-			Pkt->write<float>(matrix.m_posit.m_z);					//	Player Position - Z
+			Pkt->write<WorldEngine::NetCode::OPID>(WorldEngine::NetCode::OPID::Player_PositionUpdate);		//	100 = Player Values Update
+			Pkt->write<float>(matrix.m_posit.m_x);															//	Player Position - X
+			Pkt->write<float>(matrix.m_posit.m_y);															//	Player Position - Y
+			Pkt->write<float>(matrix.m_posit.m_z);															//	Player Position - Z
 			WorldEngine::NetCode::LocalPoint->SendPacket(Pkt);
 		}
 	}

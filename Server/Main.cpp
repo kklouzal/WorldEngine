@@ -23,10 +23,15 @@ namespace WorldEngine
     }
 }
 
+//
+//  Forward Declarations
+class Player;
+
+#include "NetCode.hpp"
 #include "Import_GLTF.hpp"
 #include "SceneGraph.hpp"
 
-#include "NetCode.hpp"
+#include "NetCode.impl.hpp"
 
 // Define a new application type, each program should derive a class from wxApp
 class MyApp : public wxApp

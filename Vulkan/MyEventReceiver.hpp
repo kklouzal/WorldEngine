@@ -27,28 +27,26 @@ public:
 			//Character->moveForward((dInt32(isW) - dInt32(isS)) * 10.0f);
 			//Character->moveRight((dInt32(isD) - dInt32(isA)) * 10.0f);
 
+			//
+			//	W
 			if (isW) {
 				if (Character && Character->_Camera) {
 
 					if (isShift)
 					{
-
 						Character->moveForward(25.0f * (WorldEngine::VulkanDriver::deltaFrame));
-
 					}
 					else
 					{
-
 						Character->moveForward(10.0f * (WorldEngine::VulkanDriver::deltaFrame));
-
 					}
-					
-					
 				}
 				else {
 					Cam->GoForward(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 			}
+			//
+			//	S
 			if (isS) {
 				if (Character && Character->_Camera) {
 					Character->moveForward(-5.0f * (WorldEngine::VulkanDriver::deltaFrame));
@@ -57,6 +55,8 @@ public:
 					Cam->GoBackward(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 			}
+			//
+			//	A
 			if (isA) {
 				if (Character && Character->_Camera) {
 					Character->moveLeft(-8.0f * (WorldEngine::VulkanDriver::deltaFrame));
@@ -65,6 +65,8 @@ public:
 					Cam->GoLeft(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 			}
+			//
+			//	D
 			if (isD) {
 				if (Character && Character->_Camera) {
 					
@@ -74,44 +76,38 @@ public:
 					Cam->GoRight(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 			}
+			//
+			//	R
 			if (isR)
 			{
-
 				CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 				if (Character)
 				{
-
 					if (isPrimary == false)
 					{
-
 						Character->GetCurrentItem()->ReceiveReloadAction(true);
-
 					}
 					else if (Character->GetCurrentItem())
 					{
-
 						Character->GetCurrentItem()->ReceiveReloadAction(false);
-
 					}
-
 				}
-
 			}
+			//
+			//	SPACE
 			if (isSpace)
 			{
 				if (Character && Character->_Camera) {
 					Character->doJump(35.0f);
 				}
 			}
-
+			//
+			//	Current Item Think Function
 			Item* CurItem = Character->GetCurrentItem();
 			if (CurItem)
 			{
-
 				CurItem->DoThink(ndVector(Cam->Pos.x, Cam->Pos.y + 2, Cam->Pos.z, 0.0f), ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
-				
 			}
-
 		}
 	}
 
@@ -119,6 +115,8 @@ public:
 	//	Called every time an event occurs
 	void OnEvent(const Event& NewEvent) {
 		if (NewEvent.Type == EventTypes::Keyboard) {
+			//
+			//	Keyboard Key Press
 			if (NewEvent.Action == EventActions::Press) {
 				if (NewEvent.Key == GLFW_KEY_W) {
 					isW = true;
@@ -173,7 +171,7 @@ public:
 					//
 					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
 					if (!IsCursorActive() && IsWorldInitialized()) {
-						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
 					}
 				}
 				else if (NewEvent.Key == GLFW_KEY_Z) {
@@ -184,6 +182,8 @@ public:
 					}
 				}
 			}
+			//
+			//	Keyboard Key Release
 			else if (NewEvent.Action == EventActions::Release) {
 				if (NewEvent.Key == GLFW_KEY_W) {
 					isW = false;
@@ -207,6 +207,8 @@ public:
 					isShift = false;
 				}
 			}
+			//
+			//	Keyboard Key Repeat
 			else if (NewEvent.Action == EventActions::Repeat) {
 				//
 				//	Only keyboard-spawn-objects when menus are closed and the world is initialized
@@ -215,14 +217,14 @@ public:
 						float X = (rand() % 100) - 50.0f;
 						float Z = (rand() % 100) - 50.0f;
 						float Y = (rand() % 70) + 30.0f;
-						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
+						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
 					}
 					else if (NewEvent.Key == GLFW_KEY_X) {
 						for (int i = 0; i < 5; i++)	{
 							float X = (rand() % 100) - 50.0f;
 							float Z = (rand() % 100) - 50.0f;
 							float Y = (rand() % 70) + 30.0f;
-							WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
+							WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
 						}
 					}
 				}

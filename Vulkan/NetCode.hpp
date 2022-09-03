@@ -21,6 +21,15 @@ namespace WorldEngine
 			
 		}
 
+		//
+		//	Keep track of all our Operation IDs
+		//	This list should match the server side exactly.
+		enum class OPID : uint8_t {
+			PlayerInitialConnect,
+			Player_PositionUpdate,
+			Spawn_TriangleMeshSceneNode
+		};
+
 		void Initialize(const char* LocalIP, const unsigned int LocalSendPort, const unsigned int LocalRecvPort);
 
 		void Deinitialize();
@@ -28,5 +37,7 @@ namespace WorldEngine
 		void ConnectToServer(const char* RemoteIP, const unsigned int RemotePort);
 
 		void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime);
+
+		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, ndVector Position);
 	}
 }

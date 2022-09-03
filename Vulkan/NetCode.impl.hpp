@@ -40,6 +40,21 @@ namespace WorldEngine
 			}
 		}
 
+		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, ndVector Position)
+		{
+			KNet::NetPacket_Send* Pkt = _Server->GetFreePacket<KNet::ChannelID::Reliable_Any>();
+			if (Pkt)
+			{
+				Pkt->write<WorldEngine::NetCode::OPID>(WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
+				Pkt->write<const char*>(File);
+				Pkt->write<float>(Mass);
+				Pkt->write<float>(Position.GetX());
+				Pkt->write<float>(Position.GetY());
+				Pkt->write<float>(Position.GetZ());
+				LocalPoint->SendPacket(Pkt);
+			}
+		}
+
 		void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime)
 		{
 			//
@@ -54,6 +69,8 @@ namespace WorldEngine
 			//
 			//
 			const auto Packets_OOB = LocalPoint->GetPackets();
+			//
+			//  Handle Out-Of-Band Packets
 			for (auto& _Packet : Packets_OOB.Packets)
 			{
 				printf("INCOMING PACKET\n");
@@ -62,65 +79,66 @@ namespace WorldEngine
 				LocalPoint->ReleasePacket(_Packet);
 			}
 			//
-			//  Handle Out-Of-Band Packets
+			//  Handle New Clients
 			for (auto& _Client : Packets_OOB.Clients_Connected)
 			{
 				printf("INCOMING CLIENT\n");
 				ConnectedClients.push_back(_Client);
 			}
 			//
-			//  Handle New Clients
+			//	Loop Connected Clients
 			for (auto& _Client : ConnectedClients)
 			{
 				const auto Packets_Client = _Client->GetPackets();
 				for (auto _Packet : Packets_Client)
 				{
-					unsigned int OperationID;
-					if (_Packet->read<unsigned int>(OperationID))
+					WorldEngine::NetCode::OPID OperationID;
+					if (_Packet->read<WorldEngine::NetCode::OPID>(OperationID))
 					{
 						printf("Incoming Packet: OpID %i\n", OperationID);
 					}
-					bool bIsServer;
-					if (_Packet->read<bool>(bIsServer))
+					//
+					//	PlayerInitialConnect
+					if (OperationID == WorldEngine::NetCode::OPID::PlayerInitialConnect)
 					{
-						printf("Incoming Packet: bIsServer %i\n", bIsServer);
-						if (bIsServer)
+						bool bIsServer;
+						if (_Packet->read<bool>(bIsServer))
 						{
-							_Server = _Client;
+							printf("Incoming Packet: bIsServer %i\n", bIsServer);
+							if (bIsServer)
+							{
+								_Server = _Client;
+							}
 						}
-					}
-					char MapFile[255] = "";
-					if (_Packet->read<char>(*MapFile))
-					{
-						printf("\tMapFile: %s\n", MapFile);
-						WorldEngine::SceneGraph::initWorld(MapFile);
-					}
-					char CharacterFile[255] = "";
-					if (_Packet->read<char>(*CharacterFile))
-					{
-						printf("\CharacterFile: %s\n", CharacterFile);
-					}
-					float xPos, yPos, zPos;
-					if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
-					{
-						printf("\Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
-					}
-					WorldEngine::SceneGraph::initPlayer(CharacterFile, ndVector(xPos, yPos, zPos, 0.0f));
+						char MapFile[255] = "";
+						if (_Packet->read<char>(*MapFile))
+						{
+							printf("\tMapFile: %s\n", MapFile);
+							WorldEngine::SceneGraph::initWorld(MapFile);
+						}
+						char CharacterFile[255] = "";
+						if (_Packet->read<char>(*CharacterFile))
+						{
+							printf("\CharacterFile: %s\n", CharacterFile);
+						}
+						float xPos, yPos, zPos;
+						if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
+						{
+							printf("\Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
+						}
+						WorldEngine::SceneGraph::initPlayer(CharacterFile, ndVector(xPos, yPos, zPos, 0.0f));
 
-					WorldEngine::VulkanDriver::_EventReceiver->OnGUI("Play");
+						WorldEngine::VulkanDriver::_EventReceiver->OnGUI("Play");
+					}
+					//
+					//	Spawn_TriangleMeshSceneNode
+					else if (OperationID == WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode)
+					{
+						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+					}
 					//handle packet
 					LocalPoint->ReleasePacket(_Packet);
 				}
-
-				//
-				//	send them back a packet
-
-				/*KNet::NetPacket_Send* Pkt1 = _Client->GetFreePacket<KNet::ChannelID::Unreliable_Any>();
-				if (Pkt1) {
-					Pkt1->write<const char*>("This is an Unreliable_Any packet");
-					LocalPoint->SendPacket(Pkt1);
-				}
-				else { printf("PKT1 UNAVAILABLE!\n"); }*/
 			}
 			//
 			//  Handle Disconnected Clients

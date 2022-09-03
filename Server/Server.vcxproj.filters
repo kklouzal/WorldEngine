@@ -59,5 +59,8 @@
     <ClInclude Include="MeshSceneNode.hpp">
       <Filter>Header Files\SceneNodes</Filter>
     </ClInclude>
+    <ClInclude Include="NetCode.impl.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
