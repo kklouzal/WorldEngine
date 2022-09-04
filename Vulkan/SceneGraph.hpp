@@ -32,11 +32,11 @@ namespace WorldEngine
 
 		bool tryCleanupWorld = false;
 		bool isWorld = false;
-		void initWorld(const char* MapFile);
-		void initPlayer(const char* CharacterFile, ndVector CharacterPosition);
+		void initWorld(uintmax_t NodeID, const char* MapFile);
+		void initPlayer(uintmax_t NodeID, const char* CharacterFile, ndVector CharacterPosition);
 		void cleanupWorld(const bool& bForce = false);
 
-		std::deque<SceneNode*> SceneNodes = {};
+		std::unordered_map<uintmax_t, SceneNode*> SceneNodes = {};
 
 		//
 		//	Constructor
@@ -66,10 +66,10 @@ namespace WorldEngine
 
 		//
 		//	Create SceneNode Functions
-		WorldSceneNode* createWorldSceneNode(const char* FileFBX);
-		CharacterSceneNode* createCharacterSceneNode(const char* FileFBX, const ndVector& Position);
-		TriangleMeshSceneNode* createTriangleMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
-		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
+		WorldSceneNode* createWorldSceneNode(uintmax_t NodeID, const char* FileFBX);
+		CharacterSceneNode* createCharacterSceneNode(uintmax_t NodeID, const char* FileFBX, const ndVector& Position);
+		TriangleMeshSceneNode* createTriangleMeshSceneNode(uintmax_t NodeID, const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
+		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(uintmax_t NodeID, const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
 
 		const bool& ShouldCleanupWorld()
 		{
@@ -117,20 +117,20 @@ namespace WorldEngine
 {
 	namespace SceneGraph
 	{
-		void SceneGraph::initWorld(const char* MapFile)
+		void SceneGraph::initWorld(uintmax_t NodeID, const char* MapFile)
 		{
 			if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
 			//
 			//	Load World/Charater/Etc..
-			_World = createWorldSceneNode(MapFile);
+			_World = createWorldSceneNode(NodeID, MapFile);
 
 			isWorld = true;
 		}
-		void SceneGraph::initPlayer(const char* CharacterFile, ndVector CharacterPosition)
+		void SceneGraph::initPlayer(uintmax_t NodeID, const char* CharacterFile, ndVector CharacterPosition)
 		{
 			//
 			//	Load World/Charater/Etc..
-			_Character = createCharacterSceneNode(CharacterFile, CharacterPosition);
+			_Character = createCharacterSceneNode(NodeID, CharacterFile, CharacterPosition);
 			_Character->_Camera = &_Camera;
 		}
 
@@ -166,8 +166,8 @@ namespace WorldEngine
 		{
 			//
 			//	Update SceneNode Uniform Buffers
-			for (size_t i = 0; i < SceneNodes.size(); i++) {
-				SceneNodes[i]->updateUniformBuffer(currentImage);
+			for (auto& Node : SceneNodes) {
+				Node.second->updateUniformBuffer(currentImage);
 			}
 		}
 
@@ -182,7 +182,7 @@ namespace WorldEngine
 
 		//
 		//	World Create Function
-		WorldSceneNode* SceneGraph::createWorldSceneNode(const char* FileFBX)
+		WorldSceneNode* SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* FileFBX)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -227,13 +227,13 @@ namespace WorldEngine
 
 			//
 			//	Push new SceneNode into the SceneGraph
-			SceneNodes.push_back(MeshNode);
+			SceneNodes[NodeID] = MeshNode;
 			return MeshNode;
 		}
 
 		//
 		//	TriangleMesh Create Function
-		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
+		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -267,13 +267,14 @@ namespace WorldEngine
 
 			//
 			//	Push new SceneNode into the SceneGraph
-			SceneNodes.push_back(MeshNode);
+			MeshNode->SetNodeID(NodeID);
+			SceneNodes[NodeID] = MeshNode;
 			return MeshNode;
 		}
 
 		//
 		//	SkinnedMesh Create Function
-		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
+		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -305,13 +306,13 @@ namespace WorldEngine
 			WorldEngine::VulkanDriver::_ndWorld->Sync();
 			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
 
-			SceneNodes.push_back(MeshNode);
+			SceneNodes[NodeID] = MeshNode;
 			return MeshNode;
 		}
 
 		//
 		//	Character Create Function
-		CharacterSceneNode* SceneGraph::createCharacterSceneNode(const char* FileFBX, const ndVector& Position)
+		CharacterSceneNode* SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* FileFBX, const ndVector& Position)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
@@ -355,7 +356,7 @@ namespace WorldEngine
 
 			//
 			//	Push new SceneNode into the SceneGraph
-			SceneNodes.push_back(MeshNode);
+			SceneNodes[NodeID] = MeshNode;
 			return MeshNode;
 		}
 	}

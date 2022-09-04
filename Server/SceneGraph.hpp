@@ -1,7 +1,6 @@
 #pragma once
 
 #include "SceneNode.h"
-#include "Player.hpp"
 
 namespace WorldEngine
 {
@@ -141,3 +140,4 @@ namespace WorldEngine
 }
 
 #include "MeshSceneNode.hpp"
+#include "Player.hpp"

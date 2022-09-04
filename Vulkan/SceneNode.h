@@ -1,6 +1,8 @@
 #pragma once
 
 class SceneNode {
+protected:
+	uintmax_t NodeID;
 public:
 	glm::mat4 Model{};
 	glm::vec3 Pos{};
@@ -29,6 +31,18 @@ public:
 	virtual void drawFrame(const VkCommandBuffer &CommandBuffer, const uint32_t &CurFrame) = 0;
 	virtual void drawGUI() {}
 
+	void SetNodeID(const uintmax_t ID)
+	{
+		if (NodeID == 0)
+		{
+			NodeID = ID;
+		}
+	}
+
+	const uintmax_t GetNodeID()
+	{
+		return NodeID;
+	}
 };
 
 //

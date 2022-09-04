@@ -20,7 +20,8 @@ namespace WorldEngine
         enum class OPID : uint8_t {
             PlayerInitialConnect,
             Player_PositionUpdate,
-            Spawn_TriangleMeshSceneNode
+            Spawn_TriangleMeshSceneNode,
+            Update_SceneNode
         };
 
         void Initialize(const char* BindIP, const unsigned int SendPort, const unsigned int RecvPort);

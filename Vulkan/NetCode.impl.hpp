@@ -42,10 +42,9 @@ namespace WorldEngine
 
 		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, ndVector Position)
 		{
-			KNet::NetPacket_Send* Pkt = _Server->GetFreePacket<KNet::ChannelID::Reliable_Any>();
+			KNet::NetPacket_Send* Pkt = _Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
 			if (Pkt)
 			{
-				Pkt->write<WorldEngine::NetCode::OPID>(WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
 				Pkt->write<const char*>(File);
 				Pkt->write<float>(Mass);
 				Pkt->write<float>(Position.GetX());
@@ -80,10 +79,14 @@ namespace WorldEngine
 			}
 			//
 			//  Handle New Clients
-			for (auto& _Client : Packets_OOB.Clients_Connected)
+			for (auto& Client : Packets_OOB.Clients_Connected)
 			{
 				printf("INCOMING CLIENT\n");
-				ConnectedClients.push_back(_Client);
+				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::PlayerInitialConnect);
+				Client->RegisterChannel<KNet::ChannelID::Unreliable_Latest>((uint8_t)NetCode::OPID::Player_PositionUpdate);
+				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Spawn_TriangleMeshSceneNode);
+				Client->RegisterChannel<KNet::ChannelID::Unreliable_Latest>((uint8_t)NetCode::OPID::Update_SceneNode);
+				ConnectedClients.push_back(Client);
 			}
 			//
 			//	Loop Connected Clients
@@ -92,11 +95,7 @@ namespace WorldEngine
 				const auto Packets_Client = _Client->GetPackets();
 				for (auto _Packet : Packets_Client)
 				{
-					WorldEngine::NetCode::OPID OperationID;
-					if (_Packet->read<WorldEngine::NetCode::OPID>(OperationID))
-					{
-						printf("Incoming Packet: OpID %i\n", OperationID);
-					}
+					WorldEngine::NetCode::OPID OperationID = (WorldEngine::NetCode::OPID)_Packet->GetOID();
 					//
 					//	PlayerInitialConnect
 					if (OperationID == WorldEngine::NetCode::OPID::PlayerInitialConnect)
@@ -110,12 +109,16 @@ namespace WorldEngine
 								_Server = _Client;
 							}
 						}
+						uintmax_t WorldNodeID;
+						_Packet->read<uintmax_t>(WorldNodeID);
 						char MapFile[255] = "";
 						if (_Packet->read<char>(*MapFile))
 						{
 							printf("\tMapFile: %s\n", MapFile);
-							WorldEngine::SceneGraph::initWorld(MapFile);
+							WorldEngine::SceneGraph::initWorld(WorldNodeID, MapFile);
 						}
+						uintmax_t CharacterNodeID;
+						_Packet->read<uintmax_t>(CharacterNodeID);
 						char CharacterFile[255] = "";
 						if (_Packet->read<char>(*CharacterFile))
 						{
@@ -126,7 +129,7 @@ namespace WorldEngine
 						{
 							printf("\Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
 						}
-						WorldEngine::SceneGraph::initPlayer(CharacterFile, ndVector(xPos, yPos, zPos, 0.0f));
+						WorldEngine::SceneGraph::initPlayer(CharacterNodeID, CharacterFile, ndVector(xPos, yPos, zPos, 0.0f));
 
 						WorldEngine::VulkanDriver::_EventReceiver->OnGUI("Play");
 					}
@@ -134,7 +137,56 @@ namespace WorldEngine
 					//	Spawn_TriangleMeshSceneNode
 					else if (OperationID == WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode)
 					{
-						WorldEngine::SceneGraph::createTriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+						bool bSuccess;
+						_Packet->read<bool>(bSuccess);
+						uintmax_t NodeID;
+						_Packet->read<uintmax_t>(NodeID);
+						char File[255] = "";
+						_Packet->read<char>(*File);
+						float Mass;
+						_Packet->read<float>(Mass);
+						ndVector Position;
+						_Packet->read<float>(Position.m_x);
+						_Packet->read<float>(Position.m_y);
+						_Packet->read<float>(Position.m_z);
+						//
+						if (bSuccess)
+						{
+							TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
+						}
+					}
+					//
+					//	Update SceneNode
+					else if (OperationID == WorldEngine::NetCode::OPID::Update_SceneNode)
+					{
+						uintmax_t NodeID;
+						_Packet->read<uintmax_t>(NodeID);
+						ndMatrix Matrix;
+						_Packet->read<float>(Matrix.m_posit.m_x);
+						_Packet->read<float>(Matrix.m_posit.m_y);
+						_Packet->read<float>(Matrix.m_posit.m_z);
+						_Packet->read<float>(Matrix.m_posit.m_w);
+						_Packet->read<float>(Matrix.m_front.m_x);
+						_Packet->read<float>(Matrix.m_front.m_y);
+						_Packet->read<float>(Matrix.m_front.m_z);
+						_Packet->read<float>(Matrix.m_front.m_w);
+						_Packet->read<float>(Matrix.m_right.m_x);
+						_Packet->read<float>(Matrix.m_right.m_y);
+						_Packet->read<float>(Matrix.m_right.m_z);
+						_Packet->read<float>(Matrix.m_right.m_w);
+						_Packet->read<float>(Matrix.m_up.m_x);
+						_Packet->read<float>(Matrix.m_up.m_y);
+						_Packet->read<float>(Matrix.m_up.m_z);
+						_Packet->read<float>(Matrix.m_up.m_w);
+						TriangleMeshSceneNode* Node = static_cast<TriangleMeshSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
+						//
+						//	Dirty? Unsafe? Idk..
+						Node->SetMatrix(Matrix);
+						//
+						//	Set the node to redraw on all framebuffers
+						Node->bNeedsUpdate[0] = true;
+						Node->bNeedsUpdate[1] = true;
+						Node->bNeedsUpdate[2] = true;
 					}
 					//handle packet
 					LocalPoint->ReleasePacket(_Packet);

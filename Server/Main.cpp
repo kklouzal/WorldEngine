@@ -193,8 +193,7 @@ private:
 
 void MyFrame::OnTimer(wxTimerEvent&)
 {
-    startFrame = std::chrono::high_resolution_clock::now();
-    PushFrameDelta(deltaFrame);
+    SetStatusText("Tick Time " + wxString(std::to_string(GetDeltaFrames() * 1000)) + "ms");
     //==============================
     //
     // 
@@ -215,7 +214,8 @@ void MyFrame::OnTimer(wxTimerEvent&)
     //
     //==============================
     deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
-    SetStatusText("Tick Time " + wxString(std::to_string(GetDeltaFrames() * 1000)) + "ms");
+    startFrame = std::chrono::high_resolution_clock::now();
+    PushFrameDelta(deltaFrame);
 }
 
 // the event tables connect the wxWidgets events with the functions (event

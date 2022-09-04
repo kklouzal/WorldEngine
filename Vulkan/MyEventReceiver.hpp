@@ -178,7 +178,7 @@ public:
 					//
 					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
 					if (!IsCursorActive() && IsWorldInitialized()) {
-						WorldEngine::SceneGraph::createSkinnedMeshSceneNode("media/models/cesium_man.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+						//WorldEngine::SceneGraph::createSkinnedMeshSceneNode("media/models/cesium_man.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
 					}
 				}
 			}

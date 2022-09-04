@@ -475,10 +475,9 @@ public:
 		//
 		//	Update server with our new values
 		// 
-		KNet::NetPacket_Send* Pkt = WorldEngine::NetCode::_Server->GetFreePacket<KNet::ChannelID::Unreliable_Latest>();
+		KNet::NetPacket_Send* Pkt = WorldEngine::NetCode::_Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Player_PositionUpdate);
 		if (Pkt)
 		{
-			Pkt->write<WorldEngine::NetCode::OPID>(WorldEngine::NetCode::OPID::Player_PositionUpdate);		//	100 = Player Values Update
 			Pkt->write<float>(matrix.m_posit.m_x);															//	Player Position - X
 			Pkt->write<float>(matrix.m_posit.m_y);															//	Player Position - Y
 			Pkt->write<float>(matrix.m_posit.m_z);															//	Player Position - Z

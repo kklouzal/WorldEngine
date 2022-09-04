@@ -19,6 +19,8 @@ public:
     Player(KNet::NetClient* Client, KNet::NetPoint* Point, ndVector Position = ndVector(0.0f, 15.0f, 0.0f, 1.0f));
     ~Player();
 
+    KNet::NetPoint* GetNetPoint();
+
     void Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime);
 
     //  TODO: Notify other players of our disconnect.
@@ -76,14 +78,16 @@ Player::Player(KNet::NetClient* Client, KNet::NetPoint* Point, ndVector Position
     mass = 10.0f;
     WorldEngine::_ndWorld->Sync();
     WorldEngine::_ndWorld->AddBody(this);
+    WorldEngine::SceneGraph::AddSceneNode(this);
 
     //
     //	Send initial connection packet
-    KNet::NetPacket_Send* Pkt1 = _Client->GetFreePacket<KNet::ChannelID::Reliable_Ordered>();
+    KNet::NetPacket_Send* Pkt1 = _Client->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::PlayerInitialConnect);
     if (Pkt1) {
-        Pkt1->write<WorldEngine::NetCode::OPID>(WorldEngine::NetCode::OPID::PlayerInitialConnect);	    //	OperationID
         Pkt1->write<bool>(true);										                                //	true = Identify as 'server'
+        Pkt1->write<uintmax_t>(WorldEngine::SceneGraph::_World->GetNodeID());                         //  World NodeID
         Pkt1->write<const char*>(WorldEngine::CurrentMap.c_str());		                                //	Current Map File
+        Pkt1->write<uintmax_t>(this->GetNodeID());                                                    //  Player NodeID
         Pkt1->write<const char*>(Model.c_str());					                                    //	Player Model File
         Pkt1->write<float>(Position.GetX());							                                //	Player Position - X
         Pkt1->write<float>(Position.GetY());							                                //	Player Position - Y
@@ -100,6 +104,11 @@ Player::~Player()
     wxLogMessage("[Player] Deleted!");
 }
 
+KNet::NetPoint* Player::GetNetPoint()
+{
+    return _Point;
+}
+
 void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
 {
     //
@@ -111,46 +120,45 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
         {
             //
             //  Read out the data we sent
-            WorldEngine::NetCode::OPID OperationID;
-            if (_Packet->read<WorldEngine::NetCode::OPID>(OperationID))
+            WorldEngine::NetCode::OPID OperationID = (WorldEngine::NetCode::OPID)_Packet->GetOID();
+            //
+            //  Player Position Update
+            if (OperationID == WorldEngine::NetCode::OPID::Player_PositionUpdate)     //  Player Position Update
             {
-                //
-                //  Player Position Update
-                if (OperationID == WorldEngine::NetCode::OPID::Player_PositionUpdate)     //  Player Position Update
+                float xPos, yPos, zPos;
+                if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
                 {
-                    float xPos, yPos, zPos;
-                    if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
-                    {
-                        //wxLogMessage("\New Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
-                    }
+                    //wxLogMessage("\New Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
                 }
+            }
+            //
+            //  Try Spawn TriangleMeshSceneNode
+            else if (OperationID == WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode)
+            {
+                char File[255] = "";
+                _Packet->read<char>(*File);
+                float Mass;
+                _Packet->read<float>(Mass);
+                ndVector Position;
+                _Packet->read<float>(Position.m_x);
+                _Packet->read<float>(Position.m_y);
+                _Packet->read<float>(Position.m_z);
                 //
-                //  Try Spawn TriangleMeshSceneNode
-                else if (OperationID == WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode)
-                {
-                    char File[255] = "";
-                    _Packet->read<char>(*File);
-                    float Mass;
-                    _Packet->read<float>(Mass);
-                    ndVector Position;
-                    _Packet->read<float>(Position.m_x);
-                    _Packet->read<float>(Position.m_y);
-                    _Packet->read<float>(Position.m_z);
-                    //
-                    //  Create the object here on the server
+                //  Create the object here on the server
+                MeshSceneNode* NewNode = new MeshSceneNode(File, Position);
+                WorldEngine::SceneGraph::AddSceneNode(NewNode);
 
-                    //
-                    //  Send confirmation to all clients
-                    KNet::NetPacket_Send* Pkt = _Client->GetFreePacket<KNet::ChannelID::Reliable_Any>();
-                    Pkt->write<WorldEngine::NetCode::OPID>(WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);    //  OperationID
-                    Pkt->write<bool>(true);                                                                             //  true == successfully spawned
-                    Pkt->write<const char*>(File);                                                                      //  Model File
-                    Pkt->write<float>(Mass);                                                                            //  Mass
-                    Pkt->write<float>(Position.GetX());                                                                 //  Position X
-                    Pkt->write<float>(Position.GetY());                                                                 //  Position Y
-                    Pkt->write<float>(Position.GetZ());                                                                 //  Position Z
-                    _Point->SendPacket(Pkt);
-                }
+                //
+                //  Send confirmation to all clients
+                KNet::NetPacket_Send* Pkt = _Client->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
+                Pkt->write<bool>(true);                                                                             //  true == successfully spawned
+                Pkt->write<uintmax_t>(NewNode->GetNodeID());                                                        //  SceneNode ID
+                Pkt->write<const char*>(File);                                                                      //  Model File
+                Pkt->write<float>(Mass);                                                                            //  Mass
+                Pkt->write<float>(Position.GetX());                                                                 //  Position X
+                Pkt->write<float>(Position.GetY());                                                                 //  Position Y
+                Pkt->write<float>(Position.GetZ());                                                                 //  Position Z
+                _Point->SendPacket(Pkt);
             }
             //
             //  Release our packet when we're done with it

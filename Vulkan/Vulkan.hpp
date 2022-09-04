@@ -387,7 +387,6 @@ namespace WorldEngine
 			{
 				//
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
-				startFrame = std::chrono::high_resolution_clock::now();
 				//
 				//	Push previous delta to rolling average
 				PushFrameDelta(deltaFrame);
@@ -419,6 +418,8 @@ namespace WorldEngine
 				//
 				//	Mark Frame End Time and Calculate Delta
 				deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
+				startFrame = std::chrono::high_resolution_clock::now();
+				PushFrameDelta(deltaFrame);
 			}
 			//
 			//	We trying to cleanup? Should be at this point..
@@ -493,8 +494,8 @@ namespace WorldEngine
 			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
-			for (size_t i = 0; i < SceneGraph::SceneNodes.size(); i++) {
-				SceneGraph::SceneNodes[i]->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
+			for (auto& Node : SceneGraph::SceneNodes) {
+				Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 			}
 			//
 			//	End and submit
@@ -599,7 +600,7 @@ namespace WorldEngine
 
 				for (auto& _Node : SceneGraph::SceneNodes)
 				{
-					_Node->drawGUI();
+					_Node.second->drawGUI();
 				}
 
 				//
