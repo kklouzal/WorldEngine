@@ -197,13 +197,12 @@ void MyFrame::OnTimer(wxTimerEvent&)
     //==============================
     //
     // 
+    //
     //  NetCode Tick
     WorldEngine::NetCode::Tick(startFrame);
-
     //
     //  SceneNode Tick
     WorldEngine::SceneGraph::Tick(startFrame);
-
     // 
     //  Update the world
     if (deltaFrame > 0.0f)

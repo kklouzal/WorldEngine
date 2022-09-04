@@ -495,7 +495,10 @@ namespace WorldEngine
 			//
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
-				Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
+				if (Node.second)
+				{
+					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
+				}
 			}
 			//
 			//	End and submit
@@ -600,7 +603,10 @@ namespace WorldEngine
 
 				for (auto& _Node : SceneGraph::SceneNodes)
 				{
-					_Node.second->drawGUI();
+					if (_Node.second)
+					{
+						_Node.second->drawGUI();
+					}
 				}
 
 				//

@@ -69,7 +69,7 @@ Player::Player(KNet::NetClient* Client, KNet::NetPoint* Point, ndVector Position
     Model(WorldEngine::DefaultPlayerModel)       //  Default player model.
 {
     ndShapeInstance Shape(new ndShapeCapsule(0.5f, 0.5f, 10.0f));
-    ndMatrix Matrix(dGetIdentityMatrix());
+    ndMatrix Matrix(ndGetIdentityMatrix());
     Matrix.m_posit = Position;
 
     SetNotifyCallback(new PlayerNotify(this));

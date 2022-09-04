@@ -167,7 +167,10 @@ namespace WorldEngine
 			//
 			//	Update SceneNode Uniform Buffers
 			for (auto& Node : SceneNodes) {
-				Node.second->updateUniformBuffer(currentImage);
+				if (Node.second)
+				{
+					Node.second->updateUniformBuffer(currentImage);
+				}
 			}
 		}
 
@@ -213,7 +216,7 @@ namespace WorldEngine
 			ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
 			//shape.DebugShape(dGetIdentityMatrix(), NDD);
 
-			ndMatrix matrix(dGetIdentityMatrix());
+			ndMatrix matrix(ndGetIdentityMatrix());
 			matrix.m_posit = ndVector(0, 0, 0, 0);
 			matrix.m_posit.m_w = 1.0f;
 
@@ -250,7 +253,7 @@ namespace WorldEngine
 			}
 			ndShapeInstance shape(new ndShapeConvexHull((ndInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
-			ndMatrix matrix(dGetIdentityMatrix());
+			ndMatrix matrix(ndGetIdentityMatrix());
 			matrix.m_posit = Position;
 			matrix.m_posit.m_w = 1.0f;
 
@@ -291,7 +294,7 @@ namespace WorldEngine
 			}
 			ndShapeInstance shape(new ndShapeConvexHull((ndInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
 
-			ndMatrix matrix(dGetIdentityMatrix());
+			ndMatrix matrix(ndGetIdentityMatrix());
 			matrix.m_posit = Position;
 			matrix.m_posit.m_w = 1.0f;
 
@@ -318,7 +321,7 @@ namespace WorldEngine
 			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
-			ndMatrix localAxis(dGetIdentityMatrix());
+			ndMatrix localAxis(ndGetIdentityMatrix());
 			localAxis[0] = ndVector(0.0, 1.0f, 0.0f, 0.0f);
 			localAxis[1] = ndVector(1.0, 0.0f, 0.0f, 0.0f);
 			localAxis[2] = localAxis[0].CrossProduct(localAxis[1]);
@@ -343,7 +346,7 @@ namespace WorldEngine
 			//}
 			//ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
 
-			ndMatrix matrix(dGetIdentityMatrix());
+			ndMatrix matrix(ndGetIdentityMatrix());
 			matrix.m_posit = ndVector(0.0f, 10.0f, 0.0f, 1.0f);
 
 			MeshNode->SetNotifyCallback(new CharacterSceneNodeNotify(MeshNode));

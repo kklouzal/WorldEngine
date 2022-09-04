@@ -103,7 +103,7 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 		Results->m_convexShapes.push_back(convexShape);
 		//
 		//	Grab the hulls center position
-		ndMatrix matrix(dGetIdentityMatrix());
+		ndMatrix matrix(ndGetIdentityMatrix());
 		matrix.m_posit = ndVector(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2], 0);
 		//
 		//	Add this ConvexShape to our CompoundShape

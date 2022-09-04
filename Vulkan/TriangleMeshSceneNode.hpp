@@ -11,7 +11,6 @@ public:
 public:
 	TriangleMeshSceneNode(TriangleMesh* Mesh)
 		: _Mesh(Mesh), SceneNode(), ndBodyDynamic() {
-		printf("Create TriangleMeshSceneNode\n");
 		Name = "TriangleMeshSceneNode";
 	}
 
@@ -43,8 +42,7 @@ class TriangleMeshSceneNodeNotify : public ndBodyNotify
 public:
 	TriangleMeshSceneNodeNotify(TriangleMeshSceneNode* Node)
 		: _Node(Node), ModelPtr(glm::value_ptr(Node->Model)), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
-	{
-	}
+	{}
 
 	void* GetUserData() const
 	{

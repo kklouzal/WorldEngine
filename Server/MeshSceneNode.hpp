@@ -45,12 +45,11 @@ public:
     {
         const ndVector Pos = matrix.m_posit;
         //_Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + _Node->_Camera->getOffset());
-        _Node->Matrix = matrix;
     }
 };
 
 MeshSceneNode::MeshSceneNode(std::string Model, ndVector Position) :
-    SceneNode(Position), ndBodyDynamic(), Model(Model), Matrix(dGetIdentityMatrix())
+    SceneNode(Position), ndBodyDynamic(), Model(Model), Matrix(ndGetIdentityMatrix())
 {
     GLTFInfo* Infos = WorldEngine::SceneGraph::LoadModel(Model.c_str());
     std::vector<ndVector> Vertices;
@@ -75,7 +74,6 @@ MeshSceneNode::MeshSceneNode(std::string Model, ndVector Position) :
     SetLinearDamping(0.1f);
     WorldEngine::_ndWorld->Sync();
     WorldEngine::_ndWorld->AddBody(this);
-    wxLogMessage("New MeshSceneNode");
 }
 
 MeshSceneNode::~MeshSceneNode()
@@ -86,8 +84,11 @@ MeshSceneNode::~MeshSceneNode()
 
 void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
 {
-    if (LastUpdate + std::chrono::seconds(1) < CurTime)
+    if (LastUpdate + std::chrono::milliseconds(250) < CurTime)
     {
+        ndVector Velocity = GetVelocity();
+        Matrix = GetMatrix();
+        
         for (auto& Client : WorldEngine::NetCode::ConnectedClients)
         {
             KNet::NetPacket_Send* Pkt = Client.first->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Update_SceneNode);
@@ -110,6 +111,10 @@ void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurT
                 Pkt->write<float>(Matrix.m_up.m_y);                                                         //	    Up - Y
                 Pkt->write<float>(Matrix.m_up.m_z);                                                         //  	Up - Z
                 Pkt->write<float>(Matrix.m_up.m_w);                                                         //  	Up - W
+                Pkt->write<float>(Velocity.m_x);                                                            //	    Velocity - X
+                Pkt->write<float>(Velocity.m_y);                                                            //	    Velocity - Y
+                Pkt->write<float>(Velocity.m_z);                                                            //  	Velocity - Z
+                Pkt->write<float>(Velocity.m_w);                                                            //  	Velocity - W
                 //
                 //
                 //  TODO: This will work for now.. But if clients connect in on a different NetPoint then this will not suffice..

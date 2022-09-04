@@ -9,6 +9,8 @@ namespace WorldEngine
 		namespace
 		{
 			ImportGLTF* _ImportGLTF = nullptr;
+			std::unordered_map<std::string, GLTFInfo*> Model_Cache;
+			//
 			std::unordered_map<uintmax_t, SceneNode*> SceneNodes;
 			WorldSceneNode* _World;
 
@@ -26,7 +28,21 @@ namespace WorldEngine
 
 		GLTFInfo* LoadModel(const char* File)
 		{
-			return _ImportGLTF->loadModel(File);
+			std::string m_File(File);
+			//wxLogMessage("[GLTF] Load %s", File);
+			if (Model_Cache.count(m_File))
+			{
+				//wxLogMessage("[GLTF] Using Cache");
+				return Model_Cache[m_File];
+			}
+			else {
+				//
+				//  Add this info into the model cache
+				//wxLogMessage("[GLTF] Adding Cache %s", File);
+				GLTFInfo* Infos = _ImportGLTF->loadModel(File);
+				Model_Cache[m_File] = Infos;
+				return Infos;
+			}
 		}
 
 		void Initialize(const char* WorldFile_GLTF)
@@ -59,7 +75,7 @@ namespace WorldEngine
 
 			ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
 
-			ndMatrix matrix(dGetIdentityMatrix());
+			ndMatrix matrix(ndGetIdentityMatrix());
 			matrix.m_posit = ndVector(0, 0, 0, 0);
 			matrix.m_posit.m_w = 1.0f;
 
