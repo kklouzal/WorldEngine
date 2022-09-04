@@ -33,10 +33,13 @@
 #include <include\cef_client.h>
 #include <include\cef_render_handler.h>
 
-#define _D_CORE_DLL
-#define _D_NEWTON_DLL
-#define _D_COLLISION_DLL
-#include <ndNewton.h>
+#include "btBulletDynamicsCommon.h"
+//#include "Bullet_DebugDraw.hpp"
+#include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
+#include "BulletCollision/CollisionDispatch/btCollisionDispatcherMt.h"
+#include "BulletDynamics/Dynamics/btSimulationIslandManagerMt.h"
+#include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
+#include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
 
 #include "LuaScripting.hpp"
 

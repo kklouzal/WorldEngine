@@ -39,6 +39,6 @@ namespace WorldEngine
 
 		void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime);
 
-		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, ndVector Position);
+		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, btVector3 Position);
 	}
 }

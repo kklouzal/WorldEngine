@@ -11,11 +11,11 @@ public:
 	~Item_Hands()
 	{}
 
-	void StartPrimaryAction(ndRayCastClosestHitCallback& CB)
+	void StartPrimaryAction(btCollisionWorld::ClosestRayResultCallback Ray)
 	{
 	}
 
-	void StartSecondaryAction(ndRayCastClosestHitCallback& CB)
+	void StartSecondaryAction(btCollisionWorld::ClosestRayResultCallback Ray)
 	{
 	}
 
@@ -27,7 +27,7 @@ public:
 	{
 	}
 
-	void DoThink(ndVector FirePos, ndVector FireAng)
+	void DoThink(btVector3 FirePos, btVector3 FireAng)
 	{
 	}
 

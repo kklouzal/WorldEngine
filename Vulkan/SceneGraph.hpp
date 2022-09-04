@@ -28,12 +28,16 @@ namespace WorldEngine
 			Camera _Camera;
 			CharacterSceneNode* _Character;
 			WorldSceneNode* _World;
+			//
+			std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
+			std::deque<btTriangleMesh*> _TriangleMeshes;
+			std::deque<btConvexShape*> _ConvexShapes;
 		}
 
 		bool tryCleanupWorld = false;
 		bool isWorld = false;
 		void initWorld(uintmax_t NodeID, const char* MapFile);
-		void initPlayer(uintmax_t NodeID, const char* CharacterFile, ndVector CharacterPosition);
+		void initPlayer(uintmax_t NodeID, const char* CharacterFile, btVector3 CharacterPosition);
 		void cleanupWorld(const bool& bForce = false);
 
 		std::unordered_map<uintmax_t, SceneNode*> SceneNodes = {};
@@ -66,10 +70,10 @@ namespace WorldEngine
 
 		//
 		//	Create SceneNode Functions
-		WorldSceneNode* createWorldSceneNode(uintmax_t NodeID, const char* FileFBX);
-		CharacterSceneNode* createCharacterSceneNode(uintmax_t NodeID, const char* FileFBX, const ndVector& Position);
-		TriangleMeshSceneNode* createTriangleMeshSceneNode(uintmax_t NodeID, const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
-		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(uintmax_t NodeID, const char* FileFBX, const ndFloat32& Mass, const ndVector& Position);
+		WorldSceneNode* createWorldSceneNode(uintmax_t NodeID, const char* File);
+		CharacterSceneNode* createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position);
+		TriangleMeshSceneNode* createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
+		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
 
 		const bool& ShouldCleanupWorld()
 		{
@@ -78,30 +82,19 @@ namespace WorldEngine
 
 		//
 		//	Raytest
-		void castRay(const ndVector& From, const ndVector& To, ndRayCastClosestHitCallback& Results)
+		/*void castRay(const btVector3& From, const btVector3& To, ndRayCastClosestHitCallback& Results)
 		{
 			WorldEngine::VulkanDriver::_ndWorld->RayCast(Results, From, (To - From));
-		}
-
-		/*void DrawDebugShapes()
-		{
-			const ndBodyList& bodyList = _Driver->_ndWorld->GetBodyList();
-			for (ndBodyList::ndNode* bodyNode = bodyList.GetFirst(); bodyNode; bodyNode = bodyNode->GetNext())
-			{
-				ndBodyKinematic* const body = bodyNode->GetInfo();
-				if (!body->GetAsBodyTriggerVolume())
-				{
-
-					const ndShapeInstance& shapeInstance = body->GetCollisionShape();
-					dNode* const shapeNode = m_debugShapeCache.Find(shapeInstance.GetShape());
-					if (shapeNode)
-					{
-						dMatrix matrix(shapeInstance.GetScaledTransform(body->GetMatrix()));
-						shapeNode->GetInfo().m_flatShaded->Render(this, matrix);
-					}
-				}
-			}
 		}*/
+		//
+		//	Raytest
+		btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To)
+		{
+			btCollisionWorld::ClosestRayResultCallback closestResults(From, To);
+			closestResults.m_flags |= btTriangleRaycastCallback::kF_FilterBackfaces;
+			WorldEngine::VulkanDriver::dynamicsWorld->rayTest(From, To, closestResults);
+			return closestResults;
+		}
 	}
 }
 
@@ -126,7 +119,7 @@ namespace WorldEngine
 
 			isWorld = true;
 		}
-		void SceneGraph::initPlayer(uintmax_t NodeID, const char* CharacterFile, ndVector CharacterPosition)
+		void SceneGraph::initPlayer(uintmax_t NodeID, const char* CharacterFile, btVector3 CharacterPosition)
 		{
 			//
 			//	Load World/Charater/Etc..
@@ -146,15 +139,19 @@ namespace WorldEngine
 			_Character = nullptr;
 			//
 			//	Cleanup SceneNodes
-			const ndBodyList& bodyList = WorldEngine::VulkanDriver::_ndWorld->GetBodyList();
-			for (ndBodyList::ndNode* bodyNode = bodyList.GetFirst(); bodyNode; bodyNode = bodyNode->GetNext())
-			{
-				WorldEngine::VulkanDriver::_ndWorld->RemoveBody(bodyNode->GetInfo());
-			}
 			for (size_t i = 0; i < SceneNodes.size(); i++) {
 				//_Driver->_ndWorld->RemoveBody(SceneNodes[i]);
-				//delete SceneNodes[i];
+				delete SceneNodes[i];
 			}
+			for (auto Shape : _CollisionShapes) {
+				delete Shape.second;
+			}
+			_CollisionShapes.clear();
+			for (size_t i = 0; i < _ConvexShapes.size(); i++) {
+				delete _ConvexShapes[i];
+			}
+			_ConvexShapes.clear();
+			_ConvexShapes.shrink_to_fit();
 			delete _World;
 			//SceneNodes.clear();
 			//SceneNodes.shrink_to_fit();
@@ -174,59 +171,46 @@ namespace WorldEngine
 			}
 		}
 
-		class NewtonDebugDraw : public ndShapeDebugNotify
-		{
-		public:
-			void DrawPolygon(ndInt32 vertexCount, const ndVector* const faceArray, const ndEdgeType* const edgeType)
-			{
-				printf("DRAW POLYGON\n");
-			}
-		} NDD;
-
 		//
 		//	World Create Function
-		WorldSceneNode* SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* FileFBX)
+		WorldSceneNode* SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* File)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
-			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
+			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
-
-			//}
-			//else {
-			//	ColShape = _CollisionShapes[FileFBX];
-			//}
 
 			WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
 
-			ndPolygonSoupBuilder meshBuilder;
-			meshBuilder.Begin();
-
+			btCollisionShape* ColShape;
+			btTriangleMesh* trimesh = new btTriangleMesh();
+			_TriangleMeshes.push_back(trimesh);
 			for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-				ndVector face[256];
-				auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
-				auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-				face[0] = ndVector(V1.x, V1.y, V1.z, 0.0f);
-				face[1] = ndVector(V2.x, V2.y, V2.z, 0.0f);
-				face[2] = ndVector(V3.x, V3.y, V3.z, 0.0f);
-				meshBuilder.AddFace(&face[0].m_x, sizeof(ndVector), 3, 0);
+				auto V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
+				auto V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
+				auto V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
+
+				trimesh->addTriangle(btVector3(V1.x, V1.y, V1.z), btVector3(V2.x, V2.y, V2.z), btVector3(V3.x, V3.y, V3.z));
 			}
-			meshBuilder.End(true);
+			ColShape = new btBvhTriangleMeshShape(trimesh, true);
+			_CollisionShapes[File] = ColShape;
+			//
+			MeshNode->_CollisionShape = ColShape;
+			btTransform Transform;
+			Transform.setIdentity();
 
-			ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
-			//shape.DebugShape(dGetIdentityMatrix(), NDD);
+			btScalar Mass(0.0f);
+			bool isDynamic = (Mass != 0.f);
 
-			ndMatrix matrix(ndGetIdentityMatrix());
-			matrix.m_posit = ndVector(0, 0, 0, 0);
-			matrix.m_posit.m_w = 1.0f;
+			btVector3 localInertia(0, 0, 0);
+			if (isDynamic) {
+				MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+			}
 
-			MeshNode->SetNotifyCallback(new WorldSceneNodeNotify(MeshNode));
-			MeshNode->SetMatrix(matrix);
-			MeshNode->SetCollisionShape(shape);
-			//MeshNode->SetMassMatrix(10.0f, shape);
-
-			WorldEngine::VulkanDriver::_ndWorld->Sync();
-			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
+			SceneNodeMotionState* MotionState = new SceneNodeMotionState(MeshNode, Transform);
+			btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+			MeshNode->_RigidBody = new btRigidBody(rbInfo);
+			MeshNode->_RigidBody->setUserPointer(MeshNode);
+			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
 			//
 			//	Push new SceneNode into the SceneGraph
@@ -236,37 +220,46 @@ namespace WorldEngine
 
 		//
 		//	TriangleMesh Create Function
-		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
+		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
-			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
+			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 			TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
-
-			std::vector<ndVector> Verts;
-			for (unsigned int i = 0; i < Infos->Indices.size(); i++) {
-				auto& V1 = Infos->Vertices[Infos->Indices[i]].pos;/*
-				auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;*/
-				Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
+			btCollisionShape* ColShape;
+			if (_CollisionShapes.count(File) == 0) {
+				DecompResults* Results = Decomp(Infos);
+				ColShape = Results->CompoundShape;
+				_CollisionShapes[File] = ColShape;
+				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+					_ConvexShapes.push_back(Results->m_convexShapes[i]);
+				}
+				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+					_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+				}
+				delete Results;
 			}
-			ndShapeInstance shape(new ndShapeConvexHull((ndInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
+			else {
+				ColShape = _CollisionShapes[File];
+			}
+			MeshNode->_CollisionShape = ColShape;
+			btTransform Transform;
+			Transform.setIdentity();
+			Transform.setOrigin(Position);
 
-			ndMatrix matrix(ndGetIdentityMatrix());
-			matrix.m_posit = Position;
-			matrix.m_posit.m_w = 1.0f;
+			bool isDynamic = (Mass != 0.f);
 
-			MeshNode->SetNotifyCallback(new TriangleMeshSceneNodeNotify(MeshNode));
-			MeshNode->SetMatrix(matrix);
-			MeshNode->SetCollisionShape(shape);
-			MeshNode->SetMassMatrix(Mass, shape);
-			MeshNode->mass = Mass;
-			MeshNode->SetAngularDamping(ndVector(1.f,1.f,1.f,1.f));
-			MeshNode->SetLinearDamping(0.1f);
+			btVector3 localInertia(0, 0, 0);
+			if (isDynamic) {
+				MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+			}
 
-			WorldEngine::VulkanDriver::_ndWorld->Sync();
-			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
+			TriangleMeshSceneNodeMotionState* MotionState = new TriangleMeshSceneNodeMotionState(MeshNode, Transform);
+			btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+			MeshNode->_RigidBody = new btRigidBody(rbInfo);
+			MeshNode->_RigidBody->setUserPointer(MeshNode);
+			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
 			//
 			//	Push new SceneNode into the SceneGraph
@@ -277,85 +270,104 @@ namespace WorldEngine
 
 		//
 		//	SkinnedMesh Create Function
-		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* FileFBX, const ndFloat32& Mass, const ndVector& Position)
+		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
-			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
+			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
 			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, Infos->InverseBindMatrices, Infos->JointMap);
-
-			std::vector<ndVector> Verts;
-			for (unsigned int i = 0; i < Infos->Indices.size(); i++) {
-				auto& V1 = Infos->Vertices[Infos->Indices[i]].pos;/*
-				auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;*/
-				Verts.push_back(ndVector(V1.x, V1.y, V1.z, 0.f));
+			
+			btCollisionShape* ColShape;
+			if (_CollisionShapes.count(File) == 0) {
+				DecompResults* Results = Decomp(Infos);
+				ColShape = Results->CompoundShape;
+				_CollisionShapes[File] = ColShape;
+				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+					_ConvexShapes.push_back(Results->m_convexShapes[i]);
+				}
+				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+					_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+				}
+				delete Results;
 			}
-			ndShapeInstance shape(new ndShapeConvexHull((ndInt32)Verts.size(), sizeof(ndVector), 0.0f, &Verts[0].m_x));
+			else {
+				ColShape = _CollisionShapes[File];
+			}
+			MeshNode->_CollisionShape = ColShape;
+			btTransform Transform;
+			Transform.setIdentity();
+			Transform.setOrigin(Position);
 
-			ndMatrix matrix(ndGetIdentityMatrix());
-			matrix.m_posit = Position;
-			matrix.m_posit.m_w = 1.0f;
+			bool isDynamic = (Mass != 0.f);
 
-			MeshNode->SetNotifyCallback(new SkinnedMeshSceneNodeNotify(MeshNode));
-			MeshNode->SetMatrix(matrix);
-			MeshNode->SetCollisionShape(shape);
-			MeshNode->SetMassMatrix(Mass, shape);
-			MeshNode->mass = Mass;
-			MeshNode->SetAngularDamping(ndVector(1.f, 1.f, 1.f, 1.f));
-			MeshNode->SetLinearDamping(0.1f);
+			btVector3 localInertia(0, 0, 0);
+			if (isDynamic) {
+				MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+			}
 
-			WorldEngine::VulkanDriver::_ndWorld->Sync();
-			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
+			SkinnedMeshSceneNodeMotionState* MotionState = new SkinnedMeshSceneNodeMotionState(MeshNode, Transform);
+			btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+			MeshNode->_RigidBody = new btRigidBody(rbInfo);
+			MeshNode->_RigidBody->setUserPointer(MeshNode);
+			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
+			//
+			//	Push new SceneNode into the SceneGraph
 			SceneNodes[NodeID] = MeshNode;
 			return MeshNode;
 		}
 
 		//
 		//	Character Create Function
-		CharacterSceneNode* SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* FileFBX, const ndVector& Position)
+		CharacterSceneNode* SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position)
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
-			GLTFInfo* Infos = _ImportGLTF->loadModel(FileFBX, Pipe);
+			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
-			ndMatrix localAxis(ndGetIdentityMatrix());
+			/*ndMatrix localAxis(ndGetIdentityMatrix());
 			localAxis[0] = ndVector(0.0, 1.0f, 0.0f, 0.0f);
 			localAxis[1] = ndVector(1.0, 0.0f, 0.0f, 0.0f);
-			localAxis[2] = localAxis[0].CrossProduct(localAxis[1]);
+			localAxis[2] = localAxis[0].CrossProduct(localAxis[1]);*/
 
-			ndFloat32 height = 5.0f;
-			ndFloat32 radius = 1.5f;
-			ndFloat32 mass = 10.0f;
+			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
 
-			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh, localAxis, mass, radius, height, height / 4.0f);
+			btCollisionShape* ColShape;
+			if (_CollisionShapes.count(File) == 0) {
+				DecompResults* Results = Decomp(Infos);
+				ColShape = Results->CompoundShape;
+				_CollisionShapes[File] = ColShape;
+				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+					_ConvexShapes.push_back(Results->m_convexShapes[i]);
+				}
+				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+					_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+				}
+				delete Results;
+			}
+			else {
+				ColShape = _CollisionShapes[File];
+			}
+			MeshNode->_CollisionShape = ColShape;
+			btTransform Transform;
+			Transform.setIdentity();
+			Transform.setOrigin(Position);
 
+			btScalar Mass = 0.5f;
+			bool isDynamic = (Mass != 0.f);
 
+			btVector3 localInertia(0, 0, 0);
+			if (isDynamic) {
+				MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+			}
 
-			MeshNode->SetAngularDamping(ndVector(1.f, 1.f, 1.f, 1.f));
-			MeshNode->SetLinearDamping(0.1f);
-
-			//std::vector<dVector> Verts;
-			//for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-			//	auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
-			//	auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-			//	auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-			//	Verts.push_back(dVector(V1.x, V1.y, V1.z, 0.f));
-			//}
-			//ndShapeInstance shape(new ndShapeConvexHull(Verts.size(), sizeof(dVector), 0.0f, &Verts[0].m_x));
-
-			ndMatrix matrix(ndGetIdentityMatrix());
-			matrix.m_posit = ndVector(0.0f, 10.0f, 0.0f, 1.0f);
-
-			MeshNode->SetNotifyCallback(new CharacterSceneNodeNotify(MeshNode));
-			MeshNode->SetMatrix(matrix);
-			//MeshNode->SetCollisionShape(shape);
-			//MeshNode->SetMassMatrix(1.0f, shape);
-
-			WorldEngine::VulkanDriver::_ndWorld->Sync();
-			WorldEngine::VulkanDriver::_ndWorld->AddBody(MeshNode);
+			CharacterSceneNodeMotionState* MotionState = new CharacterSceneNodeMotionState(MeshNode, Transform);
+			btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+			MeshNode->_RigidBody = new btRigidBody(rbInfo);
+			MeshNode->_RigidBody->setUserPointer(MeshNode);
+			MeshNode->_RigidBody->setAngularFactor(btVector3(0.0f, 0.0f, 0.0f));
+			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
 			//
 			//	Push new SceneNode into the SceneGraph

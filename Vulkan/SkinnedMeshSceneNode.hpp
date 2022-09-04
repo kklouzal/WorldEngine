@@ -4,7 +4,7 @@
 
 #include "PlaybackController.hpp"
 
-class SkinnedMeshSceneNode : public SceneNode, public ndBodyDynamic
+class SkinnedMeshSceneNode : public SceneNode
 {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
@@ -36,7 +36,7 @@ public:
 	TriangleMesh* _Mesh = nullptr;
 public:
 	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<glm::mat4> Inverse, std::map<std::string, uint16_t> Joints)
-		: _Mesh(Mesh), InverseBindMatrices_(Inverse), _JointMap(Joints), SceneNode(), ndBodyDynamic() {
+		: _Mesh(Mesh), InverseBindMatrices_(Inverse), _JointMap(Joints), SceneNode() {
 		printf("Create SkinnedMeshSceneNode\n");
 		Name = "SkinnedMeshSceneNode";
 		printf("Loading Skeleton\n");
@@ -98,10 +98,6 @@ public:
 	~SkinnedMeshSceneNode() {
 		printf("Destroy SkinnedMeshSceneNode\n");
 		delete _Mesh;
-	}
-
-	void preDelete(ndWorld* _ndWorld) {
-		//	ToDo: Remove physics object from newton world?
 	}
 
 	//
@@ -169,67 +165,41 @@ public:
 	}
 };
 
-class SkinnedMeshSceneNodeNotify : public ndBodyNotify
-{
-	SkinnedMeshSceneNode* _Node;
+//
+//	Bullet Motion State
+class SkinnedMeshSceneNodeMotionState : public btMotionState {
+	SkinnedMeshSceneNode* _SceneNode;
 	glm::f32* ModelPtr;
+	btTransform _btPos;
+
 public:
-	SkinnedMeshSceneNodeNotify(SkinnedMeshSceneNode* Node)
-		: _Node(Node), ModelPtr(glm::value_ptr(Node->Model)), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
-	{}
+	SkinnedMeshSceneNodeMotionState(SkinnedMeshSceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos), ModelPtr(glm::value_ptr(_SceneNode->Model)) {}
 
-	void* GetUserData() const
-	{
-		return (void*)_Node;
+	virtual void getWorldTransform(btTransform& worldTrans) const {
+		worldTrans = _btPos;
+		_btPos.getOpenGLMatrix(ModelPtr);
 	}
 
-	void OnApplyExternalForce(ndInt32, ndFloat32)
-	{
-		ndBodyDynamic* const dynamicBody = GetBody()->GetAsBodyDynamic();
-		if (dynamicBody)
-		{
-			ndVector massMatrix(dynamicBody->GetMassMatrix());
-			//ndVector force(ndVector(0.0f, -10.0f, 0.0f, 0.0f).Scale(massMatrix.m_w));
-			ndVector force(dynamicBody->GetNotifyCallback()->GetGravity().Scale(massMatrix.m_w));
-			dynamicBody->SetForce(force);
-			dynamicBody->SetTorque(ndVector::m_zero);
+	virtual void setWorldTransform(const btTransform& worldTrans) {
+		_btPos = worldTrans;
+		_btPos.getOpenGLMatrix(ModelPtr);
+		_SceneNode->bNeedsUpdate[0] = true;
+		_SceneNode->bNeedsUpdate[1] = true;
+		_SceneNode->bNeedsUpdate[2] = true;
+		const btVector3 Pos = _btPos.getOrigin();
+		if (_SceneNode->_Camera) {
+			_SceneNode->_Camera->SetPosition(glm::vec3(Pos.x(), Pos.y(), Pos.z()) + _SceneNode->_Camera->getOffset());
 		}
-	}
-
-	void OnTransform(ndInt32 threadIndex, const ndMatrix& matrix)
-	{
-		// apply this transformation matrix to the application user data.
-		_Node->bNeedsUpdate[0] = true;
-		_Node->bNeedsUpdate[1] = true;
-		_Node->bNeedsUpdate[2] = true;
-		if (_Node->_Camera)
-		{
-			const ndVector Pos = matrix.m_posit;
-			_Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + _Node->_Camera->getOffset());
-		}
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-
-		ModelPtr[0] = matrix.m_front.m_x;
-		ModelPtr[1] = matrix.m_front.m_y;
-		ModelPtr[2] = matrix.m_front.m_z;
-		ModelPtr[3] = matrix.m_front.m_w;
-
-		ModelPtr[4] = matrix.m_up.m_x;
-		ModelPtr[5] = matrix.m_up.m_y;
-		ModelPtr[6] = matrix.m_up.m_z;
-		ModelPtr[7] = matrix.m_up.m_w;
-
-		ModelPtr[8] = matrix.m_right.m_x;
-		ModelPtr[9] = matrix.m_right.m_y;
-		ModelPtr[10] = matrix.m_right.m_z;
-		ModelPtr[11] = matrix.m_right.m_w;
-
-		ModelPtr[12] = matrix.m_posit.m_x;
-		ModelPtr[13] = matrix.m_posit.m_y;
-		ModelPtr[14] = matrix.m_posit.m_z;
-		ModelPtr[15] = matrix.m_posit.m_w;
+		//
+		//	Update server with our new values
+		// 
+		//KNet::NetPacket_Send* Pkt = WorldEngine::NetCode::_Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Player_PositionUpdate);
+		//if (Pkt)
+		//{
+		//	Pkt->write<float>(Pos.x());															//	Player Position - X
+		//	Pkt->write<float>(Pos.y());															//	Player Position - Y
+		//	Pkt->write<float>(Pos.z());															//	Player Position - Z
+		//	WorldEngine::NetCode::LocalPoint->SendPacket(Pkt);
+		//}
 	}
 };

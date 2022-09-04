@@ -1,6 +1,6 @@
 #pragma once
 
-class CharacterSceneNode : public SceneNode, public ndBodyPlayerCapsule
+class CharacterSceneNode : public SceneNode
 {
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
@@ -13,26 +13,9 @@ public:
 	int CurItem = 0;
 	bool onGround = false;
 
-	class PlayerInputs
-	{
-	public:
-		PlayerInputs()
-		{
-			m_heading = 0.0f;
-			m_forwardSpeed = 0.0f;
-			m_strafeSpeed = 0.0f;
-			m_jump = false;
-		}
-		ndFloat32 m_heading;
-		ndFloat32 m_forwardSpeed;
-		ndFloat32 m_strafeSpeed;
-		bool m_jump;
-	};
-
-	PlayerInputs m_playerInput;
 public:
-	CharacterSceneNode(TriangleMesh* Mesh, ndMatrix localAxis, ndFloat32 Mass, ndFloat32 Radius, ndFloat32 Height, ndFloat32 StepHeight)
-		: _Mesh(Mesh), SceneNode(), ndBodyPlayerCapsule(localAxis, Mass, Radius, Height, StepHeight)
+	CharacterSceneNode(TriangleMesh* Mesh)
+		: _Mesh(Mesh), SceneNode()
 	{
 		printf("Create CharacterSceneNode\n");
 		Name = "Character";
@@ -71,39 +54,6 @@ public:
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
 		delete _Mesh;
-	}
-
-	ndFloat32 ContactFrictionCallback(const ndVector&, const ndVector& normal, ndInt32, const ndBodyKinematic* const) const
-	{
-		//return ndFloat32(2.0f);
-		
-		//if (dAbs(normal.m_y) < 1.f)
-		//{
-		//	return 1.f;
-		//}
-		return ndFloat32(1000.0f);
-	}
-
-	void ApplyInputs(ndFloat32 timestep)
-	{
-		//calculate the gravity contribution to the velocity, 
-		//const ndVector gravity(GetNotifyCallback()->GetGravity());
-		const ndVector gravity(0.f,-98.1f,0.f, 1.f);
-		const ndVector totalImpulse(m_impulse + gravity.Scale(1.0f * timestep));
-		m_impulse = totalImpulse;
-
-		//dTrace(("  frame: %d    player camera: %f\n", m_scene->GetWorld()->GetFrameIndex(), m_playerInput.m_heading * dRadToDegree));
-		if (m_playerInput.m_jump)
-		{
-			ndFloat32 PLAYER_JUMP_SPEED = 7.0f;
-			ndVector jumpImpulse(0.0f, PLAYER_JUMP_SPEED * m_mass, 0.0f, 0.0f);
-			m_impulse += jumpImpulse;
-			m_playerInput.m_jump = false;
-		}
-
-		//SetForwardSpeed(m_playerInput.m_forwardSpeed);
-		//SetLateralSpeed(m_playerInput.m_strafeSpeed);
-		//SetHeadingAngle(m_playerInput.m_heading);
 	}
 
 	Item* GetCurrentItem() const
@@ -208,139 +158,58 @@ public:
 		}
 	}
 
-	void moveForward(const ndFloat32& Speed) {
-		ndMatrix Trans = GetMatrix();
-
-		if (true)
-		{
-
-			Trans.m_posit.m_x += Trans.m_front.m_x * Speed;
-			Trans.m_posit.m_z += Trans.m_front.m_z * Speed;
-
-		}
-		else
-		{
-			//This is for directional movement
-			//AKA water / flight / space movement.
-			Trans.m_posit.m_x += _Camera->front.x * Speed;
-			Trans.m_posit.m_y += _Camera->front.y * Speed;
-			Trans.m_posit.m_z += _Camera->front.z * Speed;
-
-		}
-
-		SetMatrix(Trans);
-
-		//m_playerInput.m_forwardSpeed = Speed;
-
-	}
-	void moveLeft(const ndFloat32& Speed) {
-
-		ndMatrix Trans = GetMatrix();
-
-		if (true)
-		{
-			
-			Trans.m_posit.m_x += Trans.m_right.m_x * Speed;
-			Trans.m_posit.m_z += Trans.m_right.m_z * Speed;
-
-		}
-		else
-		{
-
-			Trans.m_posit.m_x += _Camera->right.x * Speed;
-			Trans.m_posit.m_y += _Camera->right.y * Speed;
-			Trans.m_posit.m_z += _Camera->right.z * Speed;
-
-		}
-
-		SetMatrix(Trans);
-
-		//m_playerInput.m_strafeSpeed = -Speed;
-
+	void moveForward(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		const btVector3 Forward = Trans(btVector3(1 * Speed, 0, 0));
+		Trans.setOrigin(Forward);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
 	}
 
-	/*
-	void moveBackward(const ndFloat32& Speed) {
-
-		ndMatrix Trans = GetMatrix();
-
-		if (true)
-		{
-
-			Trans.m_posit.m_x += _Camera->front.x * -Speed;
-			//Trans.m_posit.m_y += _Camera->front.y * -Speed;
-			Trans.m_posit.m_z += _Camera->front.z * -Speed;
-
-		}
-		else
-		{
-			//This is for directional movement
-			//AKA water / flight / space movement.
-			Trans.m_posit.m_x += _Camera->front.x * -Speed;
-			Trans.m_posit.m_y += _Camera->front.y * -Speed;
-			Trans.m_posit.m_z += _Camera->front.z * -Speed;
-
-		}
-
-		SetMatrix(Trans);
-
-		//m_playerInput.m_forwardSpeed = -Speed;
-
+	void moveBackward(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		const btVector3 Backward = Trans(btVector3(-1 * Speed, 0, 0));
+		Trans.setOrigin(Backward);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
 	}
 
-	void moveRight(const ndFloat32& Speed) {
-
-		ndMatrix Trans = GetMatrix();
-		
-		Trans.m_posit.m_x += _Camera->right.x * Speed;
-		//Trans.m_posit.m_y += _Camera->right.y * -Speed;
-		Trans.m_posit.m_z += _Camera->right.z * Speed;
-
-		SetMatrix(Trans);
-
-		//m_playerInput.m_strafeSpeed = Speed;
-
-	}
-	*/
-
-	void setPosition(const ndFloat32& NewPosition) {
-		ndMatrix Trans = GetMatrix();
-		//Trans.setOrigin(btVector3(NewPosition));
-		SetMatrix(Trans);
+	void moveLeft(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		const btVector3 Left = Trans(btVector3(0, 0, -1 * Speed));
+		Trans.setOrigin(Left);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
 	}
 
-	void findGround()
-	{
-
-		//_RigidBody->RayCast();
-
+	void moveRight(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		const btVector3 Right = Trans(btVector3(0, 0, 1 * Speed));
+		Trans.setOrigin(Right);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
 	}
 
-	void doJump(const ndFloat32& Speed)
-	{
-
-		//dMatrix Trans = _RigidBody->GetMatrix();
-		//_RigidBody->SetMatrix(Trans);
-		
-		//dVector jumpImpulse = { 0.0f, (Speed * 1), 0.0f, 0.0f };
-		//_RigidBody->AddImpulse(jumpImpulse, _RigidBody->GetPosition(), 1);
-		//AddImpulse(jumpImpulse, _RigidBody->GetPosition(), 1);
-
-		if (IsOnFloor())
-		{
-
-			m_playerInput.m_jump = true;
-
-		}
-
+	void doJump(const btScalar& Speed) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		const btVector3 Up = Trans(btVector3(0, 1 * Speed, 0));
+		Trans.setOrigin(Up);
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
 	}
 
-	void setYaw(const float& Yaw) {
+	void setPosition(btVector3 NewPosition) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		Trans.setOrigin(btVector3(NewPosition));
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
+	}
 
-		m_playerInput.m_heading = glm::radians(-Yaw);
-		//dMatrix Trans = GetMatrix();
-		//Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));
-		//SetMatrix(Trans);
+	void setYaw(float Yaw) {
+		btTransform Trans = _RigidBody->getWorldTransform();
+		Trans.setRotation(btQuaternion(glm::radians(-Yaw), 0, 0));
+		_RigidBody->activate(true);
+		_RigidBody->setWorldTransform(Trans);
 	}
 
 	void updateUniformBuffer(const uint32_t& currentImage) {
@@ -406,81 +275,40 @@ public:
 	}
 };
 
-class CharacterSceneNodeNotify : public ndBodyNotify
-{
-	CharacterSceneNode* _Node;
+//
+//	Bullet Motion State
+class CharacterSceneNodeMotionState : public btMotionState {
+	CharacterSceneNode* _SceneNode;
 	glm::f32* ModelPtr;
+	btTransform _btPos;
+
 public:
-	CharacterSceneNodeNotify(CharacterSceneNode* Node)
-		: _Node(Node), ModelPtr(glm::value_ptr(Node->Model)), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
-	{}
+	CharacterSceneNodeMotionState(CharacterSceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos), ModelPtr(glm::value_ptr(_SceneNode->Model)) {}
 
-	void* GetUserData() const
-	{
-		return (void*)_Node;
+	virtual void getWorldTransform(btTransform& worldTrans) const {
+		worldTrans = _btPos;
+		_btPos.getOpenGLMatrix(ModelPtr);
 	}
 
-	void OnApplyExternalForce(ndInt32, ndFloat32)
-	{
-	}
-	
-	void OnTransform(ndInt32 threadIndex, const ndMatrix& matrix)
-	{
-		// apply this transformation matrix to the application user data.
-		_Node->bNeedsUpdate[0] = true;
-		_Node->bNeedsUpdate[1] = true;
-		_Node->bNeedsUpdate[2] = true;
-		if (_Node->_Camera)
-		{
-
-			//ndMatrix newMatrix = matrix;
-			//newMatrix.m_front.m_x = newMatrix.m_front.m_x - 0.001f;
-			//Forcably move a little baby.
-			//newMatrix.m_posit.m_x++;
-			
-			_Node->SetHeadingAngle(-_Node->_Camera->getYaw() / 57.325);
-			//If we want closer above we need to do Yaw * (180 / pi), otherwise this float is close enough for now.
-
-			const ndVector Pos = matrix.m_posit;
-			_Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + _Node->_Camera->getOffset());
-
+	virtual void setWorldTransform(const btTransform& worldTrans) {
+		_btPos = worldTrans;
+		_btPos.getOpenGLMatrix(ModelPtr);
+		_SceneNode->bNeedsUpdate[0] = true;
+		_SceneNode->bNeedsUpdate[1] = true;
+		_SceneNode->bNeedsUpdate[2] = true;
+		const btVector3 Pos = _btPos.getOrigin();
+		if (_SceneNode->_Camera) {
+			_SceneNode->_Camera->SetPosition(glm::vec3(Pos.x(), Pos.y(), Pos.z()) + _SceneNode->_Camera->getOffset());
 		}
-
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		//	[x][y][z][w]
-		
-		ModelPtr[0] = matrix.m_front.m_x;
-		ModelPtr[1] = matrix.m_front.m_y;	
-		ModelPtr[2] = matrix.m_front.m_z;
-		ModelPtr[3] = matrix.m_front.m_w;
-
-		ModelPtr[4] = matrix.m_up.m_x;
-		ModelPtr[5] = matrix.m_up.m_y;
-		ModelPtr[6] = matrix.m_up.m_z;
-		ModelPtr[7] = matrix.m_up.m_w;
-
-		ModelPtr[8] = matrix.m_right.m_x;
-		ModelPtr[9] = matrix.m_right.m_y;
-		ModelPtr[10] = matrix.m_right.m_z;
-		ModelPtr[11] = matrix.m_right.m_w;
-
-		ModelPtr[12] = matrix.m_posit.m_x;
-		ModelPtr[13] = matrix.m_posit.m_y;
-		ModelPtr[14] = matrix.m_posit.m_z;
-		//Setting W to 1 fixes Character Model vanishing into non-existence. 
-		ModelPtr[15] = 1;
-		
 		//
 		//	Update server with our new values
 		// 
 		KNet::NetPacket_Send* Pkt = WorldEngine::NetCode::_Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Player_PositionUpdate);
 		if (Pkt)
 		{
-			Pkt->write<float>(matrix.m_posit.m_x);															//	Player Position - X
-			Pkt->write<float>(matrix.m_posit.m_y);															//	Player Position - Y
-			Pkt->write<float>(matrix.m_posit.m_z);															//	Player Position - Z
+			Pkt->write<float>(Pos.x());															//	Player Position - X
+			Pkt->write<float>(Pos.y());															//	Player Position - Y
+			Pkt->write<float>(Pos.z());															//	Player Position - Z
 			WorldEngine::NetCode::LocalPoint->SendPacket(Pkt);
 		}
 	}

@@ -40,16 +40,16 @@ namespace WorldEngine
 			}
 		}
 
-		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, ndVector Position)
+		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, btVector3 Position)
 		{
 			KNet::NetPacket_Send* Pkt = _Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
 			if (Pkt)
 			{
 				Pkt->write<const char*>(File);
 				Pkt->write<float>(Mass);
-				Pkt->write<float>(Position.GetX());
-				Pkt->write<float>(Position.GetY());
-				Pkt->write<float>(Position.GetZ());
+				Pkt->write<float>(Position.x());
+				Pkt->write<float>(Position.y());
+				Pkt->write<float>(Position.z());
 				LocalPoint->SendPacket(Pkt);
 			}
 		}
@@ -129,7 +129,7 @@ namespace WorldEngine
 						{
 							printf("\Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
 						}
-						WorldEngine::SceneGraph::initPlayer(CharacterNodeID, CharacterFile, ndVector(xPos, yPos, zPos, 0.0f));
+						WorldEngine::SceneGraph::initPlayer(CharacterNodeID, CharacterFile, btVector3(xPos, yPos, zPos));
 
 						WorldEngine::VulkanDriver::_EventReceiver->OnGUI("Play");
 					}
@@ -145,10 +145,10 @@ namespace WorldEngine
 						_Packet->read<char>(*File);
 						float Mass;
 						_Packet->read<float>(Mass);
-						ndVector Position;
-						_Packet->read<float>(Position.m_x);
-						_Packet->read<float>(Position.m_y);
-						_Packet->read<float>(Position.m_z);
+						btVector3 Position;
+						_Packet->read<float>(Position.m_floats[0]);
+						_Packet->read<float>(Position.m_floats[1]);
+						_Packet->read<float>(Position.m_floats[2]);
 						//
 						if (bSuccess)
 						{
@@ -159,44 +159,44 @@ namespace WorldEngine
 					//	Update SceneNode
 					else if (OperationID == WorldEngine::NetCode::OPID::Update_SceneNode)
 					{
-						uintmax_t NodeID;
-						_Packet->read<uintmax_t>(NodeID);
-						ndMatrix Matrix;
-						_Packet->read<float>(Matrix.m_posit.m_x);
-						_Packet->read<float>(Matrix.m_posit.m_y);
-						_Packet->read<float>(Matrix.m_posit.m_z);
-						_Packet->read<float>(Matrix.m_posit.m_w);
-						_Packet->read<float>(Matrix.m_front.m_x);
-						_Packet->read<float>(Matrix.m_front.m_y);
-						_Packet->read<float>(Matrix.m_front.m_z);
-						_Packet->read<float>(Matrix.m_front.m_w);
-						_Packet->read<float>(Matrix.m_right.m_x);
-						_Packet->read<float>(Matrix.m_right.m_y);
-						_Packet->read<float>(Matrix.m_right.m_z);
-						_Packet->read<float>(Matrix.m_right.m_w);
-						_Packet->read<float>(Matrix.m_up.m_x);
-						_Packet->read<float>(Matrix.m_up.m_y);
-						_Packet->read<float>(Matrix.m_up.m_z);
-						_Packet->read<float>(Matrix.m_up.m_w);
-						ndVector Velocity;
-						_Packet->read<float>(Velocity.m_x);
-						_Packet->read<float>(Velocity.m_y);
-						_Packet->read<float>(Velocity.m_z);
-						_Packet->read<float>(Velocity.m_w);
-						TriangleMeshSceneNode* Node = static_cast<TriangleMeshSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
-						//
-						//	Dirty? Unsafe? Idk..
-						WorldEngine::VulkanDriver::_ndWorld->Sync();
-						if (Node)
-						{
-							Node->SetMatrix(Matrix);
-							Node->SetVelocity(Velocity);
-							//
-							//	Set the node to redraw on all framebuffers
-							Node->bNeedsUpdate[0] = true;
-							Node->bNeedsUpdate[1] = true;
-							Node->bNeedsUpdate[2] = true;
-						}
+						//uintmax_t NodeID;
+						//_Packet->read<uintmax_t>(NodeID);
+						//btm Matrix;
+						//_Packet->read<float>(Matrix..m_posit.m_x);
+						//_Packet->read<float>(Matrix.m_posit.m_y);
+						//_Packet->read<float>(Matrix.m_posit.m_z);
+						//_Packet->read<float>(Matrix.m_posit.m_w);
+						//_Packet->read<float>(Matrix.m_front.m_x);
+						//_Packet->read<float>(Matrix.m_front.m_y);
+						//_Packet->read<float>(Matrix.m_front.m_z);
+						//_Packet->read<float>(Matrix.m_front.m_w);
+						//_Packet->read<float>(Matrix.m_right.m_x);
+						//_Packet->read<float>(Matrix.m_right.m_y);
+						//_Packet->read<float>(Matrix.m_right.m_z);
+						//_Packet->read<float>(Matrix.m_right.m_w);
+						//_Packet->read<float>(Matrix.m_up.m_x);
+						//_Packet->read<float>(Matrix.m_up.m_y);
+						//_Packet->read<float>(Matrix.m_up.m_z);
+						//_Packet->read<float>(Matrix.m_up.m_w);
+						//ndVector Velocity;
+						//_Packet->read<float>(Velocity.m_x);
+						//_Packet->read<float>(Velocity.m_y);
+						//_Packet->read<float>(Velocity.m_z);
+						//_Packet->read<float>(Velocity.m_w);
+						//TriangleMeshSceneNode* Node = static_cast<TriangleMeshSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
+						////
+						////	Dirty? Unsafe? Idk..
+						//WorldEngine::VulkanDriver::_ndWorld->Sync();
+						//if (Node)
+						//{
+						//	Node->SetMatrix(Matrix);
+						//	Node->SetVelocity(Velocity);
+						//	//
+						//	//	Set the node to redraw on all framebuffers
+						//	Node->bNeedsUpdate[0] = true;
+						//	Node->bNeedsUpdate[1] = true;
+						//	Node->bNeedsUpdate[2] = true;
+						//}
 					}
 					//handle packet
 					LocalPoint->ReleasePacket(_Packet);

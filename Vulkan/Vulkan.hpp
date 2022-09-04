@@ -87,7 +87,14 @@ namespace WorldEngine
 		VulkanSwapChain swapChain;								//	Cleaned Up
 		VulkanDevice* _VulkanDevice;							//	Cleaned Up
 		EventReceiver* _EventReceiver;							//	Cleaned Up
-		ndWorld* _ndWorld;										//	Cleaned Up
+		//
+		//	Bullet Physics
+		btDefaultCollisionConfiguration* collisionConfiguration;
+		btCollisionDispatcherMt* dispatcher;
+		btBroadphaseInterface* broadphase;
+		btConstraintSolverPoolMt* solverPool;
+		btDiscreteDynamicsWorld* dynamicsWorld;
+		//
 
 		void Initialize();
 		void Deinitialize();
@@ -296,10 +303,69 @@ namespace WorldEngine
 			}
 			//
 			//	Physics Initialization
-			_ndWorld = new ndWorld();
-			_ndWorld->SetThreadCount(std::thread::hardware_concurrency() - 2);
-			_ndWorld->SetSubSteps(3);
-			_ndWorld->SetSolverIterations(2);
+			//btSetTaskScheduler(btGetOpenMPTaskScheduler());
+			//btSetTaskScheduler(btGetTBBTaskScheduler());
+			//btSetTaskScheduler(btGetPPLTaskScheduler());
+			btSetTaskScheduler(btCreateDefaultTaskScheduler());
+			//
+			btDefaultCollisionConstructionInfo cci;
+			cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
+			cci.m_defaultMaxCollisionAlgorithmPoolSize = 102400;
+			collisionConfiguration = new btDefaultCollisionConfiguration(cci);
+			dispatcher = new btCollisionDispatcherMt(collisionConfiguration, 40);
+			broadphase = new btDbvtBroadphase();
+			//
+			//	Solver Pool
+			btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
+			int maxThreadCount = BT_MAX_THREAD_COUNT;
+			for (int i = 0; i < maxThreadCount; ++i)
+			{
+				solvers[i] = new btSequentialImpulseConstraintSolverMt();
+			}
+			solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
+			btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
+			//
+			//	Create Dynamics World
+			dynamicsWorld = new btDiscreteDynamicsWorldMt(dispatcher, broadphase, solverPool, solver, collisionConfiguration);
+			//
+			//	Set World Properties
+			dynamicsWorld->setGravity(btVector3(0, -10, 0));
+			dynamicsWorld->setForceUpdateAllAabbs(false);
+			dynamicsWorld->getSolverInfo().m_solverMode = SOLVER_SIMD |
+				//SOLVER_USE_WARMSTARTING |
+				//SOLVER_RANDMIZE_ORDER |
+				// SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
+				// SOLVER_USE_2_FRICTION_DIRECTIONS |
+				SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
+				//SOLVER_CACHE_FRIENDLY |
+				SOLVER_DISABLE_IMPLICIT_CONE_FRICTION |
+				//SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION |
+				0;
+
+			dynamicsWorld->getSolverInfo().m_numIterations = 10;
+			//
+			//	true - false
+			btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
+			//
+			//	0.0f - 0.25f
+			printf("m_leastSquaresResidualThreshold %f\n", dynamicsWorld->getSolverInfo().m_leastSquaresResidualThreshold);
+			//
+			//	1.0f - 2000.0f
+			printf("s_minimumContactManifoldsForBatching %i\n", btSequentialImpulseConstraintSolverMt::s_minimumContactManifoldsForBatching);
+			//
+			//	1.0f - 1000.0f
+			printf("s_minBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_minBatchSize);
+			//
+			//	1.0f - 1000.0f
+			printf("s_maxBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_maxBatchSize);
+			//
+			//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_2D
+			//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_3D
+			printf("s_contactBatchingMethod %i\n", btSequentialImpulseConstraintSolverMt::s_contactBatchingMethod);
+
+			#ifdef _DEBUG
+			dynamicsWorld->setDebugDrawer(&BTDebugDraw);
+			#endif
 			//
 			//	CEF Post Initialization
 			CEF::PostInitialize();
@@ -329,7 +395,11 @@ namespace WorldEngine
 			//
 			NetCode::Deinitialize();
 			//
-			delete _ndWorld;
+			delete dynamicsWorld;
+			delete solverPool;
+			delete broadphase;
+			delete dispatcher;
+			delete collisionConfiguration;
 			//
 			_EventReceiver->Cleanup();
 			//	Destroy Synchronization Objects
@@ -389,6 +459,8 @@ namespace WorldEngine
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
 				//
 				//	Push previous delta to rolling average
+				deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
+				startFrame = std::chrono::high_resolution_clock::now();
 				PushFrameDelta(deltaFrame);
 				//
 				//	CEF Loop
@@ -409,7 +481,9 @@ namespace WorldEngine
 				//printf("Delta Frame %f\n", deltaFrame);
 				if (deltaFrame > 0.0f)
 				{
-					_ndWorld->Update(deltaFrame);
+					//if (isWorld) {
+						dynamicsWorld->stepSimulation(deltaFrame, 0);
+					//}
 					SceneGraph::updateUniformBuffer(currentFrame);
 					//
 					//	Draw Frame
@@ -417,9 +491,6 @@ namespace WorldEngine
 				}
 				//
 				//	Mark Frame End Time and Calculate Delta
-				deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
-				startFrame = std::chrono::high_resolution_clock::now();
-				PushFrameDelta(deltaFrame);
 			}
 			//
 			//	We trying to cleanup? Should be at this point..

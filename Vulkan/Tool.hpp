@@ -7,7 +7,7 @@ public:
 	Tool() {}
 	~Tool() {}
 
-	virtual void PrimaryAction(ndRayCastClosestHitCallback& CB) {}
-	virtual void SecondaryAction(ndRayCastClosestHitCallback& CB) {}
+	virtual void PrimaryAction(btCollisionWorld::ClosestRayResultCallback Ray) {}
+	virtual void SecondaryAction(btCollisionWorld::ClosestRayResultCallback Ray) {}
 	virtual void DrawGUI() {}
 };

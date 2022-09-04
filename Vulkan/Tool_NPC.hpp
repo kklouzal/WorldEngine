@@ -12,7 +12,7 @@ public:
 	~Tool_NPC()
 	{}
 
-	void PrimaryAction(ndRayCastClosestHitCallback& CB)
+	void PrimaryAction(btCollisionWorld::ClosestRayResultCallback Ray)
 	{
 		/*if (Ray.hasHit()) {
 			printf(" - Hit\n");
@@ -25,7 +25,7 @@ public:
 		}*/
 	}
 
-	void SecondaryAction(ndRayCastClosestHitCallback& CB)
+	void SecondaryAction(btCollisionWorld::ClosestRayResultCallback Ray)
 	{
 		/*if (Ray.hasHit()) {
 			printf(" - Hit\n");
