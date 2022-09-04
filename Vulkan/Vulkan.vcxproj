@@ -70,12 +70,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\VulkanSDK\1.3.211.0\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\bullet3\include\bullet;C:\Libraries\vhacd\include;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;C:\Libraries\CEF\include;C:\Libraries\KNet\include;C:\Libraries\zstd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.3.211.0\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\bullet3\lib;C:\Libraries\zstd\lib;C:\Libraries\vhacd\lib\debug;C:\Libraries\CEF\lib\debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.3.211.0\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\bullet3\include\bullet;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;C:\Libraries\CEF\include;C:\Libraries\KNet\include;C:\Libraries\zstd\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.3.211.0\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\bullet3\lib;C:\Libraries\zstd\lib;C:\Libraries\CEF\lib\debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\VulkanSDK\1.3.211.0\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\bullet3\include\bullet;C:\Libraries\vhacd\include;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;C:\Libraries\CEF\include;C:\Libraries\KNet\include;C:\Libraries\zstd\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.3.211.0\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\bullet3\lib;C:\Libraries\zstd\lib;C:\Libraries\vhacd\lib\release;C:\Libraries\CEF\lib\release;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.3.211.0\Include;C:\Libraries\GLFW\include;C:\Libraries\GLM;C:\Libraries\bullet3\include\bullet;C:\Libraries\ozz\include;C:\Libraries\Lua\Include;C:\Libraries\CEF\include;C:\Libraries\KNet\include;C:\Libraries\zstd\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.3.211.0\Lib;C:\Libraries\GLFW\lib;C:\Libraries\Lua\Library;C:\Libraries\ozz\lib;C:\Libraries\bullet3\lib;C:\Libraries\zstd\lib;C:\Libraries\CEF\lib\release;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -105,7 +105,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;libcef.lib;libcef_dll_wrapper.lib;zstd.lib;BulletCollision_Debug.lib;BulletDynamics_Debug.lib;BulletInverseDynamics_Debug.lib;BulletSoftBody_Debug.lib;LinearMath_Debug.lib;vhacd.lib;ozz_animation_d.lib;ozz_base_d.lib;ozz_geometry_d.lib;Lua_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;libcef.lib;libcef_dll_wrapper.lib;zstd.lib;BulletCollision_Debug.lib;BulletDynamics_Debug.lib;BulletInverseDynamics_Debug.lib;BulletSoftBody_Debug.lib;LinearMath_Debug.lib;ozz_animation_d.lib;ozz_base_d.lib;ozz_geometry_d.lib;Lua_Debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
@@ -147,7 +147,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;libcef.lib;libcef_dll_wrapper.lib;zstd.lib;BulletCollision.lib;BulletDynamics.lib;BulletInverseDynamics.lib;BulletSoftBody.lib;LinearMath.lib;vhacd.lib;ozz_animation_r.lib;ozz_base_r.lib;ozz_geometry_r.lib;Lua.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;glfw3dll.lib;libcef.lib;libcef_dll_wrapper.lib;zstd.lib;BulletCollision.lib;BulletDynamics.lib;BulletInverseDynamics.lib;BulletSoftBody.lib;LinearMath.lib;ozz_animation_r.lib;ozz_base_r.lib;ozz_geometry_r.lib;Lua.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
@@ -207,6 +207,7 @@
     <ClInclude Include="Tool_Weld.hpp" />
     <ClInclude Include="TriangleMesh.hpp" />
     <ClInclude Include="TriangleMeshSceneNode.hpp" />
+    <ClInclude Include="VHACD.h" />
     <ClInclude Include="vk_mem_alloc.h" />
     <ClInclude Include="Vulkan.hpp" />
     <ClInclude Include="VulkanDevice.hpp" />

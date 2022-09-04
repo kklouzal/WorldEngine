@@ -326,11 +326,6 @@ namespace WorldEngine
 			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
 
-			/*ndMatrix localAxis(ndGetIdentityMatrix());
-			localAxis[0] = ndVector(0.0, 1.0f, 0.0f, 0.0f);
-			localAxis[1] = ndVector(1.0, 0.0f, 0.0f, 0.0f);
-			localAxis[2] = localAxis[0].CrossProduct(localAxis[1]);*/
-
 			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
 
 			btCollisionShape* ColShape;

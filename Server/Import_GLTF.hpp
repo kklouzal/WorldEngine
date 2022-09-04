@@ -280,3 +280,5 @@ public:
         return Infos;
     }
 };
+
+#include "ConvexDecomposition.hpp"

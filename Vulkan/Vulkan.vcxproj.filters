@@ -238,6 +238,9 @@
     <ClInclude Include="NetCode.impl.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="VHACD.h">
+      <Filter>Header Files\Libraries</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">

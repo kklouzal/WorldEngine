@@ -1,6 +1,5 @@
 #pragma once
-#define ENABLE_VHACD_IMPLEMENTATION 1
-#include "VHACD.h"
+#include <VHACD.h>
 
 //
 //	Structure containing objects created during composition
@@ -34,14 +33,14 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 	VHACD::IVHACD* interfaceVHACD = VHACD::CreateVHACD();
 	VHACD::IVHACD::ConvexHull Hull;
 	params.m_resolution = 100000;
-	//params.m_concavity = 0.0025;
-	//params.m_planeDownsampling = 4;
-	//params.m_convexhullDownsampling = 4;
-	//params.m_alpha = 0.05;
-	//params.m_beta = 0.05;
-	//params.m_pca = 0;
+	params.m_concavity = 0.0025;
+	params.m_planeDownsampling = 4;
+	params.m_convexhullDownsampling = 4;
+	params.m_alpha = 0.05;
+	params.m_beta = 0.05;
+	params.m_pca = 0;
 	params.m_maxNumVerticesPerCH = 64;
-	//params.m_minVolumePerCH = 0.0001;
+	params.m_minVolumePerCH = 0.0001;
 	//printf("alpha %f\n", params.m_alpha);
 	//printf("beta %f\n", params.m_beta);
 	//printf("concavity %f\n", params.m_concavity);
@@ -88,15 +87,17 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 		btConvexHullShape* convexShape = new btConvexHullShape();
 		//
 		//	Iterate through this hulls triangles
-		for (uint32_t i = 0; i < Hull.m_triangles.size(); i++) {
+		for (uint32_t i = 0; i < Hull.m_nTriangles; i++) {
 			//
 			//	Calculate indices
-			VHACD::Triangle T = Hull.m_triangles[i];
+			const uint32_t index0 = Hull.m_triangles[i * 3];
+			const uint32_t index1 = Hull.m_triangles[i * 3 + 1];
+			const uint32_t index2 = Hull.m_triangles[i * 3 + 2];
 			//
 			//	Calculate vertices
-			const btVector3 vertex0(Hull.m_points[T.mI0].mX, Hull.m_points[T.mI0].mY, Hull.m_points[T.mI0].mZ);
-			const btVector3 vertex1(Hull.m_points[T.mI1].mX, Hull.m_points[T.mI1].mY, Hull.m_points[T.mI1].mZ);
-			const btVector3 vertex2(Hull.m_points[T.mI2].mX, Hull.m_points[T.mI2].mY, Hull.m_points[T.mI2].mZ);
+			const btVector3 vertex0(Hull.m_points[index0 * 3], Hull.m_points[index0 * 3 + 1], Hull.m_points[index0 * 3 + 2]);
+			const btVector3 vertex1(Hull.m_points[index1 * 3], Hull.m_points[index1 * 3 + 1], Hull.m_points[index1 * 3 + 2]);
+			const btVector3 vertex2(Hull.m_points[index2 * 3], Hull.m_points[index2 * 3 + 1], Hull.m_points[index2 * 3 + 2]);
 			//
 			//	Add this triangle into our Triangle Mesh
 			convexShape->addPoint(vertex0);
