@@ -1,8 +1,0 @@
-language: cpp
-os: windows
-env:
-- LABEL="windows-msvc"
-- MSBUILD_PATH="/C/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin"
-script:
-- export PATH=$MSBUILD_PATH:$PATH
-- MSBuild.exe Vulkan.sln /p:Configuration=Release
