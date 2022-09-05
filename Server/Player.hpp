@@ -16,7 +16,7 @@ class Player : public SceneNode
     //
     //
 public:
-    Player(KNet::NetClient* Client, KNet::NetPoint* Point, btVector3 Position = btVector3(0.0f, 15.0f, 0.0f));
+    Player(KNet::NetClient* Client, KNet::NetPoint* Point, btVector3 Position = btVector3(15.0f, 15.0f, 15.0f));
     ~Player();
 
     KNet::NetPoint* GetNetPoint();

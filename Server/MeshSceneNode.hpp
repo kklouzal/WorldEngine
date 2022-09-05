@@ -66,8 +66,7 @@ MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position) :
     btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, _CollisionShape, localInertia);
     _RigidBody = new btRigidBody(rbInfo);
     _RigidBody->setUserPointer(this);
-    _RigidBody->setAngularFactor(btVector3(0.0f, 0.0f, 0.0f));
-    _RigidBody->setDamping(0.1f, 0.1f);
+    _RigidBody->setDamping(0.2f, 0.0f);
     //
     WorldEngine::dynamicsWorld->addRigidBody(_RigidBody);
     WorldEngine::SceneGraph::AddSceneNode(this);
@@ -80,12 +79,10 @@ MeshSceneNode::~MeshSceneNode()
 
 void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
 {
-    if (LastUpdate + std::chrono::milliseconds(250) < CurTime)
+    if (LastUpdate + std::chrono::milliseconds(333) < CurTime)
     {
         btTransform Trans = _RigidBody->getWorldTransform();
         btVector3 Origin = Trans.getOrigin();
-        btVector3 Rotation;
-        Trans.getRotation().getEulerZYX(Rotation.m_floats[0], Rotation.m_floats[1], Rotation.m_floats[2]);
         btVector3 LinearVelocity = _RigidBody->getLinearVelocity();
         btVector3 AngularVelocity = _RigidBody->getAngularVelocity();
         
@@ -98,15 +95,19 @@ void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurT
                 Pkt->write<float>(Origin.x());              //  Position - X
                 Pkt->write<float>(Origin.y());              //  Position - Y
                 Pkt->write<float>(Origin.z());              //  Position - Z
-                Pkt->write<float>(Rotation.x());            //  Rotation - X
-                Pkt->write<float>(Rotation.y());            //  Rotation - Y
-                Pkt->write<float>(Rotation.z());            //  Rotation - Z
+                Pkt->write<float>(Origin.w());              //  Position - W
+                Pkt->write<float>(Trans.getRotation().getX());            //  Rotation - X
+                Pkt->write<float>(Trans.getRotation().getY());            //  Rotation - Y
+                Pkt->write<float>(Trans.getRotation().getZ());            //  Rotation - Z
+                Pkt->write<float>(Trans.getRotation().getW());            //  Rotation - W
                 Pkt->write<float>(LinearVelocity.x());      //  LinearVelocity - X
                 Pkt->write<float>(LinearVelocity.y());      //  LinearVelocity - Y
                 Pkt->write<float>(LinearVelocity.z());      //  LinearVelocity - Z
+                Pkt->write<float>(LinearVelocity.w());      //  LinearVelocity - W
                 Pkt->write<float>(AngularVelocity.x());     //  AngularVelocity - X
                 Pkt->write<float>(AngularVelocity.y());     //  AngularVelocity - Y
                 Pkt->write<float>(AngularVelocity.z());     //  AngularVelocity - Z
+                Pkt->write<float>(AngularVelocity.w());     //  AngularVelocity - W
                 //
                 //
                 //  TODO: This will work for now.. But if clients connect in on a different NetPoint then this will not suffice..

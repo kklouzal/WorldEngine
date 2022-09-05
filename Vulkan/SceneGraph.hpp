@@ -264,8 +264,7 @@ namespace WorldEngine
 			btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
 			MeshNode->_RigidBody = new btRigidBody(rbInfo);
 			MeshNode->_RigidBody->setUserPointer(MeshNode);
-			MeshNode->_RigidBody->setAngularFactor(btVector3(0.0f, 0.0f, 0.0f));
-			MeshNode->_RigidBody->setDamping(0.1f, 0.1f);
+			MeshNode->_RigidBody->setDamping(0.2f, 0.0f);
 			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
 			//

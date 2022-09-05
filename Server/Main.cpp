@@ -1,3 +1,4 @@
+#include <KNet.hpp>
 #include <wx/wx.h>
 #include <wx/fileconf.h>
 #include "btBulletDynamicsCommon.h"
@@ -6,7 +7,6 @@
 #include "BulletDynamics/Dynamics/btSimulationIslandManagerMt.h"
 #include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
 #include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
-#include <KNet.hpp>
 
 namespace WorldEngine
 {
@@ -64,7 +64,7 @@ class MyFrame : public wxFrame
     wxTextCtrl* m_log;
     wxFileConfig* conf;
 
-    std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::steady_clock::now();
     float deltaFrame = 0.f;
     std::deque<float> Frames;
     //
@@ -247,8 +247,9 @@ private:
 
 void MyFrame::OnTimer(wxTimerEvent&)
 {
-    deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
-    startFrame = std::chrono::high_resolution_clock::now();
+    auto Now = std::chrono::steady_clock::now();
+    deltaFrame = std::chrono::duration<float, std::milli>(Now - startFrame).count() / 1000.f;
+    startFrame = Now;
     PushFrameDelta(deltaFrame);
     SetStatusText("Tick Time " + wxString(std::to_string(GetDeltaFrames() * 1000)) + "ms");
     //==============================
@@ -264,7 +265,7 @@ void MyFrame::OnTimer(wxTimerEvent&)
     //  Update the world
     if (deltaFrame > 0.0f)
     {
-        WorldEngine::dynamicsWorld->stepSimulation(deltaFrame, 0);
+        WorldEngine::dynamicsWorld->stepSimulation(deltaFrame, 10);
     }
     //
     //

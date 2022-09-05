@@ -277,7 +277,7 @@ public:
 
 //
 //	Bullet Motion State
-class CharacterSceneNodeMotionState : public btMotionState {
+class CharacterSceneNodeMotionState : public btDefaultMotionState {
 	CharacterSceneNode* _SceneNode;
 	glm::f32* ModelPtr;
 	btTransform _btPos;
@@ -285,12 +285,13 @@ class CharacterSceneNodeMotionState : public btMotionState {
 public:
 	CharacterSceneNodeMotionState(CharacterSceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos), ModelPtr(glm::value_ptr(_SceneNode->Model)) {}
 
-	virtual void getWorldTransform(btTransform& worldTrans) const {
+	void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
 		_btPos.getOpenGLMatrix(ModelPtr);
+		printf("GET WORLD TRANSFORM\n");
 	}
 
-	virtual void setWorldTransform(const btTransform& worldTrans) {
+	void setWorldTransform(const btTransform& worldTrans) {
 		_btPos = worldTrans;
 		_btPos.getOpenGLMatrix(ModelPtr);
 		_SceneNode->bNeedsUpdate[0] = true;

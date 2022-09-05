@@ -2,8 +2,9 @@
 
 class SceneNode {
 private:
+	uintmax_t NET_LastUpdateID = 0;
 protected:
-	uintmax_t NodeID;
+	uintmax_t NodeID = 0;
 	btRigidBody* _RigidBody = nullptr;
 	btCollisionShape* _CollisionShape = nullptr;
 public:
@@ -48,8 +49,22 @@ public:
 		return NodeID;
 	}
 
+	const bool Net_ShouldUpdate(uintmax_t UniqueID)
+	{
+		if (UniqueID > NET_LastUpdateID)
+		{
+			NET_LastUpdateID = UniqueID;
+			return true;
+		}
+		return false;
+	}
+
 	void NetUpdate(btVector3 Origin, btVector3 Rotation, btVector3 LinearVelocity, btVector3 AngularVelocity)
 	{
+		//_RigidBody->activate(true);
+		_RigidBody->clearForces();
+
+
 		btTransform Trans = _RigidBody->getWorldTransform();
 		Trans.setOrigin(Origin);
 		Trans.setRotation(btQuaternion(Rotation.x(), Rotation.y(), Rotation.z()));
@@ -57,6 +72,17 @@ public:
 		_RigidBody->setLinearVelocity(LinearVelocity);
 		_RigidBody->setAngularVelocity(AngularVelocity);
 
+		bNeedsUpdate[0] = true;
+		bNeedsUpdate[1] = true;
+		bNeedsUpdate[2] = true;
+	}
+	void NetUpdate(btTransform Trans, btVector3 LinearVelocity, btVector3 AngularVelocity)
+	{
+		_RigidBody->activate(true);
+		_RigidBody->getMotionState()->setWorldTransform(Trans);
+		_RigidBody->setLinearVelocity(LinearVelocity);
+		_RigidBody->setAngularVelocity(AngularVelocity);
+		_RigidBody->clearForces();
 		bNeedsUpdate[0] = true;
 		bNeedsUpdate[1] = true;
 		bNeedsUpdate[2] = true;
@@ -72,6 +98,11 @@ public:
 		return _RigidBody->getAngularVelocity();
 	}
 
+	btTransform GetWorldTransform()
+	{
+		return _RigidBody->getWorldTransform();
+	}
+
 	friend WorldSceneNode* WorldEngine::SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* File);
 	friend CharacterSceneNode* WorldEngine::SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position);
 	friend SkinnedMeshSceneNode* WorldEngine::SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
@@ -80,7 +111,7 @@ public:
 
 //
 //	Bullet Motion State
-class SceneNodeMotionState : public btMotionState {
+class SceneNodeMotionState : public btDefaultMotionState {
 	SceneNode* _SceneNode;
 	glm::f32* ModelPtr;
 	btTransform _btPos;
@@ -90,14 +121,15 @@ public:
 
 	//
 	//	Sets our initial spawn position
-	virtual void getWorldTransform(btTransform& worldTrans) const {
+	void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
 		worldTrans.getOpenGLMatrix(ModelPtr);
+		printf("GET WORLD TRANSFORM\n");
 	}
 
 	//
 	//	Called whenever the physics representation of this SceneNode is finished moving
-	virtual void setWorldTransform(const btTransform& worldTrans) {
+	void setWorldTransform(const btTransform& worldTrans) {
 		worldTrans.getOpenGLMatrix(ModelPtr);
 		_SceneNode->bNeedsUpdate[0] = true;
 		_SceneNode->bNeedsUpdate[1] = true;

@@ -120,7 +120,7 @@ namespace WorldEngine
 		void setEventReceiver(EventReceiver* _EventRcvr);
 		//
 		//	Time Keeping
-		std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
+		std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::steady_clock::now();
 		float deltaFrame = 0.f;
 		std::deque<float> Frames;
 		//
@@ -455,8 +455,9 @@ namespace WorldEngine
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
 				//
 				//	Push previous delta to rolling average
-				deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
-				startFrame = std::chrono::high_resolution_clock::now();
+				auto Now = std::chrono::steady_clock::now();
+				deltaFrame = std::chrono::duration<float, std::milli>(Now - startFrame).count() / 1000.f;
+				startFrame = Now;
 				PushFrameDelta(deltaFrame);
 				//
 				//	CEF Loop
@@ -478,7 +479,7 @@ namespace WorldEngine
 				if (deltaFrame > 0.0f)
 				{
 					//if (isWorld) {
-						dynamicsWorld->stepSimulation(deltaFrame, 0);
+						dynamicsWorld->stepSimulation(deltaFrame, 10);
 					//}
 					SceneGraph::updateUniformBuffer(currentFrame);
 					//

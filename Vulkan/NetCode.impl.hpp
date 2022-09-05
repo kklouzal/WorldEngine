@@ -85,7 +85,7 @@ namespace WorldEngine
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::PlayerInitialConnect);
 				Client->RegisterChannel<KNet::ChannelID::Unreliable_Latest>((uint8_t)NetCode::OPID::Player_PositionUpdate);
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Spawn_TriangleMeshSceneNode);
-				Client->RegisterChannel<KNet::ChannelID::Unreliable_Latest>((uint8_t)NetCode::OPID::Update_SceneNode);
+				Client->RegisterChannel<KNet::ChannelID::Unreliable_Any>((uint8_t)NetCode::OPID::Update_SceneNode);
 				ConnectedClients.push_back(Client);
 			}
 			//
@@ -161,32 +161,50 @@ namespace WorldEngine
 					{
 						uintmax_t NodeID;
 						_Packet->read<uintmax_t>(NodeID);
-						btVector3 Origin;
-						_Packet->read<float>(Origin.m_floats[0]);
-						_Packet->read<float>(Origin.m_floats[1]);
-						_Packet->read<float>(Origin.m_floats[2]);
-						btVector3 Rotation;
-						_Packet->read<float>(Rotation.m_floats[0]);
-						_Packet->read<float>(Rotation.m_floats[1]);
-						_Packet->read<float>(Rotation.m_floats[2]);
-						btVector3 LinearVelocity;
-						_Packet->read<float>(LinearVelocity.m_floats[0]);
-						_Packet->read<float>(LinearVelocity.m_floats[1]);
-						_Packet->read<float>(LinearVelocity.m_floats[2]);
-						btVector3 AngularVelocity;
-						_Packet->read<float>(AngularVelocity.m_floats[0]);
-						_Packet->read<float>(AngularVelocity.m_floats[1]);
-						_Packet->read<float>(AngularVelocity.m_floats[2]);
 						TriangleMeshSceneNode* Node = static_cast<TriangleMeshSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
 						//
 						if (Node)
 						{
-							Node->NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
 							//
-							//	Set the node to redraw on all framebuffers
-							//Node->bNeedsUpdate[0] = true;
-							//Node->bNeedsUpdate[1] = true;
-							//Node->bNeedsUpdate[2] = true;
+							//	Only update if this packet UniqueID is greater than the most recent update
+							if (Node->Net_ShouldUpdate(_Packet->GetUID()))
+							{
+								btTransform Trans;// = Node->GetWorldTransform();
+								Trans.setIdentity();
+								//
+								btVector3 Origin;
+								_Packet->read<float>(Origin.m_floats[0]);
+								_Packet->read<float>(Origin.m_floats[1]);
+								_Packet->read<float>(Origin.m_floats[2]);
+								_Packet->read<float>(Origin.m_floats[3]);
+								Trans.setOrigin(Origin);
+								//
+								float RotX, RotY, RotZ, RotW;
+								_Packet->read<float>(RotX);
+								_Packet->read<float>(RotY);
+								_Packet->read<float>(RotZ);
+								_Packet->read<float>(RotW);
+								Trans.setRotation(btQuaternion(RotX, RotY, RotZ, RotW));
+								//
+								btVector3 LinearVelocity;
+								_Packet->read<float>(LinearVelocity.m_floats[0]);
+								_Packet->read<float>(LinearVelocity.m_floats[1]);
+								_Packet->read<float>(LinearVelocity.m_floats[2]);
+								_Packet->read<float>(LinearVelocity.m_floats[3]);
+								btVector3 AngularVelocity;
+								_Packet->read<float>(AngularVelocity.m_floats[0]);
+								_Packet->read<float>(AngularVelocity.m_floats[1]);
+								_Packet->read<float>(AngularVelocity.m_floats[2]);
+								_Packet->read<float>(AngularVelocity.m_floats[3]);
+								//
+								Node->NetUpdate(Trans, LinearVelocity, AngularVelocity);
+								//Node->NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
+								//
+								//	Set the node to redraw on all framebuffers
+								//Node->bNeedsUpdate[0] = true;
+								//Node->bNeedsUpdate[1] = true;
+								//Node->bNeedsUpdate[2] = true;
+							}
 						}
 					}
 					//handle packet
