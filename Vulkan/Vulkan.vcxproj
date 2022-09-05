@@ -98,10 +98,10 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;BT_NO_SIMD_OPERATOR_OVERLOADS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/Zc:__cplusplus /bigobj %(AdditionalOptions)</AdditionalOptions>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

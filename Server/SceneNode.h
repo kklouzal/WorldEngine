@@ -47,6 +47,16 @@ public:
 	{
 		return NeedsDelete;
 	}
+
+	void NetUpdate(btVector3 Origin, btVector3 Rotation, btVector3 LinearVelocity, btVector3 AngularVelocity)
+	{
+		btTransform Trans = _RigidBody->getWorldTransform();
+		Trans.setOrigin(Origin);
+		Trans.setRotation(btQuaternion(Rotation.x(), Rotation.y(), Rotation.z()));
+		_RigidBody->setWorldTransform(Trans);
+		_RigidBody->setLinearVelocity(LinearVelocity);
+		_RigidBody->setAngularVelocity(AngularVelocity);
+	}
 };
 
 //

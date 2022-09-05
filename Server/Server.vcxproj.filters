@@ -19,6 +19,9 @@
     <Filter Include="Header Files\SceneNodes">
       <UniqueIdentifier>{752615d1-3ec5-4378-be98-50b2edd724a1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Libraries">
+      <UniqueIdentifier>{f73c7032-43d6-439a-86b0-dbc6b6da7489}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -64,6 +67,9 @@
     </ClInclude>
     <ClInclude Include="ConvexDecomposition.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VHACD.h">
+      <Filter>Header Files\Libraries</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

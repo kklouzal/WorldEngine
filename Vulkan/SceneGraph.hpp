@@ -29,7 +29,7 @@ namespace WorldEngine
 			CharacterSceneNode* _Character;
 			WorldSceneNode* _World;
 			//
-			std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
+			std::unordered_map<std::string, btCollisionShape*> _CollisionShapes;
 			std::deque<btTriangleMesh*> _TriangleMeshes;
 			std::deque<btConvexShape*> _ConvexShapes;
 		}
@@ -58,6 +58,8 @@ namespace WorldEngine
 			cleanupWorld(true);
 			delete _ImportGLTF;
 		}
+
+		btCollisionShape* LoadDecomp(GLTFInfo* Infos, const char* File);
 
 		Camera& GetCamera() {
 			return _Camera;
@@ -152,7 +154,6 @@ namespace WorldEngine
 			}
 			_ConvexShapes.clear();
 			_ConvexShapes.shrink_to_fit();
-			delete _World;
 			//SceneNodes.clear();
 			//SceneNodes.shrink_to_fit();
 
@@ -168,6 +169,29 @@ namespace WorldEngine
 				{
 					Node.second->updateUniformBuffer(currentImage);
 				}
+			}
+		}
+
+		btCollisionShape* SceneGraph::LoadDecomp(GLTFInfo* Infos, const char* File)
+		{
+			std::string m_File(File);
+			if (WorldEngine::SceneGraph::_CollisionShapes.count(m_File))
+			{
+				return WorldEngine::SceneGraph::_CollisionShapes[m_File];
+			}
+			else {
+				printf("[VHACD] Adding Cache %s\n", m_File);
+				DecompResults* Results = Decomp(Infos);
+				btCollisionShape* ColShape = Results->CompoundShape;
+				WorldEngine::SceneGraph::_CollisionShapes[m_File] = ColShape;
+				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+					WorldEngine::SceneGraph::_ConvexShapes.push_back(Results->m_convexShapes[i]);
+				}
+				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+					WorldEngine::SceneGraph::_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+				}
+				delete Results;
+				return ColShape;
 			}
 		}
 
@@ -224,25 +248,11 @@ namespace WorldEngine
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
+			btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			//
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
-
 			TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
-			btCollisionShape* ColShape;
-			if (_CollisionShapes.count(File) == 0) {
-				DecompResults* Results = Decomp(Infos);
-				ColShape = Results->CompoundShape;
-				_CollisionShapes[File] = ColShape;
-				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
-					_ConvexShapes.push_back(Results->m_convexShapes[i]);
-				}
-				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
-					_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-				}
-				delete Results;
-			}
-			else {
-				ColShape = _CollisionShapes[File];
-			}
+			//
 			MeshNode->_CollisionShape = ColShape;
 			btTransform Transform;
 			Transform.setIdentity();
@@ -274,26 +284,11 @@ namespace WorldEngine
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
+			btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			//
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
-
 			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, Infos->InverseBindMatrices, Infos->JointMap);
-			
-			btCollisionShape* ColShape;
-			if (_CollisionShapes.count(File) == 0) {
-				DecompResults* Results = Decomp(Infos);
-				ColShape = Results->CompoundShape;
-				_CollisionShapes[File] = ColShape;
-				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
-					_ConvexShapes.push_back(Results->m_convexShapes[i]);
-				}
-				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
-					_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-				}
-				delete Results;
-			}
-			else {
-				ColShape = _CollisionShapes[File];
-			}
+			//
 			MeshNode->_CollisionShape = ColShape;
 			btTransform Transform;
 			Transform.setIdentity();
@@ -324,26 +319,11 @@ namespace WorldEngine
 		{
 			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
 			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
+			btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			//
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
-
 			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
-
-			btCollisionShape* ColShape;
-			if (_CollisionShapes.count(File) == 0) {
-				DecompResults* Results = Decomp(Infos);
-				ColShape = Results->CompoundShape;
-				_CollisionShapes[File] = ColShape;
-				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
-					_ConvexShapes.push_back(Results->m_convexShapes[i]);
-				}
-				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
-					_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-				}
-				delete Results;
-			}
-			else {
-				ColShape = _CollisionShapes[File];
-			}
+			//
 			MeshNode->_CollisionShape = ColShape;
 			btTransform Transform;
 			Transform.setIdentity();

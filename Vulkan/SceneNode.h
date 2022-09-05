@@ -1,6 +1,7 @@
 #pragma once
 
 class SceneNode {
+private:
 protected:
 	uintmax_t NodeID;
 	btRigidBody* _RigidBody = nullptr;
@@ -45,6 +46,30 @@ public:
 	const uintmax_t GetNodeID()
 	{
 		return NodeID;
+	}
+
+	void NetUpdate(btVector3 Origin, btVector3 Rotation, btVector3 LinearVelocity, btVector3 AngularVelocity)
+	{
+		btTransform Trans = _RigidBody->getWorldTransform();
+		Trans.setOrigin(Origin);
+		Trans.setRotation(btQuaternion(Rotation.x(), Rotation.y(), Rotation.z()));
+		_RigidBody->setWorldTransform(Trans);
+		_RigidBody->setLinearVelocity(LinearVelocity);
+		_RigidBody->setAngularVelocity(AngularVelocity);
+
+		bNeedsUpdate[0] = true;
+		bNeedsUpdate[1] = true;
+		bNeedsUpdate[2] = true;
+	}
+
+	btVector3 GetLinearVelocity()
+	{
+		return _RigidBody->getLinearVelocity();
+	}
+
+	btVector3 GetAngularVelocity()
+	{
+		return _RigidBody->getAngularVelocity();
 	}
 
 	friend WorldSceneNode* WorldEngine::SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* File);

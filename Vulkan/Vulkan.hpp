@@ -2,14 +2,10 @@
 
 #include "Forwards.hpp"
 
-#include "Thread_Pool.hpp"
-
 namespace WorldEngine
 {
 	namespace VulkanDriver
 	{
-		thread_pool pool(4);
-
 		uint32_t WIDTH = 1024;
 		uint32_t HEIGHT = 768;
 		bool VSYNC = false;
@@ -364,7 +360,7 @@ namespace WorldEngine
 			printf("s_contactBatchingMethod %i\n", btSequentialImpulseConstraintSolverMt::s_contactBatchingMethod);
 
 			#ifdef _DEBUG
-			dynamicsWorld->setDebugDrawer(&BTDebugDraw);
+			//dynamicsWorld->setDebugDrawer(&BTDebugDraw);
 			#endif
 			//
 			//	CEF Post Initialization

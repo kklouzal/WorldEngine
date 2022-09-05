@@ -300,15 +300,28 @@ public:
 		if (_SceneNode->_Camera) {
 			_SceneNode->_Camera->SetPosition(glm::vec3(Pos.x(), Pos.y(), Pos.z()) + _SceneNode->_Camera->getOffset());
 		}
+		btVector3 Rot;
+		_btPos.getRotation().getEulerZYX(Rot.m_floats[0], Rot.m_floats[1], Rot.m_floats[2]);
+		btVector3 LinearVelocity = _SceneNode->GetLinearVelocity();
+		btVector3 AngularVelocity = _SceneNode->GetAngularVelocity();
 		//
 		//	Update server with our new values
 		// 
 		KNet::NetPacket_Send* Pkt = WorldEngine::NetCode::_Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Player_PositionUpdate);
 		if (Pkt)
 		{
-			Pkt->write<float>(Pos.x());															//	Player Position - X
-			Pkt->write<float>(Pos.y());															//	Player Position - Y
-			Pkt->write<float>(Pos.z());															//	Player Position - Z
+			Pkt->write<float>(Pos.x());				//  Position - X
+			Pkt->write<float>(Pos.y());				//  Position - Y
+			Pkt->write<float>(Pos.z());				//  Position - Z
+			Pkt->write<float>(Rot.x());				//  Rotation - X
+			Pkt->write<float>(Rot.y());				//  Rotation - Y
+			Pkt->write<float>(Rot.z());				//  Rotation - Z
+			Pkt->write<float>(LinearVelocity.x());		//  LinearVelocity - X
+			Pkt->write<float>(LinearVelocity.y());		//  LinearVelocity - Y
+			Pkt->write<float>(LinearVelocity.z());		//  LinearVelocity - Z
+			Pkt->write<float>(AngularVelocity.x());	//  AngularVelocity - X
+			Pkt->write<float>(AngularVelocity.y());	//  AngularVelocity - Y
+			Pkt->write<float>(AngularVelocity.z());	//  AngularVelocity - Z
 			WorldEngine::NetCode::LocalPoint->SendPacket(Pkt);
 		}
 	}

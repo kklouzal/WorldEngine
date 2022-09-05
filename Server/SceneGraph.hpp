@@ -11,7 +11,7 @@ namespace WorldEngine
 			ImportGLTF* _ImportGLTF = nullptr;
 			std::unordered_map<std::string, GLTFInfo*> Model_Cache;
 			//
-			std::unordered_map<const char*, btCollisionShape*> _CollisionShapes;
+			std::unordered_map<std::string, btCollisionShape*> _CollisionShapes;
 			std::deque<btTriangleMesh*> _TriangleMeshes;
 			std::deque<btConvexShape*> _ConvexShapes;
 			//
@@ -42,10 +42,33 @@ namespace WorldEngine
 			else {
 				//
 				//  Add this info into the model cache
-				//wxLogMessage("[GLTF] Adding Cache %s", File);
+				wxLogMessage("[GLTF] Adding Cache %s", File);
 				GLTFInfo* Infos = _ImportGLTF->loadModel(File);
 				Model_Cache[m_File] = Infos;
 				return Infos;
+			}
+		}
+
+		btCollisionShape* LoadDecomp(GLTFInfo* Infos, const char* File)
+		{
+			std::string m_File(File);
+			if (WorldEngine::SceneGraph::_CollisionShapes.count(m_File))
+			{
+				return WorldEngine::SceneGraph::_CollisionShapes[m_File];
+			}
+			else {
+				wxLogMessage("[VHACD] Adding Cache %s", m_File);
+				DecompResults* Results = Decomp(Infos);
+				btCollisionShape* ColShape = Results->CompoundShape;
+				WorldEngine::SceneGraph::_CollisionShapes[m_File] = ColShape;
+				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+					WorldEngine::SceneGraph::_ConvexShapes.push_back(Results->m_convexShapes[i]);
+				}
+				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+					WorldEngine::SceneGraph::_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+				}
+				delete Results;
+				return ColShape;
 			}
 		}
 

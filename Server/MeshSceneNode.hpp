@@ -40,7 +40,7 @@ public:
         //    Pkt->write<float>(Pos.z());															//	Player Position - Z
         //    WorldEngine::NetCode::LocalPoint->SendPacket(Pkt);
         //}
-        wxLogMessage("[MeshSceneNode] OnTransform");
+        //wxLogMessage("[MeshSceneNode] OnTransform");
     }
 };
 
@@ -48,22 +48,7 @@ MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position) :
     SceneNode(Position), Model(Model)
 {
     GLTFInfo* Infos = WorldEngine::SceneGraph::LoadModel(Model.c_str());
-    btCollisionShape* ColShape;
-    if (WorldEngine::SceneGraph::_CollisionShapes.count(Model.c_str()) == 0) {
-        DecompResults* Results = Decomp(Infos);
-        ColShape = Results->CompoundShape;
-        WorldEngine::SceneGraph::_CollisionShapes[Model.c_str()] = ColShape;
-        for (int i = 0; i < Results->m_convexShapes.size(); i++) {
-            WorldEngine::SceneGraph::_ConvexShapes.push_back(Results->m_convexShapes[i]);
-        }
-        for (int i = 0; i < Results->m_trimeshes.size(); i++) {
-            WorldEngine::SceneGraph::_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-        }
-        delete Results;
-    }
-    else {
-        ColShape = WorldEngine::SceneGraph::_CollisionShapes[Model.c_str()];
-    }
+    btCollisionShape* ColShape = WorldEngine::SceneGraph::LoadDecomp(Infos, Model.c_str());
     _CollisionShape = ColShape;
     btTransform Transform;
     Transform.setIdentity();
@@ -96,41 +81,37 @@ void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurT
 {
     if (LastUpdate + std::chrono::milliseconds(250) < CurTime)
     {
-        //ndVector Velocity = GetVelocity();
-        //Matrix = GetMatrix();
-        //
-        //for (auto& Client : WorldEngine::NetCode::ConnectedClients)
-        //{
-        //    KNet::NetPacket_Send* Pkt = Client.first->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Update_SceneNode);
-        //    if (Pkt)
-        //    {
-        //        Pkt->write<uintmax_t>(GetNodeID());                                                         //  SceneNode ID
-        //        Pkt->write<float>(Matrix.m_posit.m_x);                                                      //  Position - X
-        //        Pkt->write<float>(Matrix.m_posit.m_y);	                                                      //    Position - Y
-        //        Pkt->write<float>(Matrix.m_posit.m_z);	                                                      //	Position - Z
-        //        Pkt->write<float>(Matrix.m_posit.m_w);	                                                      //	Position - W
-        //        Pkt->write<float>(Matrix.m_front.m_x);	                                                      //	Front - X
-        //        Pkt->write<float>(Matrix.m_front.m_y);	                                                      //	Front - Y
-        //        Pkt->write<float>(Matrix.m_front.m_z);	                                                      //	Front - Z
-        //        Pkt->write<float>(Matrix.m_front.m_w);	                                                      //	Front - W
-        //        Pkt->write<float>(Matrix.m_right.m_x);	                                                      //	Right - X
-        //        Pkt->write<float>(Matrix.m_right.m_y);	                                                      //	Right - Y
-        //        Pkt->write<float>(Matrix.m_right.m_z);	                                                      //	Right - Z
-        //        Pkt->write<float>(Matrix.m_right.m_w);	                                                      //	Right - W
-        //        Pkt->write<float>(Matrix.m_up.m_x);                                                         //	    Up - X
-        //        Pkt->write<float>(Matrix.m_up.m_y);                                                         //	    Up - Y
-        //        Pkt->write<float>(Matrix.m_up.m_z);                                                         //  	Up - Z
-        //        Pkt->write<float>(Matrix.m_up.m_w);                                                         //  	Up - W
-        //        Pkt->write<float>(Velocity.m_x);                                                            //	    Velocity - X
-        //        Pkt->write<float>(Velocity.m_y);                                                            //	    Velocity - Y
-        //        Pkt->write<float>(Velocity.m_z);                                                            //  	Velocity - Z
-        //        Pkt->write<float>(Velocity.m_w);                                                            //  	Velocity - W
-        //        //
-        //        //
-        //        //  TODO: This will work for now.. But if clients connect in on a different NetPoint then this will not suffice..
-        //        WorldEngine::NetCode::Point->SendPacket(Pkt);
-        //    }
-        //}
+        btTransform Trans = _RigidBody->getWorldTransform();
+        btVector3 Origin = Trans.getOrigin();
+        btVector3 Rotation;
+        Trans.getRotation().getEulerZYX(Rotation.m_floats[0], Rotation.m_floats[1], Rotation.m_floats[2]);
+        btVector3 LinearVelocity = _RigidBody->getLinearVelocity();
+        btVector3 AngularVelocity = _RigidBody->getAngularVelocity();
+        
+        for (auto& Client : WorldEngine::NetCode::ConnectedClients)
+        {
+            KNet::NetPacket_Send* Pkt = Client.first->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Update_SceneNode);
+            if (Pkt)
+            {
+                Pkt->write<uintmax_t>(GetNodeID());         //  SceneNode ID
+                Pkt->write<float>(Origin.x());              //  Position - X
+                Pkt->write<float>(Origin.y());              //  Position - Y
+                Pkt->write<float>(Origin.z());              //  Position - Z
+                Pkt->write<float>(Rotation.x());            //  Rotation - X
+                Pkt->write<float>(Rotation.y());            //  Rotation - Y
+                Pkt->write<float>(Rotation.z());            //  Rotation - Z
+                Pkt->write<float>(LinearVelocity.x());      //  LinearVelocity - X
+                Pkt->write<float>(LinearVelocity.y());      //  LinearVelocity - Y
+                Pkt->write<float>(LinearVelocity.z());      //  LinearVelocity - Z
+                Pkt->write<float>(AngularVelocity.x());     //  AngularVelocity - X
+                Pkt->write<float>(AngularVelocity.y());     //  AngularVelocity - Y
+                Pkt->write<float>(AngularVelocity.z());     //  AngularVelocity - Z
+                //
+                //
+                //  TODO: This will work for now.. But if clients connect in on a different NetPoint then this will not suffice..
+                WorldEngine::NetCode::Point->SendPacket(Pkt);
+            }
+        }
         LastUpdate = CurTime;
     }
 }

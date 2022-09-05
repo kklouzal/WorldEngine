@@ -59,7 +59,7 @@ public:
 			//	A
 			if (isA) {
 				if (Character && Character->_Camera) {
-					Character->moveLeft(-8.0f * (WorldEngine::VulkanDriver::deltaFrame));
+					Character->moveLeft(8.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 				else {
 					Cam->GoLeft(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
@@ -70,7 +70,7 @@ public:
 			if (isD) {
 				if (Character && Character->_Camera) {
 					
-					Character->moveLeft(8.0f * (WorldEngine::VulkanDriver::deltaFrame));
+					Character->moveLeft(-8.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 				else {
 					Cam->GoRight(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
@@ -98,7 +98,7 @@ public:
 			if (isSpace)
 			{
 				if (Character && Character->_Camera) {
-					Character->doJump(35.0f);
+					Character->doJump(1.0f);
 				}
 			}
 			//

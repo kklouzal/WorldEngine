@@ -65,22 +65,7 @@ Player::Player(KNet::NetClient* Client, KNet::NetPoint* Point, btVector3 Positio
     Model(WorldEngine::DefaultPlayerModel)       //  Default player model.
 {
     GLTFInfo* Infos = WorldEngine::SceneGraph::LoadModel(Model.c_str());
-    btCollisionShape* ColShape;
-    if (WorldEngine::SceneGraph::_CollisionShapes.count(Model.c_str()) == 0) {
-        DecompResults* Results = Decomp(Infos);
-        ColShape = Results->CompoundShape;
-        WorldEngine::SceneGraph::_CollisionShapes[Model.c_str()] = ColShape;
-        for (int i = 0; i < Results->m_convexShapes.size(); i++) {
-            WorldEngine::SceneGraph::_ConvexShapes.push_back(Results->m_convexShapes[i]);
-        }
-        for (int i = 0; i < Results->m_trimeshes.size(); i++) {
-            WorldEngine::SceneGraph::_TriangleMeshes.push_back(Results->m_trimeshes[i]);
-        }
-        delete Results;
-    }
-    else {
-        ColShape = WorldEngine::SceneGraph::_CollisionShapes[Model.c_str()];
-    }
+    btCollisionShape* ColShape = WorldEngine::SceneGraph::LoadDecomp(Infos, Model.c_str());
     _CollisionShape = ColShape;
     btTransform Transform;
     Transform.setIdentity();
@@ -147,11 +132,24 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
             //  Player Position Update
             if (OperationID == WorldEngine::NetCode::OPID::Player_PositionUpdate)     //  Player Position Update
             {
-                float xPos, yPos, zPos;
-                if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
-                {
-                    //wxLogMessage("\New Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
-                }
+                btVector3 Origin;
+                _Packet->read<float>(Origin.m_floats[0]);
+                _Packet->read<float>(Origin.m_floats[1]);
+                _Packet->read<float>(Origin.m_floats[2]);
+                btVector3 Rotation;
+                _Packet->read<float>(Rotation.m_floats[0]);
+                _Packet->read<float>(Rotation.m_floats[1]);
+                _Packet->read<float>(Rotation.m_floats[2]);
+                btVector3 LinearVelocity;
+                _Packet->read<float>(LinearVelocity.m_floats[0]);
+                _Packet->read<float>(LinearVelocity.m_floats[1]);
+                _Packet->read<float>(LinearVelocity.m_floats[2]);
+                btVector3 AngularVelocity;
+                _Packet->read<float>(AngularVelocity.m_floats[0]);
+                _Packet->read<float>(AngularVelocity.m_floats[1]);
+                _Packet->read<float>(AngularVelocity.m_floats[2]);
+                //
+                NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
             }
             //
             //  Try Spawn TriangleMeshSceneNode

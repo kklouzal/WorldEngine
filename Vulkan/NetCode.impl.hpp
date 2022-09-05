@@ -159,44 +159,35 @@ namespace WorldEngine
 					//	Update SceneNode
 					else if (OperationID == WorldEngine::NetCode::OPID::Update_SceneNode)
 					{
-						//uintmax_t NodeID;
-						//_Packet->read<uintmax_t>(NodeID);
-						//btm Matrix;
-						//_Packet->read<float>(Matrix..m_posit.m_x);
-						//_Packet->read<float>(Matrix.m_posit.m_y);
-						//_Packet->read<float>(Matrix.m_posit.m_z);
-						//_Packet->read<float>(Matrix.m_posit.m_w);
-						//_Packet->read<float>(Matrix.m_front.m_x);
-						//_Packet->read<float>(Matrix.m_front.m_y);
-						//_Packet->read<float>(Matrix.m_front.m_z);
-						//_Packet->read<float>(Matrix.m_front.m_w);
-						//_Packet->read<float>(Matrix.m_right.m_x);
-						//_Packet->read<float>(Matrix.m_right.m_y);
-						//_Packet->read<float>(Matrix.m_right.m_z);
-						//_Packet->read<float>(Matrix.m_right.m_w);
-						//_Packet->read<float>(Matrix.m_up.m_x);
-						//_Packet->read<float>(Matrix.m_up.m_y);
-						//_Packet->read<float>(Matrix.m_up.m_z);
-						//_Packet->read<float>(Matrix.m_up.m_w);
-						//ndVector Velocity;
-						//_Packet->read<float>(Velocity.m_x);
-						//_Packet->read<float>(Velocity.m_y);
-						//_Packet->read<float>(Velocity.m_z);
-						//_Packet->read<float>(Velocity.m_w);
-						//TriangleMeshSceneNode* Node = static_cast<TriangleMeshSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
-						////
-						////	Dirty? Unsafe? Idk..
-						//WorldEngine::VulkanDriver::_ndWorld->Sync();
-						//if (Node)
-						//{
-						//	Node->SetMatrix(Matrix);
-						//	Node->SetVelocity(Velocity);
-						//	//
-						//	//	Set the node to redraw on all framebuffers
-						//	Node->bNeedsUpdate[0] = true;
-						//	Node->bNeedsUpdate[1] = true;
-						//	Node->bNeedsUpdate[2] = true;
-						//}
+						uintmax_t NodeID;
+						_Packet->read<uintmax_t>(NodeID);
+						btVector3 Origin;
+						_Packet->read<float>(Origin.m_floats[0]);
+						_Packet->read<float>(Origin.m_floats[1]);
+						_Packet->read<float>(Origin.m_floats[2]);
+						btVector3 Rotation;
+						_Packet->read<float>(Rotation.m_floats[0]);
+						_Packet->read<float>(Rotation.m_floats[1]);
+						_Packet->read<float>(Rotation.m_floats[2]);
+						btVector3 LinearVelocity;
+						_Packet->read<float>(LinearVelocity.m_floats[0]);
+						_Packet->read<float>(LinearVelocity.m_floats[1]);
+						_Packet->read<float>(LinearVelocity.m_floats[2]);
+						btVector3 AngularVelocity;
+						_Packet->read<float>(AngularVelocity.m_floats[0]);
+						_Packet->read<float>(AngularVelocity.m_floats[1]);
+						_Packet->read<float>(AngularVelocity.m_floats[2]);
+						TriangleMeshSceneNode* Node = static_cast<TriangleMeshSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
+						//
+						if (Node)
+						{
+							Node->NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
+							//
+							//	Set the node to redraw on all framebuffers
+							//Node->bNeedsUpdate[0] = true;
+							//Node->bNeedsUpdate[1] = true;
+							//Node->bNeedsUpdate[2] = true;
+						}
 					}
 					//handle packet
 					LocalPoint->ReleasePacket(_Packet);
