@@ -170,15 +170,21 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
 
                 //
                 //  Send confirmation to all clients
-                KNet::NetPacket_Send* Pkt = _Client->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
-                Pkt->write<bool>(true);                         //  true == successfully spawned
-                Pkt->write<uintmax_t>(NewNode->GetNodeID());    //  SceneNode ID
-                Pkt->write<const char*>(File);                  //  Model File
-                Pkt->write<float>(Mass);                        //  Mass
-                Pkt->write<float>(Position.x());                //  Position X
-                Pkt->write<float>(Position.y());                //  Position Y
-                Pkt->write<float>(Position.z());                //  Position Z
-                _Point->SendPacket(Pkt);
+                for (auto& Client : WorldEngine::NetCode::ConnectedClients)
+                {
+                    KNet::NetPacket_Send* Pkt = Client.first->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
+                    if (Pkt)
+                    {
+                        Pkt->write<bool>(true);                         //  true == successfully spawned
+                        Pkt->write<uintmax_t>(NewNode->GetNodeID());    //  SceneNode ID
+                        Pkt->write<const char*>(File);                  //  Model File
+                        Pkt->write<float>(Mass);                        //  Mass
+                        Pkt->write<float>(Position.x());                //  Position X
+                        Pkt->write<float>(Position.y());                //  Position Y
+                        Pkt->write<float>(Position.z());                //  Position Z
+                        _Point->SendPacket(Pkt);
+                    }
+                }
             }
             //
             //  Release our packet when we're done with it

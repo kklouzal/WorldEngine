@@ -79,7 +79,7 @@ MeshSceneNode::~MeshSceneNode()
 
 void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
 {
-    if (LastUpdate + std::chrono::milliseconds(333) < CurTime)
+    if (LastUpdate + std::chrono::milliseconds(66) < CurTime)
     {
         btTransform Trans = _RigidBody->getWorldTransform();
         btVector3 Origin = Trans.getOrigin();
@@ -91,6 +91,7 @@ void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurT
             KNet::NetPacket_Send* Pkt = Client.first->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Update_SceneNode);
             if (Pkt)
             {
+                //wxLogMessage("[MeshSceneNode] Update (%i) -> %ju", NodeID, Pkt->GetUID());
                 Pkt->write<uintmax_t>(GetNodeID());         //  SceneNode ID
                 Pkt->write<float>(Origin.x());              //  Position - X
                 Pkt->write<float>(Origin.y());              //  Position - Y

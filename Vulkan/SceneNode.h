@@ -56,6 +56,7 @@ public:
 			NET_LastUpdateID = UniqueID;
 			return true;
 		}
+		//printf("\tFALSE %ju < %ju\n", UniqueID, NET_LastUpdateID);
 		return false;
 	}
 
@@ -79,7 +80,7 @@ public:
 	void NetUpdate(btTransform Trans, btVector3 LinearVelocity, btVector3 AngularVelocity)
 	{
 		_RigidBody->activate(true);
-		_RigidBody->getMotionState()->setWorldTransform(Trans);
+		_RigidBody->setWorldTransform(Trans);
 		_RigidBody->setLinearVelocity(LinearVelocity);
 		_RigidBody->setAngularVelocity(AngularVelocity);
 		_RigidBody->clearForces();
