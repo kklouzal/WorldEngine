@@ -67,6 +67,7 @@ MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position) :
     _RigidBody = new btRigidBody(rbInfo);
     _RigidBody->setUserPointer(this);
     _RigidBody->setAngularFactor(btVector3(0.0f, 0.0f, 0.0f));
+    _RigidBody->setDamping(0.1f, 0.1f);
     //
     WorldEngine::dynamicsWorld->addRigidBody(_RigidBody);
     WorldEngine::SceneGraph::AddSceneNode(this);

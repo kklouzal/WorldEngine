@@ -35,12 +35,7 @@ public:
 		Transform.setIdentity();
 
 		btScalar Mass(0.0f);
-		bool isDynamic = (Mass != 0.f);
-
 		btVector3 localInertia(0, 0, 0);
-		if (isDynamic) {
-			_CollisionShape->calculateLocalInertia(Mass, localInertia);
-		}
 
 		SceneNodeMotionState* MotionState = new SceneNodeMotionState(this, Transform);
 		btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, _CollisionShape, localInertia);
@@ -53,6 +48,6 @@ public:
 	}
 
 	~WorldSceneNode() {
-		printf("Destroy WorldSceneNode\n");
+		wxLogMessage("Destroy WorldSceneNode");
 	}
 };

@@ -29,7 +29,7 @@ public:
 		WorldEngine::VulkanDriver::dynamicsWorld->removeRigidBody(_RigidBody);
 		delete _RigidBody->getMotionState();
 		delete _RigidBody;
-		printf("Destroy Base SceneNode\n");
+		printf("Destroy Base SceneNode (%ju)\n", NodeID);
 	}
 	virtual void updateUniformBuffer(const uint32_t &currentImage) = 0;
 	virtual void drawFrame(const VkCommandBuffer &CommandBuffer, const uint32_t &CurFrame) = 0;

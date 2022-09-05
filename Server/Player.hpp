@@ -103,7 +103,7 @@ Player::Player(KNet::NetClient* Client, KNet::NetPoint* Point, btVector3 Positio
         _Point->SendPacket(Pkt1);
         wxLogMessage("[Player] Send Initial Packet");
     }
-    else { printf("PKT1 UNAVAILABLE!\n"); }
+    else { wxLogMessage("[Player] Initial Packet UNAVAILABLE!"); }
 }
 
 Player::~Player()

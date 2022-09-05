@@ -205,9 +205,6 @@
     <ClInclude Include="imstb_truetype.h">
       <Filter>Header Files\Libraries\imGUI</Filter>
     </ClInclude>
-    <ClInclude Include="Thread_Pool.hpp">
-      <Filter>Header Files\Libraries</Filter>
-    </ClInclude>
     <ClInclude Include="Menu.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
