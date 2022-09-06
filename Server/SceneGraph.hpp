@@ -18,7 +18,10 @@ namespace WorldEngine
 			std::unordered_map<uintmax_t, SceneNode*> SceneNodes;
 			SceneNode* _World;
 
-			uintmax_t NextNodeID = 1;
+			uintmax_t NextNodeID = 1024;	// Start at 1024 cause I'm lazy and don't want to fix a bug.
+			//	World and Players are manually added into _SceneNodes
+			//	So their NodeID will overlap..
+			//	Get not lazy and fix this...
 		}
 
 		//
@@ -26,7 +29,7 @@ namespace WorldEngine
 		void AddSceneNode(SceneNode* Node)
 		{
 			const uintmax_t NodeID = NextNodeID++;
-			SceneNodes.emplace(NodeID, Node);
+			SceneNodes[NodeID] = Node;
 			Node->SetNodeID(NodeID);
 		}
 

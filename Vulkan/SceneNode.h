@@ -125,7 +125,6 @@ public:
 	void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
 		worldTrans.getOpenGLMatrix(ModelPtr);
-		printf("GET WORLD TRANSFORM\n");
 	}
 
 	//

@@ -79,7 +79,7 @@ MeshSceneNode::~MeshSceneNode()
 
 void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
 {
-    if (LastUpdate + std::chrono::milliseconds(66) < CurTime)
+    if (LastUpdate + std::chrono::milliseconds(333) < CurTime)
     {
         btTransform Trans = _RigidBody->getWorldTransform();
         btVector3 Origin = Trans.getOrigin();
@@ -92,23 +92,23 @@ void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurT
             if (Pkt)
             {
                 //wxLogMessage("[MeshSceneNode] Update (%i) -> %ju", NodeID, Pkt->GetUID());
-                Pkt->write<uintmax_t>(GetNodeID());         //  SceneNode ID
-                Pkt->write<float>(Origin.x());              //  Position - X
-                Pkt->write<float>(Origin.y());              //  Position - Y
-                Pkt->write<float>(Origin.z());              //  Position - Z
-                Pkt->write<float>(Origin.w());              //  Position - W
-                Pkt->write<float>(Trans.getRotation().getX());            //  Rotation - X
-                Pkt->write<float>(Trans.getRotation().getY());            //  Rotation - Y
-                Pkt->write<float>(Trans.getRotation().getZ());            //  Rotation - Z
-                Pkt->write<float>(Trans.getRotation().getW());            //  Rotation - W
-                Pkt->write<float>(LinearVelocity.x());      //  LinearVelocity - X
-                Pkt->write<float>(LinearVelocity.y());      //  LinearVelocity - Y
-                Pkt->write<float>(LinearVelocity.z());      //  LinearVelocity - Z
-                Pkt->write<float>(LinearVelocity.w());      //  LinearVelocity - W
-                Pkt->write<float>(AngularVelocity.x());     //  AngularVelocity - X
-                Pkt->write<float>(AngularVelocity.y());     //  AngularVelocity - Y
-                Pkt->write<float>(AngularVelocity.z());     //  AngularVelocity - Z
-                Pkt->write<float>(AngularVelocity.w());     //  AngularVelocity - W
+                Pkt->write<uintmax_t>(GetNodeID());             //  SceneNode ID
+                Pkt->write<float>(Origin.x());                  //  Position - X
+                Pkt->write<float>(Origin.y());                  //  Position - Y
+                Pkt->write<float>(Origin.z());                  //  Position - Z
+                Pkt->write<float>(Origin.w());                  //  Position - W
+                Pkt->write<float>(Trans.getRotation().getX());  //  Rotation - X
+                Pkt->write<float>(Trans.getRotation().getY());  //  Rotation - Y
+                Pkt->write<float>(Trans.getRotation().getZ());  //  Rotation - Z
+                Pkt->write<float>(Trans.getRotation().getW());  //  Rotation - W
+                Pkt->write<float>(LinearVelocity.x());          //  LinearVelocity - X
+                Pkt->write<float>(LinearVelocity.y());          //  LinearVelocity - Y
+                Pkt->write<float>(LinearVelocity.z());          //  LinearVelocity - Z
+                Pkt->write<float>(LinearVelocity.w());          //  LinearVelocity - W
+                Pkt->write<float>(AngularVelocity.x());         //  AngularVelocity - X
+                Pkt->write<float>(AngularVelocity.y());         //  AngularVelocity - Y
+                Pkt->write<float>(AngularVelocity.z());         //  AngularVelocity - Z
+                Pkt->write<float>(AngularVelocity.w());         //  AngularVelocity - W
                 //
                 //
                 //  TODO: This will work for now.. But if clients connect in on a different NetPoint then this will not suffice..

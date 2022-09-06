@@ -166,7 +166,6 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
                 //
                 //  Create the object here on the server
                 MeshSceneNode* NewNode = new MeshSceneNode(File, Position);
-                WorldEngine::SceneGraph::AddSceneNode(NewNode);
 
                 //
                 //  Send confirmation to all clients

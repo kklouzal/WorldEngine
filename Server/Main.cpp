@@ -23,6 +23,7 @@ namespace WorldEngine
         std::string CurrentMap;
         std::string DefaultPlayerModel;
         std::chrono::seconds ClientTimeout;
+        long TickRate = 66;
     }
 
     btDiscreteDynamicsWorld* GetPhysicsWorld()
@@ -64,7 +65,10 @@ class MyFrame : public wxFrame
     wxTextCtrl* m_log;
     wxFileConfig* conf;
 
+    float phys_TickRate = 1.0f / WorldEngine::TickRate;
+    std::chrono::time_point<std::chrono::steady_clock> Now = std::chrono::steady_clock::now();
     std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::steady_clock::now();
+    float deltaPhys = 0.f;
     float deltaFrame = 0.f;
     std::deque<float> Frames;
     //
@@ -83,6 +87,25 @@ class MyFrame : public wxFrame
             DF += F;
         }
         return DF / Frames.size();
+    }
+    //
+    std::deque<float> Phys;
+    //
+    //	Push a new Phys time into the list
+    inline void PushPhysDelta(const float F) {
+        Phys.push_back(F);
+        if (Phys.size() > 30) {
+            Phys.pop_front();
+        }
+    }
+    //
+    //	Return the average Phys time from the list
+    inline const float GetDeltaPhys() const {
+        float DF = 0;
+        for (auto& F : Phys) {
+            DF += F;
+        }
+        return DF / Phys.size();
     }
 
 public:
@@ -111,8 +134,7 @@ public:
         // ... and attach this menu bar to the frame
         SetMenuBar(menuBar);
 
-        // create a status bar just for fun (by default with 1 pane only)
-        CreateStatusBar(2);
+        CreateStatusBar(3);
         SetStatusText("Server Application");
 
         m_log = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
@@ -123,14 +145,15 @@ public:
         std::string ini_IP(conf->Read("ip", "127.0.0.1").c_str());
         const long ini_Send_Port = conf->ReadLong("send_port", 8000);
         const long ini_Recv_Port = conf->ReadLong("recv_port", 8001);
-        const long ini_Tickrate = conf->ReadLong("tickrate", 60);
+        WorldEngine::TickRate = conf->ReadLong("tickrate", 60);
+        phys_TickRate = 1.0f / WorldEngine::TickRate;
         WorldEngine::ClientTimeout = std::chrono::seconds(conf->ReadLong("client_timeout", 300));
         wxLogMessage("[Load settings.ini]\n");
         wxLogMessage("\t[NET]");
         wxLogMessage("\t\tIP: %s", ini_IP);
         wxLogMessage("\t\tSend Port: %ld", ini_Send_Port);
         wxLogMessage("\t\tRecv Port: %ld", ini_Recv_Port);
-        wxLogMessage("\t\tTickrate: %ld", ini_Tickrate);
+        wxLogMessage("\t\tTickrate: %ld", WorldEngine::TickRate);
         wxLogMessage("\t\tClient Timeout: %ld\n", WorldEngine::ClientTimeout.count());
         wxLogMessage("\t[GAME]");
         conf->SetPath("/game");
@@ -176,12 +199,12 @@ public:
             // SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
             // SOLVER_USE_2_FRICTION_DIRECTIONS |
             SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
-            //SOLVER_CACHE_FRIENDLY |
+            SOLVER_CACHE_FRIENDLY |
             SOLVER_DISABLE_IMPLICIT_CONE_FRICTION |
             //SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION |
             0;
 
-        WorldEngine::dynamicsWorld->getSolverInfo().m_numIterations = 10;
+        WorldEngine::dynamicsWorld->getSolverInfo().m_numIterations = 5;
         btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
         wxLogMessage("Physics Initialized");
 
@@ -199,7 +222,7 @@ public:
 
         TickTimer = new wxTimer();
         TickTimer->Bind(wxEVT_TIMER, &MyFrame::OnTimer, this);
-        TickTimer->Start(1000/ini_Tickrate);
+        TickTimer->Start(1000/WorldEngine::TickRate);
     }
 
     ~MyFrame()
@@ -247,11 +270,11 @@ private:
 
 void MyFrame::OnTimer(wxTimerEvent&)
 {
-    auto Now = std::chrono::steady_clock::now();
+    Now = std::chrono::steady_clock::now();
     deltaFrame = std::chrono::duration<float, std::milli>(Now - startFrame).count() / 1000.f;
     startFrame = Now;
     PushFrameDelta(deltaFrame);
-    SetStatusText("Tick Time " + wxString(std::to_string(GetDeltaFrames() * 1000)) + "ms");
+    SetStatusText("Tick Time " + std::to_string(GetDeltaFrames() * 1000) + "ms");
     //==============================
     //
     // 
@@ -265,11 +288,16 @@ void MyFrame::OnTimer(wxTimerEvent&)
     //  Update the world
     if (deltaFrame > 0.0f)
     {
-        WorldEngine::dynamicsWorld->stepSimulation(deltaFrame, 10);
+        Now = std::chrono::steady_clock::now();
+        WorldEngine::dynamicsWorld->stepSimulation(deltaFrame, 5, phys_TickRate);
+        deltaPhys = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - Now).count() / 1000.f;
+        PushPhysDelta(deltaPhys);
+        SetStatusText("Phys Time " + std::to_string(GetDeltaPhys() * 1000) + "ms", 1);
     }
     //
     //
     //==============================
+    SetStatusText("Scene Nodes: " + std::to_string(WorldEngine::SceneGraph::SceneNodes.size()), 2);
 }
 
 // the event tables connect the wxWidgets events with the functions (event

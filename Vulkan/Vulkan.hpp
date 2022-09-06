@@ -333,12 +333,12 @@ namespace WorldEngine
 				// SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
 				// SOLVER_USE_2_FRICTION_DIRECTIONS |
 				SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
-				//SOLVER_CACHE_FRIENDLY |
+				SOLVER_CACHE_FRIENDLY |
 				SOLVER_DISABLE_IMPLICIT_CONE_FRICTION |
 				//SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION |
 				0;
 
-			dynamicsWorld->getSolverInfo().m_numIterations = 10;
+			dynamicsWorld->getSolverInfo().m_numIterations = 5;
 			//
 			//	true - false
 			btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
@@ -479,7 +479,7 @@ namespace WorldEngine
 				if (deltaFrame > 0.0f)
 				{
 					//if (isWorld) {
-						dynamicsWorld->stepSimulation(deltaFrame, 10);
+						dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
 					//}
 					SceneGraph::updateUniformBuffer(currentFrame);
 					//
