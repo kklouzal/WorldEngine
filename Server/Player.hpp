@@ -22,9 +22,15 @@ public:
     KNet::NetPoint* GetNetPoint();
 
     void Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime);
+    std::chrono::time_point<std::chrono::steady_clock> LastUpdate = std::chrono::high_resolution_clock::now();
 
     //  TODO: Notify other players of our disconnect.
     void Disconnect();
+
+    const char* GetModelFile()
+    {
+        return Model.c_str();
+    }
 };
 
 //
@@ -71,7 +77,7 @@ Player::Player(KNet::NetClient* Client, KNet::NetPoint* Point, btVector3 Positio
     Transform.setIdentity();
     Transform.setOrigin(Position);
 
-    btScalar Mass = 0.5f;
+    Mass = 5.0f;
     bool isDynamic = (Mass != 0.f);
 
     btVector3 localInertia(0, 0, 0);
@@ -228,11 +234,88 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
                     }
                 }
                 break;
+                //
+                //  Request PlayerNode
+                case WorldEngine::NetCode::OPID::Request_PlayerNode:
+                {
+                    uintmax_t NodeID;
+                    _Packet->read<uintmax_t>(NodeID);
+                    SceneNode* Node = WorldEngine::SceneGraph::GetNode(NodeID);
+                    if (Node)
+                    {
+                        auto Out_Packet = _Client->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Request_PlayerNode);
+                        if (Out_Packet)
+                        {
+                            Out_Packet->write<uintmax_t>(NodeID);                   //  SceneNode ID
+                            Out_Packet->write<const char*>(Node->GetModelFile());   //  Model File
+                            Out_Packet->write<float>(Node->GetMass());              //  Mass
+                            //
+                            btTransform Trans = Node->GetWorldTransform();
+                            btVector3 Position = Trans.getOrigin();
+                            btVector3 Rotation;
+                            Trans.getRotation().getEulerZYX(Rotation.m_floats[0], Rotation.m_floats[1], Rotation.m_floats[2]);
+                            //
+                            Out_Packet->write<float>(Position.x());                //  Position X
+                            Out_Packet->write<float>(Position.y());                //  Position Y
+                            Out_Packet->write<float>(Position.z());                //  Position Z
+                            Out_Packet->write<float>(Rotation.x());                //  Rotation X
+                            Out_Packet->write<float>(Rotation.y());                //  Rotation Y
+                            Out_Packet->write<float>(Rotation.z());                //  Rotation Z
+                            _Point->SendPacket(Out_Packet);
+                        }
+                    }
+                }
+                break;
             }
             //
             //  Release our packet when we're done with it
             _Point->ReleasePacket(_Packet);
         }
+    }
+    //
+    //  Update the other clients about this player
+    if (LastUpdate + std::chrono::milliseconds(333) < CurTime)
+    {
+        btTransform Trans = _RigidBody->getWorldTransform();
+        btVector3 Origin = Trans.getOrigin();
+        btVector3 LinearVelocity = _RigidBody->getLinearVelocity();
+        btVector3 AngularVelocity = _RigidBody->getAngularVelocity();
+
+        for (auto& Client : WorldEngine::NetCode::ConnectedClients)
+        {
+            //
+            //  Skip sending updates back to ourself, until some kind of smoothing/interpolation can be implemented
+            //  We *might* leave clients responsible for themselves.. dunno..
+            if (Client.first == _Client) { continue; }
+            //
+            KNet::NetPacket_Send* Pkt = Client.first->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Update_PlayerNode);
+            if (Pkt)
+            {
+                //wxLogMessage("[MeshSceneNode] Update (%i) -> %ju", NodeID, Pkt->GetUID());
+                Pkt->write<uintmax_t>(GetNodeID());             //  SceneNode ID
+                Pkt->write<float>(Origin.x());                  //  Position - X
+                Pkt->write<float>(Origin.y());                  //  Position - Y
+                Pkt->write<float>(Origin.z());                  //  Position - Z
+                Pkt->write<float>(Origin.w());                  //  Position - W
+                Pkt->write<float>(Trans.getRotation().getX());  //  Rotation - X
+                Pkt->write<float>(Trans.getRotation().getY());  //  Rotation - Y
+                Pkt->write<float>(Trans.getRotation().getZ());  //  Rotation - Z
+                Pkt->write<float>(Trans.getRotation().getW());  //  Rotation - W
+                Pkt->write<float>(LinearVelocity.x());          //  LinearVelocity - X
+                Pkt->write<float>(LinearVelocity.y());          //  LinearVelocity - Y
+                Pkt->write<float>(LinearVelocity.z());          //  LinearVelocity - Z
+                Pkt->write<float>(LinearVelocity.w());          //  LinearVelocity - W
+                Pkt->write<float>(AngularVelocity.x());         //  AngularVelocity - X
+                Pkt->write<float>(AngularVelocity.y());         //  AngularVelocity - Y
+                Pkt->write<float>(AngularVelocity.z());         //  AngularVelocity - Z
+                Pkt->write<float>(AngularVelocity.w());         //  AngularVelocity - W
+                //
+                //
+                //  TODO: This will work for now.. But if clients connect in on a different NetPoint then this will not suffice..
+                WorldEngine::NetCode::Point->SendPacket(Pkt);
+            }
+        }
+        LastUpdate = CurTime;
     }
 }
 

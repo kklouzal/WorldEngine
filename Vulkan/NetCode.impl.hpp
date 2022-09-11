@@ -87,6 +87,8 @@ namespace WorldEngine
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Spawn_TriangleMeshSceneNode);
 				Client->RegisterChannel<KNet::ChannelID::Unreliable_Any>((uint8_t)NetCode::OPID::Update_SceneNode);
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_SceneNode);
+				Client->RegisterChannel<KNet::ChannelID::Unreliable_Any>((uint8_t)NetCode::OPID::Update_PlayerNode);
+				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_PlayerNode);
 				ConnectedClients.push_back(Client);
 			}
 			//
@@ -97,130 +99,218 @@ namespace WorldEngine
 				for (auto _Packet : Packets_Client)
 				{
 					WorldEngine::NetCode::OPID OperationID = (WorldEngine::NetCode::OPID)_Packet->GetOID();
-					//
-					//	PlayerInitialConnect
-					if (OperationID == WorldEngine::NetCode::OPID::PlayerInitialConnect)
+					switch (OperationID)
 					{
-						bool bIsServer;
-						if (_Packet->read<bool>(bIsServer))
+						//
+						//	PlayerInitialConnect
+						case WorldEngine::NetCode::OPID::PlayerInitialConnect:
 						{
-							printf("Incoming Packet: bIsServer %i\n", bIsServer);
-							if (bIsServer)
+							bool bIsServer;
+							if (_Packet->read<bool>(bIsServer))
 							{
-								_Server = _Client;
+								printf("Incoming Packet: bIsServer %i\n", bIsServer);
+								if (bIsServer)
+								{
+									_Server = _Client;
+								}
 							}
-						}
-						uintmax_t WorldNodeID;
-						_Packet->read<uintmax_t>(WorldNodeID);
-						char MapFile[255] = "";
-						if (_Packet->read<char>(*MapFile))
-						{
-							printf("\tMapFile: %s\n", MapFile);
-							WorldEngine::SceneGraph::initWorld(WorldNodeID, MapFile);
-						}
-						uintmax_t CharacterNodeID;
-						_Packet->read<uintmax_t>(CharacterNodeID);
-						char CharacterFile[255] = "";
-						if (_Packet->read<char>(*CharacterFile))
-						{
-							printf("\tCharacterFile: %s\n", CharacterFile);
-						}
-						float xPos, yPos, zPos;
-						if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
-						{
-							printf("\tCharacter Pos: %f, %f, %f\n", xPos, yPos, zPos);
-						}
-						WorldEngine::SceneGraph::initPlayer(CharacterNodeID, CharacterFile, btVector3(xPos, yPos, zPos));
+							uintmax_t WorldNodeID;
+							_Packet->read<uintmax_t>(WorldNodeID);
+							char MapFile[255] = "";
+							if (_Packet->read<char>(*MapFile))
+							{
+								printf("\tMapFile: %s\n", MapFile);
+								WorldEngine::SceneGraph::initWorld(WorldNodeID, MapFile);
+							}
+							uintmax_t CharacterNodeID;
+							_Packet->read<uintmax_t>(CharacterNodeID);
+							char CharacterFile[255] = "";
+							if (_Packet->read<char>(*CharacterFile))
+							{
+								printf("\tCharacterFile: %s\n", CharacterFile);
+							}
+							float xPos, yPos, zPos;
+							if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
+							{
+								printf("\tCharacter Pos: %f, %f, %f\n", xPos, yPos, zPos);
+							}
+							WorldEngine::SceneGraph::initPlayer(CharacterNodeID, CharacterFile, btVector3(xPos, yPos, zPos));
 
-						WorldEngine::VulkanDriver::_EventReceiver->OnGUI("Play");
-					}
-					//
-					//	Spawn_TriangleMeshSceneNode
-					else if (OperationID == WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode)
-					{
-						bool bSuccess;
-						_Packet->read<bool>(bSuccess);
-						uintmax_t NodeID;
-						_Packet->read<uintmax_t>(NodeID);
-						char File[255] = "";
-						_Packet->read<char>(*File);
-						float Mass;
-						_Packet->read<float>(Mass);
-						btVector3 Position;
-						_Packet->read<float>(Position.m_floats[0]);
-						_Packet->read<float>(Position.m_floats[1]);
-						_Packet->read<float>(Position.m_floats[2]);
-						btVector3 Rotation;
-						_Packet->read<float>(Rotation.m_floats[0]);
-						_Packet->read<float>(Rotation.m_floats[1]);
-						_Packet->read<float>(Rotation.m_floats[2]);
-						//
-						if (bSuccess && !WorldEngine::SceneGraph::SceneNodes.count(NodeID))
-						{
-							printf("MASS %f\n", Mass);
-							TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
+							WorldEngine::VulkanDriver::_EventReceiver->OnGUI("Play");
 						}
-					}
-					//
-					//	Update SceneNode
-					else if (OperationID == WorldEngine::NetCode::OPID::Update_SceneNode)
-					{
-						uintmax_t NodeID;
-						_Packet->read<uintmax_t>(NodeID);
-						if (WorldEngine::SceneGraph::SceneNodes.count(NodeID))
+						break;
+						//
+						//	Spawn_TriangleMeshSceneNode
+						case WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode:
 						{
-							TriangleMeshSceneNode* Node = static_cast<TriangleMeshSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
+							bool bSuccess;
+							_Packet->read<bool>(bSuccess);
+							uintmax_t NodeID;
+							_Packet->read<uintmax_t>(NodeID);
+							char File[255] = "";
+							_Packet->read<char>(*File);
+							float Mass;
+							_Packet->read<float>(Mass);
+							btVector3 Position;
+							_Packet->read<float>(Position.m_floats[0]);
+							_Packet->read<float>(Position.m_floats[1]);
+							_Packet->read<float>(Position.m_floats[2]);
+							btVector3 Rotation;
+							_Packet->read<float>(Rotation.m_floats[0]);
+							_Packet->read<float>(Rotation.m_floats[1]);
+							_Packet->read<float>(Rotation.m_floats[2]);
 							//
-							if (Node)
+							if (bSuccess && !WorldEngine::SceneGraph::SceneNodes.count(NodeID))
 							{
-								if (Node->Name == "Character")
-								{
-									printf("TRYING TO UPDATE CHARACTER!!!!! NodeID:%ju\n", NodeID);
-								}
-								//
-								//	Only update if this packet UniqueID is greater than the most recent update
-								if (Node->Net_ShouldUpdate(_Packet->GetUID()))
-								{
-									btTransform Trans;// = Node->GetWorldTransform();
-									Trans.setIdentity();
-									//
-									btVector3 Origin;
-									_Packet->read<float>(Origin.m_floats[0]);
-									_Packet->read<float>(Origin.m_floats[1]);
-									_Packet->read<float>(Origin.m_floats[2]);
-									_Packet->read<float>(Origin.m_floats[3]);
-									Trans.setOrigin(Origin);
-									//
-									float RotX, RotY, RotZ, RotW;
-									_Packet->read<float>(RotX);
-									_Packet->read<float>(RotY);
-									_Packet->read<float>(RotZ);
-									_Packet->read<float>(RotW);
-									Trans.setRotation(btQuaternion(RotX, RotY, RotZ, RotW));
-									//
-									btVector3 LinearVelocity;
-									_Packet->read<float>(LinearVelocity.m_floats[0]);
-									_Packet->read<float>(LinearVelocity.m_floats[1]);
-									_Packet->read<float>(LinearVelocity.m_floats[2]);
-									_Packet->read<float>(LinearVelocity.m_floats[3]);
-									btVector3 AngularVelocity;
-									_Packet->read<float>(AngularVelocity.m_floats[0]);
-									_Packet->read<float>(AngularVelocity.m_floats[1]);
-									_Packet->read<float>(AngularVelocity.m_floats[2]);
-									_Packet->read<float>(AngularVelocity.m_floats[3]);
-									//
-									Node->NetUpdate(Trans, LinearVelocity, AngularVelocity);
-									//Node->NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
-								}
+								printf("MASS %f\n", Mass);
+								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
 							}
 						}
+						break;
 						//
-						//	NodeID doesn't exist, request it from the server
-						else {
-							auto Out_Packet = _Server->GetFreePacket((uint8_t)NetCode::OPID::Request_SceneNode);
-							Out_Packet->write<uintmax_t>(NodeID);
-							LocalPoint->SendPacket(Out_Packet);
+						//	Update SceneNode
+						case WorldEngine::NetCode::OPID::Update_SceneNode:
+						{
+							uintmax_t NodeID;
+							_Packet->read<uintmax_t>(NodeID);
+							if (WorldEngine::SceneGraph::SceneNodes.count(NodeID))
+							{
+								TriangleMeshSceneNode* Node = static_cast<TriangleMeshSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
+								//
+								if (Node)
+								{
+									//
+									//	Only update if this packet UniqueID is greater than the most recent update
+									if (Node->Net_ShouldUpdate(_Packet->GetUID()))
+									{
+										btTransform Trans;// = Node->GetWorldTransform();
+										Trans.setIdentity();
+										//
+										btVector3 Origin;
+										_Packet->read<float>(Origin.m_floats[0]);
+										_Packet->read<float>(Origin.m_floats[1]);
+										_Packet->read<float>(Origin.m_floats[2]);
+										_Packet->read<float>(Origin.m_floats[3]);
+										Trans.setOrigin(Origin);
+										//
+										float RotX, RotY, RotZ, RotW;
+										_Packet->read<float>(RotX);
+										_Packet->read<float>(RotY);
+										_Packet->read<float>(RotZ);
+										_Packet->read<float>(RotW);
+										Trans.setRotation(btQuaternion(RotX, RotY, RotZ, RotW));
+										//
+										btVector3 LinearVelocity;
+										_Packet->read<float>(LinearVelocity.m_floats[0]);
+										_Packet->read<float>(LinearVelocity.m_floats[1]);
+										_Packet->read<float>(LinearVelocity.m_floats[2]);
+										_Packet->read<float>(LinearVelocity.m_floats[3]);
+										btVector3 AngularVelocity;
+										_Packet->read<float>(AngularVelocity.m_floats[0]);
+										_Packet->read<float>(AngularVelocity.m_floats[1]);
+										_Packet->read<float>(AngularVelocity.m_floats[2]);
+										_Packet->read<float>(AngularVelocity.m_floats[3]);
+										//
+										Node->NetUpdate(Trans, LinearVelocity, AngularVelocity);
+										//Node->NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
+									}
+								}
+							}
+							//
+							//	NodeID doesn't exist, request it from the server
+							else {
+								auto Out_Packet = _Server->GetFreePacket((uint8_t)NetCode::OPID::Request_SceneNode);
+								Out_Packet->write<uintmax_t>(NodeID);
+								LocalPoint->SendPacket(Out_Packet);
+							}
 						}
+						break;
+						//
+						//	Update SceneNode
+						case WorldEngine::NetCode::OPID::Update_PlayerNode:
+						{
+							uintmax_t NodeID;
+							_Packet->read<uintmax_t>(NodeID);
+							if (WorldEngine::SceneGraph::SceneNodes.count(NodeID))
+							{
+								CharacterSceneNode* Node = static_cast<CharacterSceneNode*>(WorldEngine::SceneGraph::SceneNodes[NodeID]);
+								//
+								if (Node)
+								{
+									//
+									//	Only update if this packet UniqueID is greater than the most recent update
+									if (Node->Net_ShouldUpdate(_Packet->GetUID()))
+									{
+										btTransform Trans;// = Node->GetWorldTransform();
+										Trans.setIdentity();
+										//
+										btVector3 Origin;
+										_Packet->read<float>(Origin.m_floats[0]);
+										_Packet->read<float>(Origin.m_floats[1]);
+										_Packet->read<float>(Origin.m_floats[2]);
+										_Packet->read<float>(Origin.m_floats[3]);
+										Trans.setOrigin(Origin);
+										//
+										float RotX, RotY, RotZ, RotW;
+										_Packet->read<float>(RotX);
+										_Packet->read<float>(RotY);
+										_Packet->read<float>(RotZ);
+										_Packet->read<float>(RotW);
+										Trans.setRotation(btQuaternion(RotX, RotY, RotZ, RotW));
+										//
+										btVector3 LinearVelocity;
+										_Packet->read<float>(LinearVelocity.m_floats[0]);
+										_Packet->read<float>(LinearVelocity.m_floats[1]);
+										_Packet->read<float>(LinearVelocity.m_floats[2]);
+										_Packet->read<float>(LinearVelocity.m_floats[3]);
+										btVector3 AngularVelocity;
+										_Packet->read<float>(AngularVelocity.m_floats[0]);
+										_Packet->read<float>(AngularVelocity.m_floats[1]);
+										_Packet->read<float>(AngularVelocity.m_floats[2]);
+										_Packet->read<float>(AngularVelocity.m_floats[3]);
+										//
+										Node->NetUpdate(Trans, LinearVelocity, AngularVelocity);
+										//Node->NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
+									}
+								}
+							}
+							//
+							//	NodeID doesn't exist, request it from the server
+							else {
+								auto Out_Packet = _Server->GetFreePacket((uint8_t)NetCode::OPID::Request_PlayerNode);
+								Out_Packet->write<uintmax_t>(NodeID);
+								LocalPoint->SendPacket(Out_Packet);
+							}
+						}
+						break;
+						//
+						//	Request PlayerNode (spawn non-local player into world)
+						case WorldEngine::NetCode::OPID::Request_PlayerNode:
+						{
+							uintmax_t NodeID;
+							_Packet->read<uintmax_t>(NodeID);
+							char File[255] = "";
+							_Packet->read<char>(*File);
+							float Mass;
+							_Packet->read<float>(Mass);
+							btVector3 Position;
+							_Packet->read<float>(Position.m_floats[0]);
+							_Packet->read<float>(Position.m_floats[1]);
+							_Packet->read<float>(Position.m_floats[2]);
+							btVector3 Rotation;
+							_Packet->read<float>(Rotation.m_floats[0]);
+							_Packet->read<float>(Rotation.m_floats[1]);
+							_Packet->read<float>(Rotation.m_floats[2]);
+							//
+							if (!WorldEngine::SceneGraph::SceneNodes.count(NodeID))
+							{
+								printf("MASS %f\n", Mass);
+								//
+								//	TODO: This needs to be a character scene node..? NonLocalCharacterSceneNode..? Ugh.. :D
+								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
+							}
+						}
+						break;
 					}
 					//handle packet
 					LocalPoint->ReleasePacket(_Packet);

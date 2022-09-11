@@ -29,7 +29,9 @@ namespace WorldEngine
 			Player_PositionUpdate,
 			Spawn_TriangleMeshSceneNode,
 			Update_SceneNode,
-			Request_SceneNode
+			Request_SceneNode,
+			Update_PlayerNode,
+			Request_PlayerNode
 		};
 
 		void Initialize(const char* LocalIP, const unsigned int LocalSendPort, const unsigned int LocalRecvPort);

@@ -62,9 +62,11 @@ public:
 		btTransform Trans = _RigidBody->getWorldTransform();
 		Trans.setOrigin(Origin);
 		Trans.setRotation(btQuaternion(Rotation.x(), Rotation.y(), Rotation.z()));
+		_RigidBody->activate(true);
 		_RigidBody->setWorldTransform(Trans);
 		_RigidBody->setLinearVelocity(LinearVelocity);
 		_RigidBody->setAngularVelocity(AngularVelocity);
+		_RigidBody->clearForces();
 	}
 };
 
