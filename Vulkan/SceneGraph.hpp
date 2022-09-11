@@ -180,7 +180,7 @@ namespace WorldEngine
 				return WorldEngine::SceneGraph::_CollisionShapes[m_File];
 			}
 			else {
-				printf("[VHACD] Adding Cache %s\n", m_File);
+				printf("[VHACD] Adding Cache %s\n", m_File.c_str());
 				DecompResults* Results = Decomp(Infos);
 				btCollisionShape* ColShape = Results->CompoundShape;
 				WorldEngine::SceneGraph::_CollisionShapes[m_File] = ColShape;

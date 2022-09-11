@@ -6,11 +6,12 @@ class MeshSceneNode : public SceneNode
 {
 	std::string Model;
 public:
-	MeshSceneNode(std::string Model, btVector3 Position);
+	MeshSceneNode(std::string Model, btVector3 Position, btScalar inMass);
 	~MeshSceneNode();
 
     void Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime);
     std::chrono::time_point<std::chrono::steady_clock> LastUpdate = std::chrono::high_resolution_clock::now();
+    const char* GetModelFile();
 };
 
 //
@@ -44,7 +45,7 @@ public:
     }
 };
 
-MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position) :
+MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position, btScalar inMass) :
     SceneNode(Position), Model(Model)
 {
     GLTFInfo* Infos = WorldEngine::SceneGraph::LoadModel(Model.c_str());
@@ -54,7 +55,7 @@ MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position) :
     Transform.setIdentity();
     Transform.setOrigin(Position);
 
-    btScalar Mass = 0.5f;
+    Mass = inMass;
     bool isDynamic = (Mass != 0.f);
 
     btVector3 localInertia(0, 0, 0);
@@ -75,6 +76,11 @@ MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position) :
 MeshSceneNode::~MeshSceneNode()
 {
     wxLogMessage("[MeshSceneNode] Deleted!");
+}
+
+const char* MeshSceneNode::GetModelFile()
+{
+    return Model.c_str();
 }
 
 void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)

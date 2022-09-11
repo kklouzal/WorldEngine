@@ -21,7 +21,8 @@ namespace WorldEngine
             PlayerInitialConnect,
             Player_PositionUpdate,
             Spawn_TriangleMeshSceneNode,
-            Update_SceneNode
+            Update_SceneNode,
+            Request_SceneNode
         };
 
         void Initialize(const char* BindIP, const unsigned int SendPort, const unsigned int RecvPort);

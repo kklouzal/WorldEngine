@@ -33,6 +33,17 @@ namespace WorldEngine
 			Node->SetNodeID(NodeID);
 		}
 
+		//
+		//	Returns a SceneNode else nullptr
+		SceneNode* GetNode(uintmax_t NodeID)
+		{
+			if (SceneNodes.count(NodeID))
+			{
+				return SceneNodes[NodeID];
+			}
+			return nullptr;
+		}
+
 		GLTFInfo* LoadModel(const char* File)
 		{
 			std::string m_File(File);

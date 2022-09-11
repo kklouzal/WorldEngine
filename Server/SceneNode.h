@@ -5,6 +5,7 @@ protected:
 	uintmax_t NodeID;
 	bool NeedsDelete;
 	//
+	btScalar Mass;
 	btVector3 Position;
 	btRigidBody* _RigidBody = nullptr;
 	btCollisionShape* _CollisionShape = nullptr;
@@ -15,7 +16,7 @@ public:
 
 public:
 	SceneNode(btVector3 Position = btVector3(0.0f, 0.0f, 0.0f)) :
-		NodeID(0), NeedsDelete(false), Position(Position) {}
+		NodeID(0), NeedsDelete(false), Position(Position), Mass(0.0f) {}
 
 	virtual ~SceneNode()
 	{
@@ -25,10 +26,8 @@ public:
 		wxLogMessage("[SceneNode] Destroy");
 	}
 
-	virtual void Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
-	{
-
-	}
+	virtual void Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime) {	}
+	virtual const char* GetModelFile() { return ""; }
 
 	void SetNodeID(const uintmax_t ID)
 	{
@@ -38,12 +37,22 @@ public:
 		}
 	}
 
-	const uintmax_t GetNodeID()
+	const uintmax_t& GetNodeID()
 	{
 		return NodeID;
 	}
 
-	const bool GetNeedsDelete()
+	btScalar& GetMass()
+	{
+		return Mass;
+	}
+
+	btTransform& GetWorldTransform()
+	{
+		return _RigidBody->getWorldTransform();
+	}
+
+	const bool& GetNeedsDelete()
 	{
 		return NeedsDelete;
 	}

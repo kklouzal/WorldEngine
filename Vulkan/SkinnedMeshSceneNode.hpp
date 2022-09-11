@@ -104,7 +104,7 @@ public:
 	//	TODO: Check for bNeedsUpdate
 	void updateUniformBuffer(const uint32_t &currentImage) {
 		endFrame = std::chrono::high_resolution_clock::now();
-		deltaFrame = std::chrono::duration<double, std::milli>(endFrame - startFrame).count();
+		deltaFrame = std::chrono::duration<float, std::milli>(endFrame - startFrame).count();
 		startFrame = endFrame;
 
 		ubo.model = Model;

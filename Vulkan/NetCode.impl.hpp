@@ -72,7 +72,7 @@ namespace WorldEngine
 			//  Handle Out-Of-Band Packets
 			for (auto& _Packet : Packets_OOB.Packets)
 			{
-				printf("INCOMING PACKET\n");
+				printf("INCOMING OOB PACKET\n");
 				//
 				//	Handle incoming Out-Of-Band packets
 				LocalPoint->ReleasePacket(_Packet);
@@ -86,6 +86,7 @@ namespace WorldEngine
 				Client->RegisterChannel<KNet::ChannelID::Unreliable_Latest>((uint8_t)NetCode::OPID::Player_PositionUpdate);
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Spawn_TriangleMeshSceneNode);
 				Client->RegisterChannel<KNet::ChannelID::Unreliable_Any>((uint8_t)NetCode::OPID::Update_SceneNode);
+				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_SceneNode);
 				ConnectedClients.push_back(Client);
 			}
 			//
@@ -122,12 +123,12 @@ namespace WorldEngine
 						char CharacterFile[255] = "";
 						if (_Packet->read<char>(*CharacterFile))
 						{
-							printf("\CharacterFile: %s\n", CharacterFile);
+							printf("\tCharacterFile: %s\n", CharacterFile);
 						}
 						float xPos, yPos, zPos;
 						if (_Packet->read<float>(xPos) && _Packet->read<float>(yPos) && _Packet->read<float>(zPos))
 						{
-							printf("\Character Pos: %f, %f, %f\n", xPos, yPos, zPos);
+							printf("\tCharacter Pos: %f, %f, %f\n", xPos, yPos, zPos);
 						}
 						WorldEngine::SceneGraph::initPlayer(CharacterNodeID, CharacterFile, btVector3(xPos, yPos, zPos));
 
@@ -149,9 +150,14 @@ namespace WorldEngine
 						_Packet->read<float>(Position.m_floats[0]);
 						_Packet->read<float>(Position.m_floats[1]);
 						_Packet->read<float>(Position.m_floats[2]);
+						btVector3 Rotation;
+						_Packet->read<float>(Rotation.m_floats[0]);
+						_Packet->read<float>(Rotation.m_floats[1]);
+						_Packet->read<float>(Rotation.m_floats[2]);
 						//
 						if (bSuccess && !WorldEngine::SceneGraph::SceneNodes.count(NodeID))
 						{
+							printf("MASS %f\n", Mass);
 							TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
 						}
 					}
@@ -205,13 +211,15 @@ namespace WorldEngine
 									//
 									Node->NetUpdate(Trans, LinearVelocity, AngularVelocity);
 									//Node->NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
-									//
-									//	Set the node to redraw on all framebuffers
-									//Node->bNeedsUpdate[0] = true;
-									//Node->bNeedsUpdate[1] = true;
-									//Node->bNeedsUpdate[2] = true;
 								}
 							}
+						}
+						//
+						//	NodeID doesn't exist, request it from the server
+						else {
+							auto Out_Packet = _Server->GetFreePacket((uint8_t)NetCode::OPID::Request_SceneNode);
+							Out_Packet->write<uintmax_t>(NodeID);
+							LocalPoint->SendPacket(Out_Packet);
 						}
 					}
 					//handle packet
