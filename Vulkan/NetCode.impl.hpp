@@ -183,8 +183,10 @@ namespace WorldEngine
 									//	Only update if this packet UniqueID is greater than the most recent update
 									if (Node->Net_ShouldUpdate(_Packet->GetUID()))
 									{
-										btTransform Trans;// = Node->GetWorldTransform();
-										Trans.setIdentity();
+										bool bApplyUpdate = true;
+										btTransform CurTrans = Node->GetWorldTransform();
+										btTransform Trans = Node->GetWorldTransform();
+										//Trans.setIdentity();
 										//
 										btVector3 Origin;
 										_Packet->read<float>(Origin.m_floats[0]);
@@ -192,6 +194,14 @@ namespace WorldEngine
 										_Packet->read<float>(Origin.m_floats[2]);
 										_Packet->read<float>(Origin.m_floats[3]);
 										Trans.setOrigin(Origin);
+										
+										
+										btScalar Dist = Origin.distance(CurTrans.getOrigin());
+										if (Dist < 0.01f)
+										{
+											bApplyUpdate = false;
+											//printf("IGNORE UPDATE %f\n", Dist);
+										}
 										//
 										float RotX, RotY, RotZ, RotW;
 										_Packet->read<float>(RotX);
@@ -211,7 +221,10 @@ namespace WorldEngine
 										_Packet->read<float>(AngularVelocity.m_floats[2]);
 										_Packet->read<float>(AngularVelocity.m_floats[3]);
 										//
-										Node->NetUpdate(Trans, LinearVelocity, AngularVelocity);
+										if (bApplyUpdate)
+										{
+											Node->NetUpdate(Trans, LinearVelocity, AngularVelocity);
+										}
 										//Node->NetUpdate(Origin, Rotation, LinearVelocity, AngularVelocity);
 									}
 								}

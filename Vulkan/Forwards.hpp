@@ -1,7 +1,7 @@
 #pragma once
 #define WIN32_LEAN_AND_MEAN
 
-#define GLFW_INCLUDE_VULKAN
+#include "volk.h"
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <glfw/glfw3native.h>
@@ -9,6 +9,8 @@
 #include <KNet.hpp>
 
 #define VMA_IMPLEMENTATION
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
 #include "vk_mem_alloc.h"
 
 #define GLM_FORCE_RADIANS
@@ -58,6 +60,54 @@
 //	Include Vulkan Helpers
 #include <iostream>
 #include <vector>
+//namespace WorldEngine
+//{
+//	namespace VK
+//	{
+//		PFN_vkCreateDevice pfnCreateDevice;
+//		PFN_vkDestroyFramebuffer
+//			vkGetImageMemoryRequirements
+//			vkCreateShaderModule
+//			vkCmdCopyBufferToImage
+//			vkDestroyCommandPool
+//			vkCreateImageView
+//			vkGetBufferMemoryRequirements2
+//			vkCmdBindIndexBuffer
+//			vkFreeCommandBuffers
+//			vkBindImageMemory
+//			vkDestroySemaphore
+//			vkFreeMemory
+//			vkCmdSetViewport
+//			vkCmdBindDescriptorSets
+//			vkDestroyShaderModule
+//			vkBindBufferMemory2
+//			vkCmdCopyBuffer
+//			vkDestroyDevice
+//			vkGetPhysicalDeviceFormatProperties
+//			vkCmdPushConstants
+//			vkGetPhysicalDeviceMemoryProperties
+//			vkUnmapMemory
+//			vkEndCommandBuffer
+//			vkCreateBuffer
+//			vkDestroyDescriptorPool
+//			vkFlushMappedMemoryRanges
+//			vkGetDeviceProcAddr
+//			vkDestroyPipelineLayout
+//			vkDestroyBuffer
+//			vkUpdateDescriptorSets
+//			vkCreateRenderPass
+//			vkCreateCommandPool
+//			vkDestroyFence
+//			vkDestroyDescriptorSetLayout
+//			vkCmdDraw
+//			vkGetPhysicalDeviceFeatures
+//			vkCmdBindVertexBuffers
+//			vkQueueWaitIdle
+//			vkGetDeviceImageMemoryRequirements
+//			vkAllocateMemory
+//	}
+//}
+
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
 #include "VulkanFrameBuffer.hpp"

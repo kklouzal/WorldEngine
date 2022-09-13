@@ -67,7 +67,7 @@ MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position, btScalar inM
     btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, _CollisionShape, localInertia);
     _RigidBody = new btRigidBody(rbInfo);
     _RigidBody->setUserPointer(this);
-    _RigidBody->setDamping(0.2f, 0.0f);
+    _RigidBody->setDamping(0.33f, 0.33f);
     //
     WorldEngine::dynamicsWorld->addRigidBody(_RigidBody);
     WorldEngine::SceneGraph::AddSceneNode(this);

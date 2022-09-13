@@ -79,11 +79,11 @@ public:
 	}
 	void NetUpdate(btTransform Trans, btVector3 LinearVelocity, btVector3 AngularVelocity)
 	{
-		_RigidBody->activate(true);
+		//_RigidBody->activate(true);
+		_RigidBody->clearForces();
 		_RigidBody->setWorldTransform(Trans);
 		_RigidBody->setLinearVelocity(LinearVelocity);
 		_RigidBody->setAngularVelocity(AngularVelocity);
-		_RigidBody->clearForces();
 		bNeedsUpdate[0] = true;
 		bNeedsUpdate[1] = true;
 		bNeedsUpdate[2] = true;

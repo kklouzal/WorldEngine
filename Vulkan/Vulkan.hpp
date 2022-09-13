@@ -209,10 +209,29 @@ namespace WorldEngine
 			createLogicalDevice();
 			//
 			//	VMA Allocator
+			VmaVulkanFunctions vulkanFunctions = {};
+			vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+			vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+			vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+			vulkanFunctions.vkFreeMemory = vkFreeMemory;
+			vulkanFunctions.vkMapMemory = vkMapMemory;
+			vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+			vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+			vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+			vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+			vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+			vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+			vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+			vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+			vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+			vulkanFunctions.vkCreateImage = vkCreateImage;
+			vulkanFunctions.vkDestroyImage = vkDestroyImage;
+			vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
 			VmaAllocatorCreateInfo allocatorInfo = {};
 			allocatorInfo.physicalDevice = physicalDevice;
 			allocatorInfo.device = _VulkanDevice->logicalDevice;
 			allocatorInfo.instance = instance;
+			allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 			vmaCreateAllocator(&allocatorInfo, &allocator);
 			//
 			//	Initialize Vulkan - Second Stage
@@ -367,7 +386,7 @@ namespace WorldEngine
 			CEF::PostInitialize();
 			//
 			//	KNet Initialization
-			NetCode::Initialize("192.168.1.98", 8000, 8001);
+			NetCode::Initialize("127.0.0.1", 8002, 8003);
 			//
 			//	LUA Initialization
 			initLua();
@@ -791,6 +810,8 @@ namespace WorldEngine
 		//	Vulkan Initialization - Stage 1 - Step 1
 		void createInstance()
 		{
+			PFN_vkCreateInstance pfnCreateInstance = (PFN_vkCreateInstance)glfwGetInstanceProcAddress(NULL, "vkCreateInstance");
+
 			VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 			appInfo.pApplicationName = "PhySim";
 			appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -823,8 +844,11 @@ namespace WorldEngine
 				printf("Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n");
 			}
 #endif
-
+			volkInitialize();
 			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &instance));
+			volkLoadInstance(instance);
+
+			//pfnCreateDevice = (PFN_vkCreateDevice)glfwGetInstanceProcAddress(instance, "vkCreateDevice");
 		}
 
 		//
