@@ -77,6 +77,9 @@
     <ClCompile Include="imgui_widgets.cpp">
       <Filter>Header Files\Libraries\imGUI</Filter>
     </ClCompile>
+    <ClCompile Include="volk.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TriangleMesh.hpp">
@@ -205,9 +208,6 @@
     <ClInclude Include="imstb_truetype.h">
       <Filter>Header Files\Libraries\imGUI</Filter>
     </ClInclude>
-    <ClInclude Include="Thread_Pool.hpp">
-      <Filter>Header Files\Libraries</Filter>
-    </ClInclude>
     <ClInclude Include="Menu.hpp">
       <Filter>Header Files\Menus</Filter>
     </ClInclude>
@@ -237,6 +237,12 @@
     </ClInclude>
     <ClInclude Include="NetCode.impl.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VHACD.h">
+      <Filter>Header Files\Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="volk.h">
+      <Filter>Header Files\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

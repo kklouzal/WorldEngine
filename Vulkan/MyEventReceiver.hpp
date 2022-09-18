@@ -59,7 +59,7 @@ public:
 			//	A
 			if (isA) {
 				if (Character && Character->_Camera) {
-					Character->moveLeft(-8.0f * (WorldEngine::VulkanDriver::deltaFrame));
+					Character->moveLeft(8.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 				else {
 					Cam->GoLeft(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
@@ -70,7 +70,7 @@ public:
 			if (isD) {
 				if (Character && Character->_Camera) {
 					
-					Character->moveLeft(8.0f * (WorldEngine::VulkanDriver::deltaFrame));
+					Character->moveLeft(-8.0f * (WorldEngine::VulkanDriver::deltaFrame));
 				}
 				else {
 					Cam->GoRight(5.0f * (WorldEngine::VulkanDriver::deltaFrame));
@@ -98,7 +98,7 @@ public:
 			if (isSpace)
 			{
 				if (Character && Character->_Camera) {
-					Character->doJump(35.0f);
+					Character->doJump(1.0f);
 				}
 			}
 			//
@@ -106,7 +106,7 @@ public:
 			Item* CurItem = Character->GetCurrentItem();
 			if (CurItem)
 			{
-				CurItem->DoThink(ndVector(Cam->Pos.x, Cam->Pos.y + 2, Cam->Pos.z, 0.0f), ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
+				CurItem->DoThink(btVector3(Cam->Pos.x, Cam->Pos.y + 2, Cam->Pos.z), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
 			}
 		}
 	}
@@ -171,7 +171,7 @@ public:
 					//
 					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
 					if (!IsCursorActive() && IsWorldInitialized()) {
-						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0.0f, 15.0f, 0.0f));
 					}
 				}
 				else if (NewEvent.Key == GLFW_KEY_Z) {
@@ -217,14 +217,14 @@ public:
 						float X = (rand() % 100) - 50.0f;
 						float Z = (rand() % 100) - 50.0f;
 						float Y = (rand() % 70) + 30.0f;
-						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
+						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
 					}
 					else if (NewEvent.Key == GLFW_KEY_X) {
 						for (int i = 0; i < 5; i++)	{
 							float X = (rand() % 100) - 50.0f;
 							float Z = (rand() % 100) - 50.0f;
 							float Y = (rand() % 70) + 30.0f;
-							WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, ndVector(X, Y, Z, 1.0f));
+							WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(X, Y, Z));
 						}
 					}
 				}
@@ -251,35 +251,26 @@ public:
 							//	Calculate Ray
 							Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
 							auto CamPos = Cam->Pos;
-							ndVector From((ndFloat32)CamPos.x, (ndFloat32)CamPos.y, (ndFloat32)CamPos.z, 0.f);
+							btVector3 From(CamPos.x, CamPos.y, CamPos.z);
 							auto CamDir = CamPos + Cam->Ang * 1000.0f;
-							ndVector To((ndFloat32)CamDir.x, (ndFloat32)CamDir.y, (ndFloat32)CamDir.z, 0.f);
-							//
-							//	Cast Ray
-							ndRayCastClosestHitCallback CB;
-							WorldEngine::SceneGraph::castRay(From, To, CB);
+							btVector3 To(CamDir.x, CamDir.y, CamDir.z);
 							//
 							//	Item Action
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
-								
-								CurItem->StartPrimaryAction(CB, ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
+								CurItem->StartPrimaryAction(WorldEngine::SceneGraph::castRay(From, To), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
 								isPrimary = true;
-
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT) 
 							{
-
-								CurItem->StartSecondaryAction(CB, ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
+								CurItem->StartSecondaryAction(WorldEngine::SceneGraph::castRay(From, To), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
 								isSecondary = true;
-
 							}
 						}
 					}
 				}
 				else if (NewEvent.Action == EventActions::Release)
 				{
-
 					//
 					//	If our character is valid
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
@@ -295,17 +286,13 @@ public:
 							//	Item Acton
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
-
 								CurItem->EndPrimaryAction();
 								isPrimary = false;
-
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT)
 							{
-
 								CurItem->EndSecondaryAction();
 								isSecondary = false;
-
 							}
 						}
 					}
@@ -319,44 +306,30 @@ public:
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
 					if (Character)
 					{
-
 						if (isPrimary == false)
 						{
-
 							Character->ScrollItems(NewEvent.sY);
-
 						}
 						else if (Character->GetCurrentItem())
 						{
-
 							Character->GetCurrentItem()->ReceiveMouseWheel(NewEvent.sY, isShift);
-
 						}
-
 					}
-
 				}
 				else if (NewEvent.Action == EventActions::Move)
 				{
-
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
-
 					Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
 
 					if (isPrimary == true && isR == true)
 					{
-
 						if (Character->GetCurrentItem())
 						{
-
-							Character->GetCurrentItem()->ReceiveMouseMovement(m_PosX_Delta, m_PosY_Delta, ndVector(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z, 0.0f));
-
+							Character->GetCurrentItem()->ReceiveMouseMovement(m_PosX_Delta, m_PosY_Delta, btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
 						}
-
 					}
 					else
 					{
-
 						//
 						//	Rotate the camera via mouse movement
 						Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
@@ -367,9 +340,7 @@ public:
 						{
 							Character->setYaw(Cam->getYaw());
 						}
-
 					}
-
 				}
 			}
 			//

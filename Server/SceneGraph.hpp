@@ -11,10 +11,17 @@ namespace WorldEngine
 			ImportGLTF* _ImportGLTF = nullptr;
 			std::unordered_map<std::string, GLTFInfo*> Model_Cache;
 			//
+			std::unordered_map<std::string, btCollisionShape*> _CollisionShapes;
+			std::deque<btTriangleMesh*> _TriangleMeshes;
+			std::deque<btConvexShape*> _ConvexShapes;
+			//
 			std::unordered_map<uintmax_t, SceneNode*> SceneNodes;
-			WorldSceneNode* _World;
+			SceneNode* _World;
 
-			uintmax_t NextNodeID = 1;
+			uintmax_t NextNodeID = 1024;	// Start at 1024 cause I'm lazy and don't want to fix a bug.
+			//	World and Players are manually added into _SceneNodes
+			//	So their NodeID will overlap..
+			//	Get not lazy and fix this...
 		}
 
 		//
@@ -22,8 +29,19 @@ namespace WorldEngine
 		void AddSceneNode(SceneNode* Node)
 		{
 			const uintmax_t NodeID = NextNodeID++;
-			SceneNodes.emplace(NodeID, Node);
+			SceneNodes[NodeID] = Node;
 			Node->SetNodeID(NodeID);
+		}
+
+		//
+		//	Returns a SceneNode else nullptr
+		SceneNode* GetNode(uintmax_t NodeID)
+		{
+			if (SceneNodes.count(NodeID))
+			{
+				return SceneNodes[NodeID];
+			}
+			return nullptr;
 		}
 
 		GLTFInfo* LoadModel(const char* File)
@@ -38,70 +56,58 @@ namespace WorldEngine
 			else {
 				//
 				//  Add this info into the model cache
-				//wxLogMessage("[GLTF] Adding Cache %s", File);
+				wxLogMessage("[GLTF] Adding Cache %s", File);
 				GLTFInfo* Infos = _ImportGLTF->loadModel(File);
 				Model_Cache[m_File] = Infos;
 				return Infos;
 			}
 		}
 
-		void Initialize(const char* WorldFile_GLTF)
+		btCollisionShape* LoadDecomp(GLTFInfo* Infos, const char* File)
+		{
+			std::string m_File(File);
+			if (WorldEngine::SceneGraph::_CollisionShapes.count(m_File))
+			{
+				return WorldEngine::SceneGraph::_CollisionShapes[m_File];
+			}
+			else {
+				wxLogMessage("[VHACD] Adding Cache %s", m_File);
+				DecompResults* Results = Decomp(Infos);
+				btCollisionShape* ColShape = Results->CompoundShape;
+				WorldEngine::SceneGraph::_CollisionShapes[m_File] = ColShape;
+				for (int i = 0; i < Results->m_convexShapes.size(); i++) {
+					WorldEngine::SceneGraph::_ConvexShapes.push_back(Results->m_convexShapes[i]);
+				}
+				for (int i = 0; i < Results->m_trimeshes.size(); i++) {
+					WorldEngine::SceneGraph::_TriangleMeshes.push_back(Results->m_trimeshes[i]);
+				}
+				delete Results;
+				return ColShape;
+			}
+		}
+
+		void Initialize()
 		{
 			_ImportGLTF = new ImportGLTF;
-
-			GLTFInfo* Infos = _ImportGLTF->loadModel(WorldFile_GLTF);
-
-			//}
-			//else {
-			//	ColShape = _CollisionShapes[FileFBX];
-			//}
-
-			_World = new WorldSceneNode();
-
-			ndPolygonSoupBuilder meshBuilder;
-			meshBuilder.Begin();
-
-			for (unsigned int i = 0; i < Infos->Indices.size() / 3; i++) {
-				ndVector face[256];
-				auto& V1 = Infos->Vertices[Infos->Indices[i * 3]].pos;
-				auto& V2 = Infos->Vertices[Infos->Indices[i * 3 + 1]].pos;
-				auto& V3 = Infos->Vertices[Infos->Indices[i * 3 + 2]].pos;
-				face[0] = ndVector(V1.x, V1.y, V1.z, 0.0f);
-				face[1] = ndVector(V2.x, V2.y, V2.z, 0.0f);
-				face[2] = ndVector(V3.x, V3.y, V3.z, 0.0f);
-				meshBuilder.AddFace(&face[0].m_x, sizeof(ndVector), 3, 0);
-			}
-			meshBuilder.End(true);
-
-			ndShapeInstance shape(new ndShapeStatic_bvh(meshBuilder));
-
-			ndMatrix matrix(ndGetIdentityMatrix());
-			matrix.m_posit = ndVector(0, 0, 0, 0);
-			matrix.m_posit.m_w = 1.0f;
-
-			_World->SetNotifyCallback(new WorldSceneNodeNotify(_World));
-			_World->SetMatrix(matrix);
-			_World->SetCollisionShape(shape);
-			//MeshNode->SetMassMatrix(10.0f, shape);
-
-			WorldEngine::GetPhysicsWorld()->Sync();
-			WorldEngine::GetPhysicsWorld()->AddBody(_World);
-
-			//
-			//	Push new SceneNode into the SceneGraph
-			AddSceneNode(_World);
-
 		}
 
 		void Deinitiaize()
 		{
 			//
 			//	Cleanup SceneNodes
-			const ndBodyList& bodyList = WorldEngine::GetPhysicsWorld()->GetBodyList();
-			for (ndBodyList::ndNode* bodyNode = bodyList.GetFirst(); bodyNode; bodyNode = bodyNode->GetNext())
-			{
-				WorldEngine::GetPhysicsWorld()->RemoveBody(bodyNode->GetInfo());
+			for (size_t i = 0; i < SceneNodes.size(); i++) {
+				//_Driver->_ndWorld->RemoveBody(SceneNodes[i]);
+				delete SceneNodes[i];
 			}
+			for (auto Shape : _CollisionShapes) {
+				delete Shape.second;
+			}
+			_CollisionShapes.clear();
+			for (size_t i = 0; i < _ConvexShapes.size(); i++) {
+				delete _ConvexShapes[i];
+			}
+			_ConvexShapes.clear();
+			_ConvexShapes.shrink_to_fit();
 			//
 			//	Cleanup WorldSceneNode
 			delete _World;
@@ -155,5 +161,6 @@ namespace WorldEngine
 	}
 }
 
+#include "WorldSceneNode.hpp"
 #include "MeshSceneNode.hpp"
 #include "Player.hpp"

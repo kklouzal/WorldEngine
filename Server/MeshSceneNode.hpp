@@ -2,119 +2,119 @@
 
 class MeshSceneNodeNotify;
 
-class MeshSceneNode : public SceneNode, public ndBodyDynamic
+class MeshSceneNode : public SceneNode
 {
 	std::string Model;
 public:
-    ndMatrix Matrix;
-	MeshSceneNode(std::string Model, ndVector Position);
+	MeshSceneNode(std::string Model, btVector3 Position, btScalar inMass);
 	~MeshSceneNode();
 
     void Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime);
     std::chrono::time_point<std::chrono::steady_clock> LastUpdate = std::chrono::high_resolution_clock::now();
+    const char* GetModelFile();
 };
 
-class MeshSceneNodeNotify : public ndBodyNotify
-{
-    MeshSceneNode* _Node;
+//
+//	Bullet Motion State
+class MeshSceneNodeMotionState : public btMotionState {
+    MeshSceneNode* _SceneNode;
+    btTransform _btPos;
 
 public:
-    MeshSceneNodeNotify(MeshSceneNode* Node)
-        : _Node(Node), ndBodyNotify(ndVector(0.0f, -10.0f, 0.0f, 0.0f))
-    {}
+    MeshSceneNodeMotionState(MeshSceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos) {}
 
-    void* GetUserData() const
-    {
-        return (void*)_Node;
+    virtual void getWorldTransform(btTransform& worldTrans) const {
+        worldTrans = _btPos;
     }
 
-    void OnApplyExternalForce(ndInt32, ndFloat32)
-    {
-        ndBodyDynamic* const dynamicBody = GetBody()->GetAsBodyDynamic();
-        if (dynamicBody)
-        {
-            ndVector massMatrix(dynamicBody->GetMassMatrix());
-            //ndVector force(ndVector(0.0f, -10.0f, 0.0f, 0.0f).Scale(massMatrix.m_w));
-            ndVector force(dynamicBody->GetNotifyCallback()->GetGravity().Scale(massMatrix.m_w));
-            dynamicBody->SetForce(force);
-            dynamicBody->SetTorque(ndVector::m_zero);
-        }
-    }
-
-    void OnTransform(ndInt32 threadIndex, const ndMatrix& matrix)
-    {
-        const ndVector Pos = matrix.m_posit;
-        //_Node->_Camera->SetPosition(glm::vec3(Pos.m_x, Pos.m_y, Pos.m_z) + _Node->_Camera->getOffset());
+    virtual void setWorldTransform(const btTransform& worldTrans) {
+        _btPos = worldTrans;
+        const btVector3 Pos = _btPos.getOrigin();
+        //
+        //	Update server with our new values
+        // 
+        //KNet::NetPacket_Send* Pkt = WorldEngine::NetCode::_Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Player_PositionUpdate);
+        //if (Pkt)
+        //{
+        //    Pkt->write<float>(Pos.x());															//	Player Position - X
+        //    Pkt->write<float>(Pos.y());															//	Player Position - Y
+        //    Pkt->write<float>(Pos.z());															//	Player Position - Z
+        //    WorldEngine::NetCode::LocalPoint->SendPacket(Pkt);
+        //}
+        //wxLogMessage("[MeshSceneNode] OnTransform");
     }
 };
 
-MeshSceneNode::MeshSceneNode(std::string Model, ndVector Position) :
-    SceneNode(Position), ndBodyDynamic(), Model(Model), Matrix(ndGetIdentityMatrix())
+MeshSceneNode::MeshSceneNode(std::string Model, btVector3 Position, btScalar inMass) :
+    SceneNode(Position), Model(Model)
 {
     GLTFInfo* Infos = WorldEngine::SceneGraph::LoadModel(Model.c_str());
-    std::vector<ndVector> Vertices;
-    Vertices.reserve(Infos->Indices.size());
-    for (unsigned int i = 0; i < Infos->Indices.size(); i++)
-    {
-        auto& V = Infos->Vertices[Infos->Indices[i]].pos;
-        Vertices.push_back(ndVector(V.x, V.y, V.z, 1.0f));
+    btCollisionShape* ColShape = WorldEngine::SceneGraph::LoadDecomp(Infos, Model.c_str());
+    _CollisionShape = ColShape;
+    btTransform Transform;
+    Transform.setIdentity();
+    Transform.setOrigin(Position);
+
+    Mass = inMass;
+    bool isDynamic = (Mass != 0.f);
+
+    btVector3 localInertia(0, 0, 0);
+    if (isDynamic) {
+        _CollisionShape->calculateLocalInertia(Mass, localInertia);
     }
 
-    ndShapeInstance Shape(new ndShapeConvexHull((ndInt32)Vertices.size(), sizeof(ndVector), 0.0f, &Vertices[0].m_x));
-
-    Matrix.m_posit = Position;
-    Matrix.m_posit.m_w = 1.0f;  //  Ensure W == 1 because Newton wont work otherwise.
-
-    SetNotifyCallback(new MeshSceneNodeNotify(this));
-    SetMatrix(Matrix);
-    SetCollisionShape(Shape);
-    mass = 10.0f;
-    SetMassMatrix(mass, Shape);
-    SetAngularDamping(ndVector(1.f, 1.f, 1.f, 1.f));
-    SetLinearDamping(0.1f);
-    WorldEngine::_ndWorld->Sync();
-    WorldEngine::_ndWorld->AddBody(this);
+    MeshSceneNodeMotionState* MotionState = new MeshSceneNodeMotionState(this, Transform);
+    btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, _CollisionShape, localInertia);
+    _RigidBody = new btRigidBody(rbInfo);
+    _RigidBody->setUserPointer(this);
+    _RigidBody->setDamping(0.33f, 0.33f);
+    //
+    WorldEngine::dynamicsWorld->addRigidBody(_RigidBody);
+    WorldEngine::SceneGraph::AddSceneNode(this);
 }
 
 MeshSceneNode::~MeshSceneNode()
 {
-    WorldEngine::GetPhysicsWorld()->RemoveBody(this);
     wxLogMessage("[MeshSceneNode] Deleted!");
+}
+
+const char* MeshSceneNode::GetModelFile()
+{
+    return Model.c_str();
 }
 
 void MeshSceneNode::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
 {
-    if (LastUpdate + std::chrono::milliseconds(250) < CurTime)
+    if (LastUpdate + std::chrono::milliseconds(333) < CurTime)
     {
-        ndVector Velocity = GetVelocity();
-        Matrix = GetMatrix();
+        btTransform Trans = _RigidBody->getWorldTransform();
+        btVector3 Origin = Trans.getOrigin();
+        btVector3 LinearVelocity = _RigidBody->getLinearVelocity();
+        btVector3 AngularVelocity = _RigidBody->getAngularVelocity();
         
         for (auto& Client : WorldEngine::NetCode::ConnectedClients)
         {
             KNet::NetPacket_Send* Pkt = Client.first->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Update_SceneNode);
             if (Pkt)
             {
-                Pkt->write<uintmax_t>(GetNodeID());                                                         //  SceneNode ID
-                Pkt->write<float>(Matrix.m_posit.m_x);                                                      //  Position - X
-                Pkt->write<float>(Matrix.m_posit.m_y);	                                                      //    Position - Y
-                Pkt->write<float>(Matrix.m_posit.m_z);	                                                      //	Position - Z
-                Pkt->write<float>(Matrix.m_posit.m_w);	                                                      //	Position - W
-                Pkt->write<float>(Matrix.m_front.m_x);	                                                      //	Front - X
-                Pkt->write<float>(Matrix.m_front.m_y);	                                                      //	Front - Y
-                Pkt->write<float>(Matrix.m_front.m_z);	                                                      //	Front - Z
-                Pkt->write<float>(Matrix.m_front.m_w);	                                                      //	Front - W
-                Pkt->write<float>(Matrix.m_right.m_x);	                                                      //	Right - X
-                Pkt->write<float>(Matrix.m_right.m_y);	                                                      //	Right - Y
-                Pkt->write<float>(Matrix.m_right.m_z);	                                                      //	Right - Z
-                Pkt->write<float>(Matrix.m_right.m_w);	                                                      //	Right - W
-                Pkt->write<float>(Matrix.m_up.m_x);                                                         //	    Up - X
-                Pkt->write<float>(Matrix.m_up.m_y);                                                         //	    Up - Y
-                Pkt->write<float>(Matrix.m_up.m_z);                                                         //  	Up - Z
-                Pkt->write<float>(Matrix.m_up.m_w);                                                         //  	Up - W
-                Pkt->write<float>(Velocity.m_x);                                                            //	    Velocity - X
-                Pkt->write<float>(Velocity.m_y);                                                            //	    Velocity - Y
-                Pkt->write<float>(Velocity.m_z);                                                            //  	Velocity - Z
-                Pkt->write<float>(Velocity.m_w);                                                            //  	Velocity - W
+                //wxLogMessage("[MeshSceneNode] Update (%i) -> %ju", NodeID, Pkt->GetUID());
+                Pkt->write<uintmax_t>(GetNodeID());             //  SceneNode ID
+                Pkt->write<float>(Origin.x());                  //  Position - X
+                Pkt->write<float>(Origin.y());                  //  Position - Y
+                Pkt->write<float>(Origin.z());                  //  Position - Z
+                Pkt->write<float>(Origin.w());                  //  Position - W
+                Pkt->write<float>(Trans.getRotation().getX());  //  Rotation - X
+                Pkt->write<float>(Trans.getRotation().getY());  //  Rotation - Y
+                Pkt->write<float>(Trans.getRotation().getZ());  //  Rotation - Z
+                Pkt->write<float>(Trans.getRotation().getW());  //  Rotation - W
+                Pkt->write<float>(LinearVelocity.x());          //  LinearVelocity - X
+                Pkt->write<float>(LinearVelocity.y());          //  LinearVelocity - Y
+                Pkt->write<float>(LinearVelocity.z());          //  LinearVelocity - Z
+                Pkt->write<float>(LinearVelocity.w());          //  LinearVelocity - W
+                Pkt->write<float>(AngularVelocity.x());         //  AngularVelocity - X
+                Pkt->write<float>(AngularVelocity.y());         //  AngularVelocity - Y
+                Pkt->write<float>(AngularVelocity.z());         //  AngularVelocity - Z
+                Pkt->write<float>(AngularVelocity.w());         //  AngularVelocity - W
                 //
                 //
                 //  TODO: This will work for now.. But if clients connect in on a different NetPoint then this will not suffice..

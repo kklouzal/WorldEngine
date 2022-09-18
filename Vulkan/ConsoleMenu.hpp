@@ -201,7 +201,7 @@ public:
                 ImGui::SetKeyboardFocusHere(-1); // Auto focus previous widget
             
             //  Debug output
-            ImGui::TextDisabled("FPS: %.0f\tFrame: %f\tPhysics: %f\tNodes: %i", 1.0f / ImGui::GetIO().DeltaTime, ImGui::GetIO().DeltaTime, WorldEngine::VulkanDriver::_ndWorld->GetUpdateTime(), WorldEngine::SceneGraph::SceneNodes.size());
+            ImGui::TextDisabled("FPS: %.0f\tFrame: %f\tPhysics: %f\tNodes: %i", 1.0f / ImGui::GetIO().DeltaTime, ImGui::GetIO().DeltaTime, /*WorldEngine::VulkanDriver::_ndWorld->GetUpdateTime()*/0, WorldEngine::SceneGraph::SceneNodes.size());
             ImGui::End();
 		}
 	}

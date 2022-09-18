@@ -1,25 +1,34 @@
+#include <KNet.hpp>
 #include <wx/wx.h>
 #include <wx/fileconf.h>
-#define _D_CORE_DLL
-#define _D_NEWTON_DLL
-#define _D_COLLISION_DLL
-#include <ndNewton.h>
-#include <KNet.hpp>
+#include "btBulletDynamicsCommon.h"
+#include "BulletCollision/NarrowPhaseCollision/btRaycastCallback.h"
+#include "BulletCollision/CollisionDispatch/btCollisionDispatcherMt.h"
+#include "BulletDynamics/Dynamics/btSimulationIslandManagerMt.h"
+#include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
+#include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
 
 namespace WorldEngine
 {
     namespace
     {
-        ndWorld* _ndWorld;
+        //
+        //	Bullet Physics
+        btDefaultCollisionConfiguration* collisionConfiguration;
+        btCollisionDispatcherMt* dispatcher;
+        btBroadphaseInterface* broadphase;
+        btConstraintSolverPoolMt* solverPool;
+        btDiscreteDynamicsWorld* dynamicsWorld;
 
         std::string CurrentMap;
         std::string DefaultPlayerModel;
         std::chrono::seconds ClientTimeout;
+        long TickRate = 66;
     }
 
-    ndWorld* GetPhysicsWorld()
+    btDiscreteDynamicsWorld* GetPhysicsWorld()
     {
-        return _ndWorld;
+        return dynamicsWorld;
     }
 }
 
@@ -56,7 +65,10 @@ class MyFrame : public wxFrame
     wxTextCtrl* m_log;
     wxFileConfig* conf;
 
-    std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
+    float phys_TickRate = 1.0f / WorldEngine::TickRate;
+    std::chrono::time_point<std::chrono::steady_clock> Now = std::chrono::steady_clock::now();
+    std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::steady_clock::now();
+    float deltaPhys = 0.f;
     float deltaFrame = 0.f;
     std::deque<float> Frames;
     //
@@ -75,6 +87,25 @@ class MyFrame : public wxFrame
             DF += F;
         }
         return DF / Frames.size();
+    }
+    //
+    std::deque<float> Phys;
+    //
+    //	Push a new Phys time into the list
+    inline void PushPhysDelta(const float F) {
+        Phys.push_back(F);
+        if (Phys.size() > 30) {
+            Phys.pop_front();
+        }
+    }
+    //
+    //	Return the average Phys time from the list
+    inline const float GetDeltaPhys() const {
+        float DF = 0;
+        for (auto& F : Phys) {
+            DF += F;
+        }
+        return DF / Phys.size();
     }
 
 public:
@@ -103,8 +134,7 @@ public:
         // ... and attach this menu bar to the frame
         SetMenuBar(menuBar);
 
-        // create a status bar just for fun (by default with 1 pane only)
-        CreateStatusBar(2);
+        CreateStatusBar(3);
         SetStatusText("Server Application");
 
         m_log = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
@@ -115,14 +145,15 @@ public:
         std::string ini_IP(conf->Read("ip", "127.0.0.1").c_str());
         const long ini_Send_Port = conf->ReadLong("send_port", 8000);
         const long ini_Recv_Port = conf->ReadLong("recv_port", 8001);
-        const long ini_Tickrate = conf->ReadLong("tickrate", 60);
+        WorldEngine::TickRate = conf->ReadLong("tickrate", 60);
+        phys_TickRate = 1.0f / WorldEngine::TickRate;
         WorldEngine::ClientTimeout = std::chrono::seconds(conf->ReadLong("client_timeout", 300));
         wxLogMessage("[Load settings.ini]\n");
         wxLogMessage("\t[NET]");
         wxLogMessage("\t\tIP: %s", ini_IP);
         wxLogMessage("\t\tSend Port: %ld", ini_Send_Port);
         wxLogMessage("\t\tRecv Port: %ld", ini_Recv_Port);
-        wxLogMessage("\t\tTickrate: %ld", ini_Tickrate);
+        wxLogMessage("\t\tTickrate: %ld", WorldEngine::TickRate);
         wxLogMessage("\t\tClient Timeout: %ld\n", WorldEngine::ClientTimeout.count());
         wxLogMessage("\t[GAME]");
         conf->SetPath("/game");
@@ -131,17 +162,59 @@ public:
         wxLogMessage("\t\tMap File: %s", WorldEngine::CurrentMap.c_str());
         wxLogMessage("\t\tPlayer Model: %s\n", WorldEngine::DefaultPlayerModel.c_str());
 
+
         //
         //	Physics Initialization
-        WorldEngine::_ndWorld = new ndWorld();
-        WorldEngine::_ndWorld->SetThreadCount(std::thread::hardware_concurrency() - 2);
-        WorldEngine::_ndWorld->SetSubSteps(3);
-        WorldEngine::_ndWorld->SetSolverIterations(2);
+        //btSetTaskScheduler(btGetOpenMPTaskScheduler());
+        //btSetTaskScheduler(btGetTBBTaskScheduler());
+        //btSetTaskScheduler(btGetPPLTaskScheduler());
+        btSetTaskScheduler(btCreateDefaultTaskScheduler());
+        //
+        btDefaultCollisionConstructionInfo cci;
+        cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
+        cci.m_defaultMaxCollisionAlgorithmPoolSize = 102400;
+        WorldEngine::collisionConfiguration = new btDefaultCollisionConfiguration(cci);
+        WorldEngine::dispatcher = new btCollisionDispatcherMt(WorldEngine::collisionConfiguration, 40);
+        WorldEngine::broadphase = new btDbvtBroadphase();
+        //
+        //	Solver Pool
+        btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
+        int maxThreadCount = BT_MAX_THREAD_COUNT;
+        for (int i = 0; i < maxThreadCount; ++i)
+        {
+            solvers[i] = new btSequentialImpulseConstraintSolverMt();
+        }
+        WorldEngine::solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
+        btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
+        //
+        //	Create Dynamics World
+        WorldEngine::dynamicsWorld = new btDiscreteDynamicsWorldMt(WorldEngine::dispatcher, WorldEngine::broadphase, WorldEngine::solverPool, solver, WorldEngine::collisionConfiguration);
+        //
+        //	Set World Properties
+        WorldEngine::dynamicsWorld->setGravity(btVector3(0, -10, 0));
+        WorldEngine::dynamicsWorld->setForceUpdateAllAabbs(false);
+        WorldEngine::dynamicsWorld->getSolverInfo().m_solverMode = SOLVER_SIMD |
+            //SOLVER_USE_WARMSTARTING |
+            //SOLVER_RANDMIZE_ORDER |
+            // SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
+            // SOLVER_USE_2_FRICTION_DIRECTIONS |
+            SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
+            SOLVER_CACHE_FRIENDLY |
+            SOLVER_DISABLE_IMPLICIT_CONE_FRICTION |
+            //SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION |
+            0;
+
+        WorldEngine::dynamicsWorld->getSolverInfo().m_numIterations = 5;
+        btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
         wxLogMessage("Physics Initialized");
 
         //
-        //  World Initialization
-        WorldEngine::SceneGraph::Initialize(WorldEngine::CurrentMap.c_str());
+        //  SceneGraph Initialization
+        WorldEngine::SceneGraph::Initialize();
+
+        //
+        //  Create the World
+        WorldEngine::SceneGraph::_World = new WorldSceneNode(WorldEngine::CurrentMap.c_str());
 
         //
         //  Initialize NetCode
@@ -149,7 +222,7 @@ public:
 
         TickTimer = new wxTimer();
         TickTimer->Bind(wxEVT_TIMER, &MyFrame::OnTimer, this);
-        TickTimer->Start(1000/ini_Tickrate);
+        TickTimer->Start(1000/WorldEngine::TickRate);
     }
 
     ~MyFrame()
@@ -162,7 +235,11 @@ public:
 
         //
         //  Delete the Physics World
-        delete WorldEngine::_ndWorld;
+        delete WorldEngine::dynamicsWorld;
+        delete WorldEngine::solverPool;
+        delete WorldEngine::broadphase;
+        delete WorldEngine::dispatcher;
+        delete WorldEngine::collisionConfiguration;
     }
 
     // event handlers (these functions should _not_ be virtual)
@@ -193,7 +270,11 @@ private:
 
 void MyFrame::OnTimer(wxTimerEvent&)
 {
-    SetStatusText("Tick Time " + wxString(std::to_string(GetDeltaFrames() * 1000)) + "ms");
+    Now = std::chrono::steady_clock::now();
+    deltaFrame = std::chrono::duration<float, std::milli>(Now - startFrame).count() / 1000.f;
+    startFrame = Now;
+    PushFrameDelta(deltaFrame);
+    SetStatusText("Tick Time " + std::to_string(GetDeltaFrames() * 1000) + "ms");
     //==============================
     //
     // 
@@ -207,14 +288,16 @@ void MyFrame::OnTimer(wxTimerEvent&)
     //  Update the world
     if (deltaFrame > 0.0f)
     {
-        WorldEngine::_ndWorld->Update(deltaFrame);
+        Now = std::chrono::steady_clock::now();
+        WorldEngine::dynamicsWorld->stepSimulation(deltaFrame, 5, phys_TickRate);
+        deltaPhys = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - Now).count() / 1000.f;
+        PushPhysDelta(deltaPhys);
+        SetStatusText("Phys Time " + std::to_string(GetDeltaPhys() * 1000) + "ms", 1);
     }
     //
     //
     //==============================
-    deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
-    startFrame = std::chrono::high_resolution_clock::now();
-    PushFrameDelta(deltaFrame);
+    SetStatusText("Scene Nodes: " + std::to_string(WorldEngine::SceneGraph::SceneNodes.size()), 2);
 }
 
 // the event tables connect the wxWidgets events with the functions (event

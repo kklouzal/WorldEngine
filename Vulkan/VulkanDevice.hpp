@@ -284,6 +284,7 @@ struct VulkanDevice
 		this->enabledFeatures = enabledFeatures;
 
 		VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice);
+		volkLoadDevice(logicalDevice);
 		if (result != VK_SUCCESS)
 		{
 			return result;

@@ -11,6 +11,8 @@ public:
 
 	glm::mat4 View{};
 
+	glm::mat4 View_Proj{};
+
 	glm::vec3 Offset{};
 
 	CameraPushConstant CPC;
@@ -91,8 +93,10 @@ public:
 	{
 		CPC.view_proj = glm::perspective(glm::radians(FOV), ScrWidth/ScrHeight, zNear, zFar);
 		CPC.view_proj[1][1] *= -1;
+
 		CPC.view_proj *= View;
-		CPC.pos = glm::vec4(Pos.x, Pos.y, Pos.z, 0.0f);
+		View_Proj = CPC.view_proj;
+
 		return CPC;
 	}
 

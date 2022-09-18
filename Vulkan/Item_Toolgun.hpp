@@ -33,23 +33,23 @@ public:
 		printf("Tool Count - %zu\n", _Tools.size());
 	}
 
-	void StartPrimaryAction(ndRayCastClosestHitCallback& CB)
+	void StartPrimaryAction(btCollisionWorld::ClosestRayResultCallback Ray)
 	{
 		printf("Start Item Primary - %s\n", _Name);
 
 		if (_SelectedTool != nullptr)
 		{
-			_SelectedTool->PrimaryAction(CB);
+			_SelectedTool->PrimaryAction(Ray);
 		}
 	}
 
-	void StartSecondaryAction(ndRayCastClosestHitCallback& CB)
+	void StartSecondaryAction(btCollisionWorld::ClosestRayResultCallback Ray)
 	{
 		printf("Start Item Secondary - %s\n", _Name);
 
 		if (_SelectedTool != nullptr)
 		{
-			_SelectedTool->SecondaryAction(CB);
+			_SelectedTool->SecondaryAction(Ray);
 		}
 	}
 
@@ -63,7 +63,7 @@ public:
 		printf("End Item Secondary - %s\n", _Name);
 	}
 
-	void DoThink(ndVector FirePos, ndVector FireAng)
+	void DoThink(btVector3 FirePos, btVector3 FireAng)
 	{
 	}
 

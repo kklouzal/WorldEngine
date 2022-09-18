@@ -28,7 +28,10 @@ namespace WorldEngine
 			PlayerInitialConnect,
 			Player_PositionUpdate,
 			Spawn_TriangleMeshSceneNode,
-			Update_SceneNode
+			Update_SceneNode,
+			Request_SceneNode,
+			Update_PlayerNode,
+			Request_PlayerNode
 		};
 
 		void Initialize(const char* LocalIP, const unsigned int LocalSendPort, const unsigned int LocalRecvPort);
@@ -39,6 +42,6 @@ namespace WorldEngine
 
 		void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime);
 
-		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, ndVector Position);
+		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, btVector3 Position);
 	}
 }

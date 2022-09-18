@@ -88,17 +88,17 @@ public:
 
         bool res = loader.LoadASCIIFromFile(&model, &err, &warn, filename);
         if (!warn.empty()) {
-            printf("WARN: %s\n", warn.c_str());
+            wxLogMessage("[GLTF] WARN: %s\n", warn.c_str());
         }
 
         if (!err.empty()) {
-            printf("ERR: %s\n", err.c_str());
+            wxLogMessage("[GLTF] ERR: %s\n", err.c_str());
         }
 
         if (!res)
-            printf("Failed to load glTF: %s", filename);
-        else
-            printf("Loaded glTF: %s\n", filename);
+        {
+            wxLogMessage("[GLTF] Failed to load glTF: %s", filename);
+        }
 
         //
         //  Construct an array of BoneIDs per-vertex and BoneWeights per-vertex
@@ -128,7 +128,7 @@ public:
 
                         if (_Primitive.mode != TINYGLTF_MODE_TRIANGLES)
                         {
-                            printf("[GLTF]: ERROR: Primitive Mode != TRIANGLES\n");
+                            wxLogMessage("[GLTF] ERROR: Primitive Mode != TRIANGLES\n");
                             continue;
                         }
 
@@ -245,7 +245,7 @@ public:
                 {
                     const tinygltf::Node& node = model.nodes[i];
                     //Infos->JointMap[node.name] = i;
-                    printf("%zi -> NODE NAME: %s\n", i, node.name.c_str());
+                    //printf("%zi -> NODE NAME: %s\n", i, node.name.c_str());
                 }
 
                 const tinygltf::Accessor& acc = model.accessors[_Skin.inverseBindMatrices];
@@ -254,7 +254,7 @@ public:
                 Infos->InverseBindMatrices.resize(acc.count);
                 for (auto J : _Skin.joints)
                 {
-                    printf("GLTF JOINTS %i\n", J);
+                    //printf("GLTF JOINTS %i\n", J);
                 }
                 memcpy(Infos->InverseBindMatrices.data(), &buf.data[acc.byteOffset + bufview.byteOffset], acc.count * sizeof(glm::mat4));
 
@@ -280,3 +280,5 @@ public:
         return Infos;
     }
 };
+
+#include "ConvexDecomposition.hpp"

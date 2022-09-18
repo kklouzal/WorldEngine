@@ -3,7 +3,7 @@
 class Tool_Weld : public Tool
 {
 	SceneNode* PrimaryNode = nullptr;
-	ndVector PrimaryHitPoint;
+	btVector3 PrimaryHitPoint;
 
 public:
 	Tool_Weld()
@@ -15,7 +15,7 @@ public:
 	~Tool_Weld()
 	{}
 
-	void PrimaryAction(ndRayCastClosestHitCallback& CB)
+	void PrimaryAction(btCollisionWorld::ClosestRayResultCallback Ray)
 	{
 		//if (Ray.hasHit()) {
 		//	printf(" - Hit\n");
@@ -38,7 +38,7 @@ public:
 		//}
 	}
 
-	void SecondaryAction(ndRayCastClosestHitCallback& CB)
+	void SecondaryAction(btCollisionWorld::ClosestRayResultCallback Ray)
 	{
 		//if (Ray.hasHit()) {
 		//	printf(" - Hit\n");

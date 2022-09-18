@@ -50,19 +50,19 @@ public:
 		//printf("Dirty Rects Size %zu - ", dirtyRects.size());
 		//printf("Width: %i, Height: %i, X: %i, Y: %i\n", dirtyRects[0].width, dirtyRects[0].height, dirtyRects[0].x, dirtyRects[0].y);
 
-		//int PixelSize = 4 * sizeof(char);
-		//for (int ypos = dirtyRects[0].y; ypos < dirtyRects[0].height; ypos++)
-		//{
-		//	int xpos = dirtyRects[0].x;
-		//	int xsize = dirtyRects[0].width;
+		/*int PixelSize = 4 * sizeof(char);
+		for (int ypos = dirtyRects[0].y; ypos < dirtyRects[0].height; ypos++)
+		{
+			int xpos = dirtyRects[0].x;
+			int xsize = dirtyRects[0].width;
 
-		//	int buffer_y = ypos * PixelSize * WorldEngine::VulkanDriver::WIDTH;
-		//	int buffer_x = xpos * PixelSize;
-		//	int buffer_pos = buffer_y + buffer_x;
-		//	int buffer_end = (xpos + xsize) * PixelSize;
+			int buffer_y = ypos * PixelSize * WorldEngine::VulkanDriver::WIDTH;
+			int buffer_x = xpos * PixelSize;
+			int buffer_pos = buffer_y + buffer_x;
+			int buffer_end = (xpos + xsize) * PixelSize;
 
-		//	memcpy((char*)CEFBufferAlloc_Staging->GetMappedData()+buffer_pos, (char*)buffer+buffer_pos, static_cast<size_t>(buffer_end));
-		//}
+			memcpy((char*)CEFBufferAlloc_Staging->GetMappedData()+buffer_pos, (char*)buffer+buffer_pos, static_cast<size_t>(buffer_end));
+		}*/
 
 
 		memcpy(CEFBufferAlloc_Staging->GetMappedData(), buffer, static_cast<size_t>(uploadSize));

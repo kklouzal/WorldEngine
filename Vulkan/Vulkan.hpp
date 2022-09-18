@@ -2,14 +2,10 @@
 
 #include "Forwards.hpp"
 
-#include "Thread_Pool.hpp"
-
 namespace WorldEngine
 {
 	namespace VulkanDriver
 	{
-		thread_pool pool(4);
-
 		uint32_t WIDTH = 1024;
 		uint32_t HEIGHT = 768;
 		bool VSYNC = false;
@@ -87,7 +83,18 @@ namespace WorldEngine
 		VulkanSwapChain swapChain;								//	Cleaned Up
 		VulkanDevice* _VulkanDevice;							//	Cleaned Up
 		EventReceiver* _EventReceiver;							//	Cleaned Up
-		ndWorld* _ndWorld;										//	Cleaned Up
+		//
+		//	Bullet Physics
+		btDefaultCollisionConfiguration* collisionConfiguration;
+		btCollisionDispatcherMt* dispatcher;
+		btDbvtBroadphase* broadphase_;
+		btBroadphaseInterface* broadphase;
+		btConstraintSolverPoolMt* solverPool;
+		btDiscreteDynamicsWorld* dynamicsWorld;
+		//
+		btAlignedObjectArray<btCollisionObject*> m_objectsInFrustum;
+		//
+		void performFrustumCulling(glm::mat4& Mat);
 
 		void Initialize();
 		void Deinitialize();
@@ -117,7 +124,7 @@ namespace WorldEngine
 		void setEventReceiver(EventReceiver* _EventRcvr);
 		//
 		//	Time Keeping
-		std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
+		std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::steady_clock::now();
 		float deltaFrame = 0.f;
 		std::deque<float> Frames;
 		//
@@ -206,10 +213,29 @@ namespace WorldEngine
 			createLogicalDevice();
 			//
 			//	VMA Allocator
+			VmaVulkanFunctions vulkanFunctions = {};
+			vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+			vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+			vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+			vulkanFunctions.vkFreeMemory = vkFreeMemory;
+			vulkanFunctions.vkMapMemory = vkMapMemory;
+			vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+			vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+			vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+			vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+			vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+			vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+			vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+			vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+			vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+			vulkanFunctions.vkCreateImage = vkCreateImage;
+			vulkanFunctions.vkDestroyImage = vkDestroyImage;
+			vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
 			VmaAllocatorCreateInfo allocatorInfo = {};
 			allocatorInfo.physicalDevice = physicalDevice;
 			allocatorInfo.device = _VulkanDevice->logicalDevice;
 			allocatorInfo.instance = instance;
+			allocatorInfo.pVulkanFunctions = &vulkanFunctions;
 			vmaCreateAllocator(&allocatorInfo, &allocator);
 			//
 			//	Initialize Vulkan - Second Stage
@@ -296,16 +322,76 @@ namespace WorldEngine
 			}
 			//
 			//	Physics Initialization
-			_ndWorld = new ndWorld();
-			_ndWorld->SetThreadCount(std::thread::hardware_concurrency() - 2);
-			_ndWorld->SetSubSteps(3);
-			_ndWorld->SetSolverIterations(2);
+			//btSetTaskScheduler(btGetOpenMPTaskScheduler());
+			//btSetTaskScheduler(btGetTBBTaskScheduler());
+			//btSetTaskScheduler(btGetPPLTaskScheduler());
+			btSetTaskScheduler(btCreateDefaultTaskScheduler());
+			//
+			btDefaultCollisionConstructionInfo cci;
+			cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
+			cci.m_defaultMaxCollisionAlgorithmPoolSize = 102400;
+			collisionConfiguration = new btDefaultCollisionConfiguration(cci);
+			dispatcher = new btCollisionDispatcherMt(collisionConfiguration, 40);
+			broadphase_ = new btDbvtBroadphase();
+			broadphase = broadphase_;
+			//
+			//	Solver Pool
+			btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
+			int maxThreadCount = BT_MAX_THREAD_COUNT;
+			for (int i = 0; i < maxThreadCount; ++i)
+			{
+				solvers[i] = new btSequentialImpulseConstraintSolverMt();
+			}
+			solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
+			btSequentialImpulseConstraintSolverMt* solver = new btSequentialImpulseConstraintSolverMt();
+			//
+			//	Create Dynamics World
+			dynamicsWorld = new btDiscreteDynamicsWorldMt(dispatcher, broadphase, solverPool, solver, collisionConfiguration);
+			//
+			//	Set World Properties
+			dynamicsWorld->setGravity(btVector3(0, -10, 0));
+			dynamicsWorld->setForceUpdateAllAabbs(false);
+			dynamicsWorld->getSolverInfo().m_solverMode = SOLVER_SIMD |
+				//SOLVER_USE_WARMSTARTING |
+				//SOLVER_RANDMIZE_ORDER |
+				// SOLVER_INTERLEAVE_CONTACT_AND_FRICTION_CONSTRAINTS |
+				// SOLVER_USE_2_FRICTION_DIRECTIONS |
+				SOLVER_ENABLE_FRICTION_DIRECTION_CACHING |
+				SOLVER_CACHE_FRIENDLY |
+				SOLVER_DISABLE_IMPLICIT_CONE_FRICTION |
+				//SOLVER_DISABLE_VELOCITY_DEPENDENT_FRICTION_DIRECTION |
+				0;
+
+			dynamicsWorld->getSolverInfo().m_numIterations = 5;
+			//
+			//	true - false
+			btSequentialImpulseConstraintSolverMt::s_allowNestedParallelForLoops = true;
+			//
+			//	0.0f - 0.25f
+			printf("m_leastSquaresResidualThreshold %f\n", dynamicsWorld->getSolverInfo().m_leastSquaresResidualThreshold);
+			//
+			//	1.0f - 2000.0f
+			printf("s_minimumContactManifoldsForBatching %i\n", btSequentialImpulseConstraintSolverMt::s_minimumContactManifoldsForBatching);
+			//
+			//	1.0f - 1000.0f
+			printf("s_minBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_minBatchSize);
+			//
+			//	1.0f - 1000.0f
+			printf("s_maxBatchSize %i\n", btSequentialImpulseConstraintSolverMt::s_maxBatchSize);
+			//
+			//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_2D
+			//btBatchedConstraints::BATCHING_METHOD_SPATIAL_GRID_3D
+			printf("s_contactBatchingMethod %i\n", btSequentialImpulseConstraintSolverMt::s_contactBatchingMethod);
+
+			#ifdef _DEBUG
+			//dynamicsWorld->setDebugDrawer(&BTDebugDraw);
+			#endif
 			//
 			//	CEF Post Initialization
 			CEF::PostInitialize();
 			//
 			//	KNet Initialization
-			NetCode::Initialize("192.168.1.98", 8000, 8001);
+			NetCode::Initialize("192.168.1.98", 8002, 8003);
 			//
 			//	LUA Initialization
 			initLua();
@@ -329,7 +415,11 @@ namespace WorldEngine
 			//
 			NetCode::Deinitialize();
 			//
-			delete _ndWorld;
+			delete dynamicsWorld;
+			delete solverPool;
+			delete broadphase;
+			delete dispatcher;
+			delete collisionConfiguration;
 			//
 			_EventReceiver->Cleanup();
 			//	Destroy Synchronization Objects
@@ -389,6 +479,9 @@ namespace WorldEngine
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
 				//
 				//	Push previous delta to rolling average
+				auto Now = std::chrono::steady_clock::now();
+				deltaFrame = std::chrono::duration<float, std::milli>(Now - startFrame).count() / 1000.f;
+				startFrame = Now;
 				PushFrameDelta(deltaFrame);
 				//
 				//	CEF Loop
@@ -409,17 +502,27 @@ namespace WorldEngine
 				//printf("Delta Frame %f\n", deltaFrame);
 				if (deltaFrame > 0.0f)
 				{
-					_ndWorld->Update(deltaFrame);
+					//if (isWorld) {
+						dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
+					//}
 					SceneGraph::updateUniformBuffer(currentFrame);
+					//
+					//	Frustum Culling
+					performFrustumCulling(SceneGraph::GetCamera().View_Proj);
+					if (m_objectsInFrustum.size() > 0)
+					//printf("Frustum %i\n", m_objectsInFrustum.size());
+					for (int i = 0; i < m_objectsInFrustum.size(); i++)
+					{
+						btCollisionObject* Obj = m_objectsInFrustum[i];
+						SceneNode* Nd = reinterpret_cast<SceneNode*>(Obj->getUserPointer());
+						printf("Frustum Name: %s\n", Nd->Name.c_str());
+					}
 					//
 					//	Draw Frame
 					Render();
 				}
 				//
 				//	Mark Frame End Time and Calculate Delta
-				deltaFrame = std::chrono::duration<float, std::milli>(std::chrono::high_resolution_clock::now() - startFrame).count() / 1000.f;
-				startFrame = std::chrono::high_resolution_clock::now();
-				PushFrameDelta(deltaFrame);
 			}
 			//
 			//	We trying to cleanup? Should be at this point..
@@ -491,7 +594,7 @@ namespace WorldEngine
 			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline);
 			//
 			//	Update Camera Push Constants
-			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
@@ -723,6 +826,8 @@ namespace WorldEngine
 		//	Vulkan Initialization - Stage 1 - Step 1
 		void createInstance()
 		{
+			PFN_vkCreateInstance pfnCreateInstance = (PFN_vkCreateInstance)glfwGetInstanceProcAddress(NULL, "vkCreateInstance");
+
 			VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 			appInfo.pApplicationName = "PhySim";
 			appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -755,8 +860,11 @@ namespace WorldEngine
 				printf("Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n");
 			}
 #endif
-
+			volkInitialize();
 			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &instance));
+			volkLoadInstance(instance);
+
+			//pfnCreateDevice = (PFN_vkCreateDevice)glfwGetInstanceProcAddress(instance, "vkCreateDevice");
 		}
 
 		//
@@ -1058,6 +1166,57 @@ namespace WorldEngine
 				
 				// Create default renderpass for the framebuffer
 				VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
+		}
+
+		// Main stuct for btDbvt handling
+		struct	DbvtBroadphaseFrustumCulling : btDbvt::ICollide {
+			btAlignedObjectArray<btCollisionObject*>* m_pCollisionObjectArray;
+			short int m_collisionFilterMask;
+			btCollisionObject* m_additionalCollisionObjectToExclude;	// Unused in this demo
+
+			DbvtBroadphaseFrustumCulling(btAlignedObjectArray<btCollisionObject*>* _pArray = NULL)
+				: m_pCollisionObjectArray(_pArray), m_collisionFilterMask(btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger), m_additionalCollisionObjectToExclude(NULL)
+			{}
+			void Process(const btDbvtNode* node, btScalar depth) { Process(node); }
+			void Process(const btDbvtNode* leaf)
+			{
+				btBroadphaseProxy* proxy = static_cast <btBroadphaseProxy*> (leaf->data);
+				btCollisionObject* co = static_cast <btCollisionObject*> (proxy->m_clientObject);
+				if ((proxy->m_collisionFilterGroup & m_collisionFilterMask) != 0 && co != m_additionalCollisionObjectToExclude)
+				{
+					m_pCollisionObjectArray->push_back(co);
+				}
+			}
+		} g_DBFC;
+
+		void performFrustumCulling(glm::mat4 &Mat) {
+
+			m_objectsInFrustum.resize(0);	// clear() is probably slower
+
+			Frustum Frst(Mat);
+			btVector3 planes_n[5]{};
+			btScalar  planes_o[5]{};
+
+			for (int i = 0; i < 5; i++)
+			{
+				planes_n[i].setX(Frst.planes[i].normal.x);
+				planes_n[i].setY(Frst.planes[i].normal.y);
+				planes_n[i].setZ(Frst.planes[i].normal.z);
+
+				planes_o[i] = Frst.planes[i].d;
+			}
+
+			//=======================================================
+			// OK, now the pure btDbvt code starts here:
+			//=======================================================
+
+			g_DBFC.m_pCollisionObjectArray = &m_objectsInFrustum;
+			g_DBFC.m_collisionFilterMask = btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger;	// This won't display sensors...
+			g_DBFC.m_additionalCollisionObjectToExclude = NULL;
+
+			btDbvt::collideKDOP(broadphase_->m_sets[1].m_root, planes_n, planes_o, 5, g_DBFC);
+			btDbvt::collideKDOP(broadphase_->m_sets[0].m_root, planes_n, planes_o, 5, g_DBFC);
+			// btDbvt::collideKDOP(root,normals,offsets,count,icollide):
 		}
 	}
 }

@@ -254,8 +254,11 @@ public:
                         int ColorTex = _Material.pbrMetallicRoughness.baseColorTexture.index;
                         int NormalTex = _Material.normalTexture.index;
 
-                        printf("MODEL.IMAGES COLOR NAME %s\n", model.images[ColorTex].name.c_str());
-                        Infos->DiffuseTex = Pipe->createTextureImage2(model.images[ColorTex]);
+                        if (ColorTex >= 0)
+                        {
+                            printf("MODEL.IMAGES COLOR NAME %s\n", model.images[ColorTex].name.c_str());
+                            Infos->DiffuseTex = Pipe->createTextureImage2(model.images[ColorTex]);
+                        }
                         if (NormalTex >= 0)
                         {
                             printf("MODEL.IMAGES NORMAL NAME %s\n", model.images[NormalTex].name.c_str());
