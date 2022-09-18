@@ -10,7 +10,6 @@ layout(location = 6) in vec3 inTangent;
 
 layout(std140, push_constant) uniform CameraPushConstant {
     mat4 view_proj;
-    vec4 pos;
 } PushConstants;
 
 layout(std140, binding = 0) uniform UniformBufferObject {

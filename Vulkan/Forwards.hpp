@@ -60,53 +60,6 @@
 //	Include Vulkan Helpers
 #include <iostream>
 #include <vector>
-//namespace WorldEngine
-//{
-//	namespace VK
-//	{
-//		PFN_vkCreateDevice pfnCreateDevice;
-//		PFN_vkDestroyFramebuffer
-//			vkGetImageMemoryRequirements
-//			vkCreateShaderModule
-//			vkCmdCopyBufferToImage
-//			vkDestroyCommandPool
-//			vkCreateImageView
-//			vkGetBufferMemoryRequirements2
-//			vkCmdBindIndexBuffer
-//			vkFreeCommandBuffers
-//			vkBindImageMemory
-//			vkDestroySemaphore
-//			vkFreeMemory
-//			vkCmdSetViewport
-//			vkCmdBindDescriptorSets
-//			vkDestroyShaderModule
-//			vkBindBufferMemory2
-//			vkCmdCopyBuffer
-//			vkDestroyDevice
-//			vkGetPhysicalDeviceFormatProperties
-//			vkCmdPushConstants
-//			vkGetPhysicalDeviceMemoryProperties
-//			vkUnmapMemory
-//			vkEndCommandBuffer
-//			vkCreateBuffer
-//			vkDestroyDescriptorPool
-//			vkFlushMappedMemoryRanges
-//			vkGetDeviceProcAddr
-//			vkDestroyPipelineLayout
-//			vkDestroyBuffer
-//			vkUpdateDescriptorSets
-//			vkCreateRenderPass
-//			vkCreateCommandPool
-//			vkDestroyFence
-//			vkDestroyDescriptorSetLayout
-//			vkCmdDraw
-//			vkGetPhysicalDeviceFeatures
-//			vkCmdBindVertexBuffers
-//			vkQueueWaitIdle
-//			vkGetDeviceImageMemoryRequirements
-//			vkAllocateMemory
-//	}
-//}
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
@@ -172,7 +125,7 @@ struct DComposition {
 //	Camera Push Constant (can only hold a maximum of 2 mat4's which is 8 vec4's)
 struct CameraPushConstant {
 	glm::mat4 view_proj{};
-	glm::vec4 pos{};
+	glm::mat4 dummy{};
 };
 //
 //	Model Uniform Buffer Object
@@ -441,3 +394,54 @@ glm::mat4 to_mat4(const ozz::math::Float4x4& m) {
 		ozz::math::StorePtr(m.cols[i], &result[i].x);
 	return result;
 }
+
+class Plane
+{
+
+public:
+	Plane() {}
+
+	Plane(const glm::vec4& abcd)
+		: normal(abcd.x, abcd.y, abcd.z), d(abcd.w) {}
+
+	void normalize()
+	{
+		float mag = glm::length(normal);
+		normal /= mag;
+		d /= mag;
+	}
+
+	glm::vec3 normal;
+	float d;        // distance from origin
+};
+
+class Frustum
+{
+public:
+	Frustum(const glm::mat4& mat, bool normalize_planes = true)
+		// create frustum from  matrix
+		// if extracted from projection matrix only, planes will be in eye-space
+		// if extracted from view*projection, planes will be in world space
+		// if extracted from model*view*projection planes will be in model space
+	{
+		// create non-normalized clipping planes
+		planes[0] = Plane(mat[3] - mat[0]);       // right
+		planes[1] = Plane(mat[3] + mat[0]);       // left
+		planes[2] = Plane(mat[3] - mat[1]);       // top
+		planes[3] = Plane(mat[3] + mat[1]);       // bottom
+		planes[4] = Plane(mat[3] - mat[2]);       // far
+		planes[5] = Plane(mat[3] + mat[2]);       // near
+		// normalize the plane equations, if requested
+		if (normalize_planes)
+		{
+			planes[0].normalize();
+			planes[1].normalize();
+			planes[2].normalize();
+			planes[3].normalize();
+			planes[4].normalize();
+			planes[5].normalize();
+		}
+	}
+
+	Plane planes[6];        // plane normals point into frustum
+};

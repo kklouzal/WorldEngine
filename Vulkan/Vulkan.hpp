@@ -87,10 +87,14 @@ namespace WorldEngine
 		//	Bullet Physics
 		btDefaultCollisionConfiguration* collisionConfiguration;
 		btCollisionDispatcherMt* dispatcher;
+		btDbvtBroadphase* broadphase_;
 		btBroadphaseInterface* broadphase;
 		btConstraintSolverPoolMt* solverPool;
 		btDiscreteDynamicsWorld* dynamicsWorld;
 		//
+		btAlignedObjectArray<btCollisionObject*> m_objectsInFrustum;
+		//
+		void performFrustumCulling(glm::mat4& Mat);
 
 		void Initialize();
 		void Deinitialize();
@@ -328,7 +332,8 @@ namespace WorldEngine
 			cci.m_defaultMaxCollisionAlgorithmPoolSize = 102400;
 			collisionConfiguration = new btDefaultCollisionConfiguration(cci);
 			dispatcher = new btCollisionDispatcherMt(collisionConfiguration, 40);
-			broadphase = new btDbvtBroadphase();
+			broadphase_ = new btDbvtBroadphase();
+			broadphase = broadphase_;
 			//
 			//	Solver Pool
 			btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
@@ -386,7 +391,7 @@ namespace WorldEngine
 			CEF::PostInitialize();
 			//
 			//	KNet Initialization
-			NetCode::Initialize("127.0.0.1", 8002, 8003);
+			NetCode::Initialize("192.168.1.98", 8002, 8003);
 			//
 			//	LUA Initialization
 			initLua();
@@ -502,6 +507,17 @@ namespace WorldEngine
 					//}
 					SceneGraph::updateUniformBuffer(currentFrame);
 					//
+					//	Frustum Culling
+					performFrustumCulling(SceneGraph::GetCamera().View_Proj);
+					if (m_objectsInFrustum.size() > 0)
+					//printf("Frustum %i\n", m_objectsInFrustum.size());
+					for (int i = 0; i < m_objectsInFrustum.size(); i++)
+					{
+						btCollisionObject* Obj = m_objectsInFrustum[i];
+						SceneNode* Nd = reinterpret_cast<SceneNode*>(Obj->getUserPointer());
+						printf("Frustum Name: %s\n", Nd->Name.c_str());
+					}
+					//
 					//	Draw Frame
 					Render();
 				}
@@ -578,7 +594,7 @@ namespace WorldEngine
 			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline);
 			//
 			//	Update Camera Push Constants
-			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
@@ -1150,6 +1166,57 @@ namespace WorldEngine
 				
 				// Create default renderpass for the framebuffer
 				VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
+		}
+
+		// Main stuct for btDbvt handling
+		struct	DbvtBroadphaseFrustumCulling : btDbvt::ICollide {
+			btAlignedObjectArray<btCollisionObject*>* m_pCollisionObjectArray;
+			short int m_collisionFilterMask;
+			btCollisionObject* m_additionalCollisionObjectToExclude;	// Unused in this demo
+
+			DbvtBroadphaseFrustumCulling(btAlignedObjectArray<btCollisionObject*>* _pArray = NULL)
+				: m_pCollisionObjectArray(_pArray), m_collisionFilterMask(btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger), m_additionalCollisionObjectToExclude(NULL)
+			{}
+			void Process(const btDbvtNode* node, btScalar depth) { Process(node); }
+			void Process(const btDbvtNode* leaf)
+			{
+				btBroadphaseProxy* proxy = static_cast <btBroadphaseProxy*> (leaf->data);
+				btCollisionObject* co = static_cast <btCollisionObject*> (proxy->m_clientObject);
+				if ((proxy->m_collisionFilterGroup & m_collisionFilterMask) != 0 && co != m_additionalCollisionObjectToExclude)
+				{
+					m_pCollisionObjectArray->push_back(co);
+				}
+			}
+		} g_DBFC;
+
+		void performFrustumCulling(glm::mat4 &Mat) {
+
+			m_objectsInFrustum.resize(0);	// clear() is probably slower
+
+			Frustum Frst(Mat);
+			btVector3 planes_n[5]{};
+			btScalar  planes_o[5]{};
+
+			for (int i = 0; i < 5; i++)
+			{
+				planes_n[i].setX(Frst.planes[i].normal.x);
+				planes_n[i].setY(Frst.planes[i].normal.y);
+				planes_n[i].setZ(Frst.planes[i].normal.z);
+
+				planes_o[i] = Frst.planes[i].d;
+			}
+
+			//=======================================================
+			// OK, now the pure btDbvt code starts here:
+			//=======================================================
+
+			g_DBFC.m_pCollisionObjectArray = &m_objectsInFrustum;
+			g_DBFC.m_collisionFilterMask = btBroadphaseProxy::AllFilter & ~btBroadphaseProxy::SensorTrigger;	// This won't display sensors...
+			g_DBFC.m_additionalCollisionObjectToExclude = NULL;
+
+			btDbvt::collideKDOP(broadphase_->m_sets[1].m_root, planes_n, planes_o, 5, g_DBFC);
+			btDbvt::collideKDOP(broadphase_->m_sets[0].m_root, planes_n, planes_o, 5, g_DBFC);
+			// btDbvt::collideKDOP(root,normals,offsets,count,icollide):
 		}
 	}
 }
