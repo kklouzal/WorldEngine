@@ -594,7 +594,7 @@ namespace WorldEngine
 			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline);
 			//
 			//	Update Camera Push Constants
-			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
@@ -827,6 +827,7 @@ namespace WorldEngine
 		void createInstance()
 		{
 			PFN_vkCreateInstance pfnCreateInstance = (PFN_vkCreateInstance)glfwGetInstanceProcAddress(NULL, "vkCreateInstance");
+			PFN_vkEnumerateInstanceLayerProperties pfEnumerateInstanceLayerProperties = (PFN_vkEnumerateInstanceLayerProperties)glfwGetInstanceProcAddress(NULL, "vkEnumerateInstanceLayerProperties");
 
 			VkApplicationInfo appInfo = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
 			appInfo.pApplicationName = "PhySim";
@@ -842,9 +843,9 @@ namespace WorldEngine
 #ifdef _DEBUG
 			const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 			uint32_t instanceLayerCount;
-			vkEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
+			pfEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
 			std::vector<VkLayerProperties> instanceLayerProperties(instanceLayerCount);
-			vkEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
+			pfEnumerateInstanceLayerProperties(&instanceLayerCount, instanceLayerProperties.data());
 			bool validationLayerPresent = false;
 			for (const VkLayerProperties& layer : instanceLayerProperties) {
 				if (strcmp(layer.layerName, validationLayerName) == 0) {
