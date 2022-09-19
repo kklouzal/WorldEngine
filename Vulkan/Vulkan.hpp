@@ -6,8 +6,8 @@ namespace WorldEngine
 {
 	namespace VulkanDriver
 	{
-		uint32_t WIDTH = 1024;
-		uint32_t HEIGHT = 768;
+		uint32_t WIDTH = 1280;
+		uint32_t HEIGHT = 1024;
 		bool VSYNC = false;
 		VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		//
