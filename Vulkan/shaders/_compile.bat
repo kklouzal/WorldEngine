@@ -8,4 +8,6 @@ C:/VulkanSDK/1.3.211.0/Bin/glslc.exe fragment_gui.frag -o fragment_gui.frag.spv
 C:/VulkanSDK/1.3.211.0/Bin/glslc.exe deferred.frag -o deferred.frag.spv
 C:/VulkanSDK/1.3.211.0/Bin/glslc.exe ui.frag -o ui.frag.spv
 C:/VulkanSDK/1.3.211.0/Bin/glslc.exe cef.frag -o cef.frag.spv
+C:/VulkanSDK/1.3.211.0/Bin/glslc.exe shadow.geom -o shadow.geom.spv
+C:/VulkanSDK/1.3.211.0/Bin/glslc.exe shadow.vert -o shadow.vert.spv
 pause

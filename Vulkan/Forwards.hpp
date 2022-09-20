@@ -120,6 +120,9 @@ struct DComposition {
 	DLight lights[6];
 	glm::i32 debugDisplayTarget = 0;
 };
+struct DShadow {
+	glm::mat4 mvp[LIGHT_COUNT];
+};
 
 //
 //	Camera Push Constant (can only hold a maximum of 2 mat4's which is 8 vec4's)

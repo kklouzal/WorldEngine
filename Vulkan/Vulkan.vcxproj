@@ -225,6 +225,8 @@
     <None Include="shaders\deferred.vert" />
     <None Include="shaders\Fragment_Default.frag" />
     <None Include="shaders\Fragment_GUI.frag" />
+    <None Include="shaders\shadow.geom" />
+    <None Include="shaders\shadow.vert" />
     <None Include="shaders\ui.frag" />
     <None Include="shaders\ui.vert" />
     <None Include="shaders\Vertex_Default.vert" />

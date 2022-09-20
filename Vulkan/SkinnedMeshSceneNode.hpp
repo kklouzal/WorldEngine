@@ -158,9 +158,9 @@ public:
 		}
 	}
 
-	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
+	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame, bool bShadow) {
 		if (!Valid) {
-			_Mesh->draw(CommandBuffer, CurFrame);
+			_Mesh->draw(CommandBuffer, CurFrame, bShadow);
 		}
 	}
 };

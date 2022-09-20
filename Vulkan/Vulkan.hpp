@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Forwards.hpp"
-#define SHADOWMAP_DIM 2048
 
 namespace WorldEngine
 {
@@ -28,6 +27,7 @@ namespace WorldEngine
 		//
 		//	Per-Frame Synchronization Object Resources
 		struct {
+			VkSemaphore shadowComplete;
 			VkSemaphore presentComplete;
 			VkSemaphore renderComplete;
 			VkSemaphore offscreenSync;
@@ -63,6 +63,9 @@ namespace WorldEngine
 
 		VkRenderPass renderPass = VK_NULL_HANDLE;				//	Cleaned Up
 
+		float depthBiasConstant = 1.25f;
+		float depthBiasSlope = 1.75f;
+
 		VkViewport viewport_Deferred;							//
 		VkRect2D scissor_Deferred;								//
 		VkViewport viewport_Main;								//
@@ -74,10 +77,15 @@ namespace WorldEngine
 		std::vector<VkCommandBuffer> commandBuffers_Push;		//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_GUI;		//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_CEF;		//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_Shadow;		//	Doesnt Need Cleanup
 
 		DComposition uboComposition;							//	Doesnt Need Cleanup
 		std::vector<VkBuffer> uboCompositionBuff = {};			//	Cleaned Up
 		std::vector<VmaAllocation> uboCompositionAlloc = {};	//	Cleaned Up
+
+		DShadow uboShadow;										//	Doesnt Need Cleanup
+		std::vector<VkBuffer> uboShadowBuff = {};				//	Cleaned Up
+		std::vector<VmaAllocation> uboShadowAlloc = {};			//	Cleaned Up
 
 		// Core Classes
 		VmaAllocator allocator = VMA_NULL;						//	Cleaned Up
@@ -272,6 +280,19 @@ namespace WorldEngine
 				vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
 			}
 			//
+			//	Per-Frame Shadow Rendering Uniform Buffer Objects
+			uboShadowBuff.resize(swapChain.images.size());
+			uboShadowAlloc.resize(swapChain.images.size());
+			for (size_t i = 0; i < swapChain.images.size(); i++)
+			{
+				VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DShadow));
+				uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+				VmaAllocationCreateInfo uniformAllocInfo = {};
+				uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+				uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+				vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboShadowBuff[i], &uboShadowAlloc[i], nullptr);
+			}
+			//
 			//	Per-Frame Primary Command Buffers
 			commandBuffers.resize(frameBuffers_Main.size());
 			for (int i = 0; i < frameBuffers_Main.size(); i++)
@@ -302,12 +323,23 @@ namespace WorldEngine
 				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_CEF, &commandBuffers_CEF[i]));
 			}
 			//
+			//	Per-Frame Secondary Shadow Command Buffers
+			commandBuffers_Shadow.resize(frameBuffers_Main.size());
+			for (int i = 0; i < frameBuffers_Main.size(); i++)
+			{
+				VkCommandBufferAllocateInfo cmdBufAllocateInfo_CEF = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_CEF, &commandBuffers_Shadow[i]));
+			}
+			//
 			//	Per-Frame Synchronization Objects
 			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 			imagesInFlight.resize(swapChain.imageCount, VK_NULL_HANDLE);
 			for (uint32_t i = 0; i < swapChain.imageCount; i++)
 			{
+				// Create a semaphore used to synchronize image presentation
+				// Ensures that the image is displayed before we start submitting new commands to the queue
+				VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].shadowComplete));
 				// Create a semaphore used to synchronize image presentation
 				// Ensures that the image is displayed before we start submitting new commands to the queue
 				VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete));
@@ -429,12 +461,18 @@ namespace WorldEngine
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.offscreenSync, nullptr);
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.renderComplete, nullptr);
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.presentComplete, nullptr);
+				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.shadowComplete, nullptr);
 				vkDestroyFence(_VulkanDevice->logicalDevice, sync.inFlightFence, nullptr);
 			}
 			//
 			for (int i = 0; i < uboCompositionBuff.size(); i++)
 			{
 				vmaDestroyBuffer(allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
+			}
+			//
+			for (int i = 0; i < uboShadowBuff.size(); i++)
+			{
+				vmaDestroyBuffer(allocator, uboShadowBuff[i], uboShadowAlloc[i]);
 			}
 			//
 			for (auto& commandpool : commandPools) {
@@ -563,6 +601,7 @@ namespace WorldEngine
 			else {
 				VK_CHECK_RESULT(result);
 			}
+			// 
 			//
 			//		START DRAWING OFFSCREEN
 			//
@@ -577,7 +616,58 @@ namespace WorldEngine
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
 			//
-			//	Setup renderpass	
+			//
+
+
+
+			std::array<VkClearValue, 4> clearValues = {};
+			clearValues[0].depthStencil = { 1.0f, 0 };
+			VkViewport viewport;
+			VkRect2D scissor;
+
+			VkRenderPassBeginInfo renderPassBeginInfo0 = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo0.renderPass = frameBuffers.shadow->renderPass;
+			renderPassBeginInfo0.framebuffer = frameBuffers.shadow->framebuffers[currentFrame];
+			renderPassBeginInfo0.renderArea.extent.width = frameBuffers.shadow->width;
+			renderPassBeginInfo0.renderArea.extent.height = frameBuffers.shadow->height;
+			renderPassBeginInfo0.clearValueCount = 1;
+			renderPassBeginInfo0.pClearValues = clearValues.data();
+
+			//	Record
+			VkCommandBufferBeginInfo cmdBufInfo0 = vks::initializers::commandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo0));
+
+			viewport = vks::initializers::viewport((float)frameBuffers.shadow->width, (float)frameBuffers.shadow->height, 0.0f, 1.0f);
+			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport);
+			scissor = vks::initializers::rect2D(frameBuffers.shadow->width, frameBuffers.shadow->height, 0, 0);
+			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
+
+			vkCmdSetDepthBias(
+				offscreenCommandBuffers[currentFrame],
+				depthBiasConstant,
+				0.0f,
+				depthBiasSlope);
+
+			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo0, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline_Shadow);
+
+
+			for (auto& Node : SceneGraph::SceneNodes) {
+				if (Node.second)
+				{
+					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame, true);
+				}
+			}
+
+
+
+			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
+			VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
+
+
+			//
+			//	Setup renderpass
 			VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
 			renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
 			renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffers[currentFrame];
@@ -601,7 +691,7 @@ namespace WorldEngine
 			for (auto& Node : SceneGraph::SceneNodes) {
 				if (Node.second)
 				{
-					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
+					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame, false);
 				}
 			}
 			//
@@ -1091,7 +1181,6 @@ namespace WorldEngine
 				VkCommandPoolCreateInfo poolInfo = vks::initializers::commandPoolCreateInfo();
 				poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 				poolInfo.queueFamilyIndex = _VulkanDevice->queueFamilyIndices.graphics;
-				//poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 				//
 				VK_CHECK_RESULT(vkCreateCommandPool(_VulkanDevice->logicalDevice, &poolInfo, nullptr, &commandPools[i]));
 				//
@@ -1107,67 +1196,67 @@ namespace WorldEngine
 		//	Vulkan Initialization - Stage 2 - Step 4
 		void prepareOffscreenFrameBuffer()
 		{
-			////
-			////
-			//// Shadow
-			//frameBuffers.shadow = new Framebuffer(_VulkanDevice, allocator);
+			//
+			//
+			// Shadow
+			frameBuffers.shadow = new Framebuffer(_VulkanDevice, allocator);
 
-			//frameBuffers.shadow->width = SHADOWMAP_DIM;
-			//frameBuffers.shadow->height = SHADOWMAP_DIM;
+			frameBuffers.shadow->width = SHADOWMAP_DIM;
+			frameBuffers.shadow->height = SHADOWMAP_DIM;
 
-			//// Create a layered depth attachment for rendering the depth maps from the lights' point of view
-			//// Each layer corresponds to one of the lights
-			//// The actual output to the separate layers is done in the geometry shader using shader instancing
-			//// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
-			//AttachmentCreateInfo attachmentInfo1 = {};
-			//attachmentInfo1.format = SHADOWMAP_FORMAT;
-			//attachmentInfo1.width = SHADOWMAP_DIM;
-			//attachmentInfo1.height = SHADOWMAP_DIM;
-			//attachmentInfo1.layerCount = LIGHT_COUNT;
-			//attachmentInfo1.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			//frameBuffers.shadow->addAttachment(attachmentInfo1);
+			// Create a layered depth attachment for rendering the depth maps from the lights' point of view
+			// Each layer corresponds to one of the lights
+			// The actual output to the separate layers is done in the geometry shader using shader instancing
+			// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
+			AttachmentCreateInfo attachmentInfo = {};
+			attachmentInfo.format = depthFormat;
+			attachmentInfo.width = SHADOWMAP_DIM;
+			attachmentInfo.height = SHADOWMAP_DIM;
+			attachmentInfo.layerCount = LIGHT_COUNT;
+			attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			frameBuffers.shadow->addAttachment(attachmentInfo);
 
-			//// Create sampler to sample from to depth attachment
-			//// Used to sample in the fragment shader for shadowed rendering
-			//VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+			// Create sampler to sample from to depth attachment
+			// Used to sample in the fragment shader for shadowed rendering
+			VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
-			//// Create default renderpass for the framebuffer
-			//VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
+			// Create default renderpass for the framebuffer
+			VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass(swapChain.imageCount));
 			//
 			//
 			//	Deferred
-				frameBuffers.deferred = new Framebuffer(_VulkanDevice, allocator);
-				frameBuffers.deferred->width = FB_DIM;
-				frameBuffers.deferred->height = FB_DIM;
+			frameBuffers.deferred = new Framebuffer(_VulkanDevice, allocator);
+			frameBuffers.deferred->width = FB_DIM;
+			frameBuffers.deferred->height = FB_DIM;
 
-				AttachmentCreateInfo attachmentInfo2 = {};
-				attachmentInfo2.width = FB_DIM;
-				attachmentInfo2.height = FB_DIM;
-				attachmentInfo2.layerCount = 1;
-				attachmentInfo2.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			AttachmentCreateInfo attachmentInfo2 = {};
+			attachmentInfo2.width = FB_DIM;
+			attachmentInfo2.height = FB_DIM;
+			attachmentInfo2.layerCount = 1;
+			attachmentInfo2.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-				// Color attachments
-				// Attachment 0: (World space) Positions
-				attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-				frameBuffers.deferred->addAttachment(attachmentInfo2);
+			// Color attachments
+			// Attachment 0: (World space) Positions
+			attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-				// Attachment 1: (World space) Normals
-				attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
-				frameBuffers.deferred->addAttachment(attachmentInfo2);
+			// Attachment 1: (World space) Normals
+			attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-				// Attachment 2: Albedo (color)
-				attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
-				frameBuffers.deferred->addAttachment(attachmentInfo2);
+			// Attachment 2: Albedo (color)
+			attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
+			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-				attachmentInfo2.format = depthFormat;
-				attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-				frameBuffers.deferred->addAttachment(attachmentInfo2);
+			attachmentInfo2.format = depthFormat;
+			attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-				// Create sampler to sample from the color attachments
-				VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+			// Create sampler to sample from the color attachments
+			VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 				
-				// Create default renderpass for the framebuffer
-				VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
+			// Create default renderpass for the framebuffer
+			VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
 		}
 
 		// Main stuct for btDbvt handling
