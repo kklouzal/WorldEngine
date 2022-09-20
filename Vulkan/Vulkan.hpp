@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Forwards.hpp"
+#define SHADOWMAP_DIM 2048
 
 namespace WorldEngine
 {
@@ -508,15 +509,15 @@ namespace WorldEngine
 					SceneGraph::updateUniformBuffer(currentFrame);
 					//
 					//	Frustum Culling
-					performFrustumCulling(SceneGraph::GetCamera().View_Proj);
-					if (m_objectsInFrustum.size() > 0)
-					//printf("Frustum %i\n", m_objectsInFrustum.size());
-					for (int i = 0; i < m_objectsInFrustum.size(); i++)
-					{
-						btCollisionObject* Obj = m_objectsInFrustum[i];
-						SceneNode* Nd = reinterpret_cast<SceneNode*>(Obj->getUserPointer());
-						printf("Frustum Name: %s\n", Nd->Name.c_str());
-					}
+					//performFrustumCulling(SceneGraph::GetCamera().View_Proj);
+					//if (m_objectsInFrustum.size() > 0)
+					////printf("Frustum %i\n", m_objectsInFrustum.size());
+					//for (int i = 0; i < m_objectsInFrustum.size(); i++)
+					//{
+					//	btCollisionObject* Obj = m_objectsInFrustum[i];
+					//	SceneNode* Nd = reinterpret_cast<SceneNode*>(Obj->getUserPointer());
+					//	printf("Frustum Name: %s\n", Nd->Name.c_str());
+					//}
 					//
 					//	Draw Frame
 					Render();

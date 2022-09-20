@@ -97,8 +97,8 @@
 #include <ozz/options/options.h>
 
 // Texture properties
-constexpr auto FB_DIM = 2048;
-constexpr auto TEX_DIM = 2048;
+constexpr auto FB_DIM = 1024;
+constexpr auto TEX_DIM = 1024;
 constexpr auto SHADOWMAP_DIM = 2048;
 constexpr auto SHADOWMAP_FORMAT = VK_FORMAT_D32_SFLOAT_S8_UINT;
 constexpr auto TEX_FILTER = VK_FILTER_LINEAR;

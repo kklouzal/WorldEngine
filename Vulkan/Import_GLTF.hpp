@@ -264,6 +264,10 @@ public:
                             printf("MODEL.IMAGES NORMAL NAME %s\n", model.images[NormalTex].name.c_str());
                             Infos->NormalTex = Pipe->createTextureImage2(model.images[NormalTex]);
                         }
+                        else {
+                            printf("MODEL.IMAGES !!HAS NO NORMAL!!\n");
+                            Infos->NormalTex = Pipe->createTextureImage("NA");
+                        }
                     }
                 }
             }

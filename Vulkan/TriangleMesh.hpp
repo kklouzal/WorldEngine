@@ -36,12 +36,22 @@ public:
 	//
 	//	TODO: SSBOSize needs passed down differently..
 	//	this is dirty..
+	//	TODO: Separate TriangleMesh & SkinnedTriangleMesh
+	//	this is real dirty...
 	TriangleMesh(Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
 		: Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
-		const size_t SSBOSize = sizeof(glm::mat4) * GLTF->InverseBindMatrices.size();
 		createVertexBuffer();
 		createUniformBuffers();
+		//
+		//	diiiirty
+		size_t SSBOSize = sizeof(glm::mat4);
+		if (GLTF->InverseBindMatrices.size() > 0)
+		{
+			SSBOSize = sizeof(glm::mat4) * GLTF->InverseBindMatrices.size();
+		}
 		createStorageBuffer(SSBOSize);
+		//
+		//
 		Texture_Albedo = Albedo;
 		Texture_Normal = Normal;
 		Descriptor = Pipe->createDescriptor(Albedo, Normal, uniformBuffers, storagespaceBuffers, SSBOSize);
@@ -170,7 +180,7 @@ public:
 	{
 		//	Bind Descriptor Sets
 		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
-			
+
 		//	Draw Vertex Buffer
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);

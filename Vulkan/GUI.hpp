@@ -129,7 +129,7 @@ namespace WorldEngine
             // Update buffers only if vertex or index count has been changed compared to current buffer size
 
             // Vertex buffer
-            if ((PerFrameResource[CurFrame].GUI_VertexBuffer == VK_NULL_HANDLE) || (PerFrameResource[CurFrame].vertexCount != imDrawData->TotalVtxCount)) {
+            if ((PerFrameResource[CurFrame].GUI_VertexBuffer == VK_NULL_HANDLE) || (PerFrameResource[CurFrame].vertexCount < imDrawData->TotalVtxCount)) {
                 vmaDestroyBuffer(VulkanDriver::allocator, PerFrameResource[CurFrame].GUI_VertexBuffer, PerFrameResource[CurFrame].GUI_VertexAllocation);
 
                 //	Vertex Buffer
@@ -141,7 +141,7 @@ namespace WorldEngine
                 VmaAllocationCreateInfo vertexAllocInfo = {};
                 vertexAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
                 vertexAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
+                
                 vmaCreateBuffer(VulkanDriver::allocator, &vertexBufferInfo, &vertexAllocInfo, &PerFrameResource[CurFrame].GUI_VertexBuffer, &PerFrameResource[CurFrame].GUI_VertexAllocation, nullptr);
 
                 PerFrameResource[CurFrame].vertexCount = imDrawData->TotalVtxCount;
@@ -259,7 +259,7 @@ namespace WorldEngine
                 _Menu->Draw();
             }
 
-            ImGui::ShowDemoWindow();
+            //ImGui::ShowDemoWindow();
 
         }
 
