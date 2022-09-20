@@ -115,6 +115,7 @@ struct DLight {
 	glm::vec4 position;
 	glm::vec4 color;
 	glm::f32 radius;
+	glm::mat4 viewMatrix;
 };
 struct DComposition {
 	DLight lights[6];
@@ -128,7 +129,7 @@ struct DShadow {
 //	Camera Push Constant (can only hold a maximum of 2 mat4's which is 8 vec4's)
 struct CameraPushConstant {
 	glm::mat4 view_proj{};
-	glm::mat4 dummy{};
+	glm::vec4 pos;
 };
 //
 //	Model Uniform Buffer Object

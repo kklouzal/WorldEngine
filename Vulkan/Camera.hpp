@@ -97,6 +97,7 @@ public:
 		CPC.view_proj *= View;
 		View_Proj = CPC.view_proj;
 
+		CPC.pos = glm::vec4(Pos.x, Pos.y, Pos.z, 1.f);
 		return CPC;
 	}
 

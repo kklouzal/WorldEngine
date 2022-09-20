@@ -6,6 +6,11 @@ namespace WorldEngine
 {
 	namespace VulkanDriver
 	{
+		float zNear = 0.1f;
+		float zFar = 64.0f;
+		float lightFOV = 100.0f;
+		//
+		//
 		uint32_t WIDTH = 1280;
 		uint32_t HEIGHT = 1024;
 		bool VSYNC = false;
@@ -857,32 +862,44 @@ namespace WorldEngine
 		inline void updateUniformBufferComposition(const size_t& CurFrame)
 		{
 			// White
-			uboComposition.lights[0].position = glm::vec4(-50.0f, 10.0f, -50.0f, 0.0f);
+			uboComposition.lights[0].position = glm::vec4(15.0f, 15.0f, 15.0f, 0.0f);
 			uboComposition.lights[0].color = glm::vec4(1.5f);
 			uboComposition.lights[0].radius = 100.0f;
 			// Red
-			uboComposition.lights[1].position = glm::vec4(-50.0f, 10.0f, 0.0f, 0.0f);
+			uboComposition.lights[1].position = glm::vec4(15.0f, 15.0f, 30.0f, 0.0f);
 			uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
 			uboComposition.lights[1].radius = 100.0f;
 			// Blue
-			//uboComposition.lights[2].position = glm::vec4(50.0f, 10.0f, 0.0f, 0.0f);
-			uboComposition.lights[2].position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+			uboComposition.lights[2].position = glm::vec4(15.0f, 15.0f, 0.0f, 0.0f);
 			uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
 			uboComposition.lights[2].radius = 100.0f;
 			// Yellow
-			uboComposition.lights[3].position = glm::vec4(0.0f, 10.0f, -50.0f, 0.0f);
+			uboComposition.lights[3].position = glm::vec4(30.0f, 15.0f, 15.0f, 0.0f);
 			uboComposition.lights[3].color = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
 			uboComposition.lights[3].radius = 100.0f;
 			// Green
-			uboComposition.lights[4].position = glm::vec4(0.0f, 10.0f, 50.0f, 0.0f);
+			uboComposition.lights[4].position = glm::vec4(30.0f, 15.0f, 30.0f, 0.0f);
 			uboComposition.lights[4].color = glm::vec4(0.0f, 1.0f, 0.2f, 0.0f);
 			uboComposition.lights[4].radius = 100.0f;
 			// Yellow
-			uboComposition.lights[5].position = glm::vec4(50.0f, 10.0f, 50.0f, 0.0f);
+			uboComposition.lights[5].position = glm::vec4(30.0f, 15.0f, 0.0f, 0.0f);
 			uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
 			uboComposition.lights[5].radius = 100.0f;
 
+
+			for (uint32_t i = 0; i < LIGHT_COUNT; i++)
+			{
+				// mvp from light's pov (for shadows)
+				glm::mat4 shadowProj = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
+				glm::mat4 shadowView = glm::lookAt(glm::vec3(uboComposition.lights[i].position), glm::vec3(15.f,0.f,15.f), glm::vec3(0.0f, 1.0f, 0.0f));
+				glm::mat4 shadowModel = glm::mat4(1.0f);
+
+				uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;
+				uboComposition.lights[i].viewMatrix = uboShadow.mvp[i];
+			}
+
 			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
+			memcpy(uboShadowAlloc[CurFrame]->GetMappedData(), &uboShadow, sizeof(uboShadow));
 		}
 
 		void initLua()
