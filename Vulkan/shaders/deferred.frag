@@ -9,7 +9,7 @@
 layout(binding = 2) uniform sampler2D samplerposition;
 layout(binding = 3) uniform sampler2D samplerNormal;
 layout(binding = 4) uniform sampler2D samplerAlbedo;
-layout (binding = 6) uniform sampler2DArray samplerShadowMap;
+layout(binding = 6) uniform sampler2DArray samplerShadowMap;
 
 layout(location = 0) in vec2 inUV;
 

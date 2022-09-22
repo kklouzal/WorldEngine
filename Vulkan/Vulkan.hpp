@@ -88,10 +88,6 @@ namespace WorldEngine
 		std::vector<VkBuffer> uboCompositionBuff = {};			//	Cleaned Up
 		std::vector<VmaAllocation> uboCompositionAlloc = {};	//	Cleaned Up
 
-		DShadow uboShadow;										//	Doesnt Need Cleanup
-		std::vector<VkBuffer> uboShadowBuff = {};				//	Cleaned Up
-		std::vector<VmaAllocation> uboShadowAlloc = {};			//	Cleaned Up
-
 		// Core Classes
 		VmaAllocator allocator = VMA_NULL;						//	Cleaned Up
 		VulkanSwapChain swapChain;								//	Cleaned Up
@@ -286,19 +282,6 @@ namespace WorldEngine
 				vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
 			}
 			//
-			//	Per-Frame Shadow Rendering Uniform Buffer Objects
-			uboShadowBuff.resize(swapChain.images.size());
-			uboShadowAlloc.resize(swapChain.images.size());
-			for (size_t i = 0; i < swapChain.images.size(); i++)
-			{
-				VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DShadow));
-				uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-				VmaAllocationCreateInfo uniformAllocInfo = {};
-				uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-				uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-				vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboShadowBuff[i], &uboShadowAlloc[i], nullptr);
-			}
-			//
 			//	Per-Frame Primary Command Buffers
 			commandBuffers.resize(frameBuffers_Main.size());
 			for (int i = 0; i < frameBuffers_Main.size(); i++)
@@ -474,11 +457,6 @@ namespace WorldEngine
 			for (int i = 0; i < uboCompositionBuff.size(); i++)
 			{
 				vmaDestroyBuffer(allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
-			}
-			//
-			for (int i = 0; i < uboShadowBuff.size(); i++)
-			{
-				vmaDestroyBuffer(allocator, uboShadowBuff[i], uboShadowAlloc[i]);
 			}
 			//
 			for (auto& commandpool : commandPools) {
@@ -897,12 +875,12 @@ namespace WorldEngine
 				glm::mat4 shadowView = glm::lookAt(glm::vec3(uboComposition.lights[i].position), glm::vec3(uboComposition.lights[i].target), glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 shadowModel = glm::mat4(1.0f);
 
-				uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;
-				uboComposition.lights[i].viewMatrix = uboShadow.mvp[i];
+				WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;
+				uboComposition.lights[i].viewMatrix = WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i];
 			}
 
 			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
-			memcpy(uboShadowAlloc[CurFrame]->GetMappedData(), &uboShadow, sizeof(uboShadow));
+			WorldEngine::MaterialCache::GetPipe_Shadow()->UploadBuffersToGPU(CurFrame);
 		}
 
 		void initLua()
