@@ -659,19 +659,41 @@ namespace WorldEngine
 			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Shadow()->graphicsPipeline);
 
 
+			// hacky instancing
+			vkCmdBindDescriptorSets(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Shadow()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->DescriptorSets[currentFrame], 0, nullptr);
+
+			size_t instanceCount = 0;
+
+			bool bDrawn = false;
+			uint32_t indexSize = 0;
 			for (auto& Node : SceneGraph::SceneNodes) {
 				if (Node.second)
 				{
-					if (Node.second->Name == "World")
+					if (Node.second->Name == "TriangleMeshSceneNode")
 					{
-						continue;
-					}
-					else {
-						Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame, true);
+						if (!bDrawn)
+						{
+							((TriangleMeshSceneNode*)Node.second)->_Mesh;
+							VkDeviceSize offsets[] = { 0 };
+							vkCmdBindVertexBuffers(offscreenCommandBuffers[currentFrame], 0, 1, &((TriangleMeshSceneNode*)Node.second)->_Mesh->vertexBuffer, offsets);
+							vkCmdBindIndexBuffer(offscreenCommandBuffers[currentFrame], ((TriangleMeshSceneNode*)Node.second)->_Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+							indexSize = ((TriangleMeshSceneNode*)Node.second)->_Mesh->_GLTF->Indices.size();
+							bDrawn = true;
+						}
+						if (instanceCount < 100)
+						{
+							WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[instanceCount] = glm::vec4(Node.second->Pos, 1.0f);
+						}
+						instanceCount++;
 					}
 				}
 			}
 
+			if (bDrawn && instanceCount > 0)
+			{
+				vkCmdDrawIndexed(offscreenCommandBuffers[currentFrame], indexSize, instanceCount, 0, 0, 0);
+			}
+			// end hacky instancing
 
 
 			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
@@ -871,7 +893,7 @@ namespace WorldEngine
 			{
 				// mvp from light's pov (for shadows)
 				glm::mat4 shadowProj = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
-				shadowProj[1][1] *= -1;
+				//shadowProj[1][1] *= -1;
 				glm::mat4 shadowView = glm::lookAt(glm::vec3(uboComposition.lights[i].position), glm::vec3(uboComposition.lights[i].target), glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 shadowModel = glm::mat4(1.0f);
 

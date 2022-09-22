@@ -28,7 +28,7 @@ namespace Pipeline {
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				//	Binding 0 : Geometry Uniform Buffer
+				//	Binding 1: Geometry Uniform Buffer
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 0)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
@@ -61,8 +61,6 @@ namespace Pipeline {
 			pipelineCI.pViewportState = &viewportState;
 			pipelineCI.pDepthStencilState = &depthStencilState;
 			pipelineCI.pDynamicState = &dynamicState;
-			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-			pipelineCI.pStages = shaderStages.data();
 			//
 			//	Load shader files
 			VkPipelineShaderStageCreateInfo vertShaderStageInfo1 = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
@@ -78,7 +76,7 @@ namespace Pipeline {
 			//
 			pipelineCI.pStages = shaderStages.data();
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-
+			//
 			// Shadow pass doesn't use any color attachments
 			colorBlendState.attachmentCount = 0;
 			colorBlendState.pAttachments = nullptr;
