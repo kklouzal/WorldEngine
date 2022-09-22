@@ -682,7 +682,7 @@ namespace WorldEngine
 						}
 						if (instanceCount < 100)
 						{
-							WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[instanceCount] = glm::vec4(Node.second->Pos, 1.0f);
+							WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[instanceCount] = Node.second->Model;
 						}
 						instanceCount++;
 					}
@@ -893,7 +893,7 @@ namespace WorldEngine
 			{
 				// mvp from light's pov (for shadows)
 				glm::mat4 shadowProj = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
-				//shadowProj[1][1] *= -1;
+				shadowProj[1][1] *= -1;
 				glm::mat4 shadowView = glm::lookAt(glm::vec3(uboComposition.lights[i].position), glm::vec3(uboComposition.lights[i].target), glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 shadowModel = glm::mat4(1.0f);
 
