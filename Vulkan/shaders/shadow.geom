@@ -5,7 +5,7 @@
 layout (triangles, invocations = LIGHT_COUNT) in;
 layout (triangle_strip, max_vertices = 3) out;
 
-layout (binding = 7) uniform UBO 
+layout (binding = 0) uniform UBO 
 {
 	mat4 mvp[LIGHT_COUNT];
 } ubo;

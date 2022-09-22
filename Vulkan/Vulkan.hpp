@@ -7,7 +7,7 @@ namespace WorldEngine
 	namespace VulkanDriver
 	{
 		float zNear = 0.1f;
-		float zFar = 64.0f;
+		float zFar = 128.0f;
 		float lightFOV = 100.0f;
 		//
 		//
@@ -120,6 +120,7 @@ namespace WorldEngine
 		//	Main Loop
 		inline void mainLoop();
 		inline void Render();
+		inline void RenderFrame();
 		inline void updateUniformBufferComposition(const size_t& CurFrame);
 		//
 		//	Vulkan Initialization Stage 1
@@ -550,6 +551,7 @@ namespace WorldEngine
 						dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
 					//}
 					SceneGraph::updateUniformBuffer(currentFrame);
+					updateUniformBufferComposition(currentFrame);
 					//
 					//	Frustum Culling
 					//performFrustumCulling(SceneGraph::GetCamera().View_Proj);
@@ -579,11 +581,10 @@ namespace WorldEngine
 			vkDeviceWaitIdle(_VulkanDevice->logicalDevice);
 		}
 
+		//
+		//	Render-->Present
 		inline void Render()
 		{
-			//
-			//	Grab our CPC before doing any blocking/waiting calls
-			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 			// 
 			//	Wait on this frame if it is still being used by the GPU
 			vkWaitForFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
@@ -606,6 +607,32 @@ namespace WorldEngine
 			else {
 				VK_CHECK_RESULT(result);
 			}
+			//
+			//		DRAW FRAME
+			RenderFrame();
+			//
+			//		PRESENT TO SCREEN
+			//
+			result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores[currentFrame].renderComplete);
+			if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
+				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+					// Swap chain is no longer compatible with the surface and needs to be recreated
+					//windowResize();
+					//return;
+				}
+				else {
+					VK_CHECK_RESULT(result);
+				}
+			}
+			//
+			//	Submit this frame to the GPU and increment our currentFrame identifier
+			currentFrame = (currentFrame + 1) % swapChain.imageCount;
+		}
+
+		//
+		//	Render Frame
+		inline void RenderFrame()
+		{
 			// 
 			//
 			//		START DRAWING OFFSCREEN
@@ -622,7 +649,7 @@ namespace WorldEngine
 			submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
 			//
 			//
-
+			//
 
 
 			std::array<VkClearValue, 4> clearValues = {};
@@ -647,28 +674,30 @@ namespace WorldEngine
 			scissor = vks::initializers::rect2D(frameBuffers.shadow->width, frameBuffers.shadow->height, 0, 0);
 			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
 
-			vkCmdSetDepthBias(
-				offscreenCommandBuffers[currentFrame],
-				depthBiasConstant,
-				0.0f,
-				depthBiasSlope);
+			vkCmdSetDepthBias(offscreenCommandBuffers[currentFrame], depthBiasConstant,	0.0f, depthBiasSlope);
 
 			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo0, VK_SUBPASS_CONTENTS_INLINE);
 
-			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline_Shadow);
+			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Shadow()->graphicsPipeline);
 
 
 			for (auto& Node : SceneGraph::SceneNodes) {
 				if (Node.second)
 				{
-					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame, true);
+					if (Node.second->Name == "World")
+					{
+						continue;
+					}
+					else {
+						Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame, true);
+					}
 				}
 			}
 
 
 
 			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
-			VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
+			//VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
 
 
 			//
@@ -682,14 +711,15 @@ namespace WorldEngine
 			renderPassBeginInfo1.pClearValues = clearValues_Deferred.data();
 			//
 			//	Begin recording commandbuffer
-			VkCommandBufferBeginInfo cmdBufInfo1 = vks::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1));
+			//VkCommandBufferBeginInfo cmdBufInfo1 = vks::initializers::commandBufferBeginInfo();
+			//VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1));
 			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport_Deferred);
 			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor_Deferred);
 			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline);
 			//
 			//	Update Camera Push Constants
+			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
@@ -744,14 +774,8 @@ namespace WorldEngine
 			commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 			commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 			//
-			
 
-			/*VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_Push[currentFrame], &commandBufferBeginInfo));
-			vkCmdBindPipeline(commandBuffers_Push[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline_Composition);
-			vkCmdPushConstants(commandBuffers_Push[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_Push[currentFrame]));
-			secondaryCommandBuffers.push_back(commandBuffers_Push[currentFrame]);*/
-			
+
 			//
 			//	Begin recording
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo));
@@ -817,11 +841,6 @@ namespace WorldEngine
 
 				GUI::EndDraw(commandBuffers_GUI[currentFrame], currentFrame);
 			}
-			#ifdef _DEBUG
-			//if (isWorld) {
-				//dynamicsWorld->debugDrawWorld();
-			//}
-			#endif
 			//
 			//
 			//	End recording state
@@ -838,60 +857,44 @@ namespace WorldEngine
 
 			vkResetFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence);
 			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, semaphores[currentFrame].inFlightFence));
-
-			//
-			//		PRESENT TO SCREEN
-			//
-			result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores[currentFrame].renderComplete);
-			if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
-				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-					// Swap chain is no longer compatible with the surface and needs to be recreated
-					//windowResize();
-					//return;
-				}
-				else {
-					VK_CHECK_RESULT(result);
-				}
-			}
-			//
-			//	Submit this frame to the GPU and increment our currentFrame identifier
-			currentFrame = (currentFrame + 1) % swapChain.imageCount;
 		}
 
 		// Update lights and parameters passed to the composition shaders
 		inline void updateUniformBufferComposition(const size_t& CurFrame)
 		{
+			
 			// White
-			uboComposition.lights[0].position = glm::vec4(15.0f, 15.0f, 15.0f, 0.0f);
+			uboComposition.lights[0].position = glm::vec4(50.0f, -70.0f, 50.0f, 0.0f);
 			uboComposition.lights[0].color = glm::vec4(1.5f);
-			uboComposition.lights[0].radius = 100.0f;
+			uboComposition.lights[0].target = SceneGraph::GetCamera().CPC.pos;
 			// Red
-			uboComposition.lights[1].position = glm::vec4(15.0f, 15.0f, 30.0f, 0.0f);
+			uboComposition.lights[1].position = glm::vec4(75.0f, -70.0f, 75.0f, 0.0f);
 			uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-			uboComposition.lights[1].radius = 100.0f;
+			uboComposition.lights[1].target = SceneGraph::GetCamera().CPC.pos;
 			// Blue
-			uboComposition.lights[2].position = glm::vec4(15.0f, 15.0f, 0.0f, 0.0f);
+			uboComposition.lights[2].position = glm::vec4(100.0f, -70.0f, 100.0f, 0.0f);
 			uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
-			uboComposition.lights[2].radius = 100.0f;
+			uboComposition.lights[2].target = SceneGraph::GetCamera().CPC.pos;
 			// Yellow
-			uboComposition.lights[3].position = glm::vec4(30.0f, 15.0f, 15.0f, 0.0f);
+			uboComposition.lights[3].position = glm::vec4(125.0f, -70.0f, 125.0f, 0.0f);
 			uboComposition.lights[3].color = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
-			uboComposition.lights[3].radius = 100.0f;
+			uboComposition.lights[3].target = SceneGraph::GetCamera().CPC.pos;
 			// Green
-			uboComposition.lights[4].position = glm::vec4(30.0f, 15.0f, 30.0f, 0.0f);
+			uboComposition.lights[4].position = glm::vec4(150.0f, -70.0f, 150.0f, 0.0f);
 			uboComposition.lights[4].color = glm::vec4(0.0f, 1.0f, 0.2f, 0.0f);
-			uboComposition.lights[4].radius = 100.0f;
+			uboComposition.lights[4].target = SceneGraph::GetCamera().CPC.pos;
 			// Yellow
-			uboComposition.lights[5].position = glm::vec4(30.0f, 15.0f, 0.0f, 0.0f);
+			uboComposition.lights[5].position = glm::vec4(175.0f, -70.0f, 175.0f, 0.0f);
 			uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
-			uboComposition.lights[5].radius = 100.0f;
+			uboComposition.lights[5].target = SceneGraph::GetCamera().CPC.pos;
 
 
 			for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 			{
 				// mvp from light's pov (for shadows)
 				glm::mat4 shadowProj = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
-				glm::mat4 shadowView = glm::lookAt(glm::vec3(uboComposition.lights[i].position), glm::vec3(15.f,0.f,15.f), glm::vec3(0.0f, 1.0f, 0.0f));
+				shadowProj[1][1] *= -1;
+				glm::mat4 shadowView = glm::lookAt(glm::vec3(uboComposition.lights[i].position), glm::vec3(uboComposition.lights[i].target), glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 shadowModel = glm::mat4(1.0f);
 
 				uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;

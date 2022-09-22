@@ -25,6 +25,4 @@ void main() {
 	outNormal = vec4(tnorm, 1.0);
 
 	outAlbedo = texture(samplerColor, inUV);
-	// Debugging
-	//outAlbedo = vec4(inColor, 255);
 }

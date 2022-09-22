@@ -3,11 +3,13 @@
 #include "Pipe_Default.hpp"
 #include "Pipe_GUI.hpp"
 #include "Pipe_CEF.hpp"
+#include "Pipe_Shadow.hpp"
 
 enum Pipelines {
 	Default,
 	GUI,
-	CEF
+	CEF,
+	Shadow
 };
 
 namespace WorldEngine
@@ -41,17 +43,27 @@ namespace WorldEngine
 		}
 
 		//
+		//	Create Shadow Pipe
+		void CreateShadow()
+		{
+			printf("Create Shadow Pipe\n");
+			Pipes.emplace_back(new Pipeline::Shadow(pipelineCache));
+		}
+
+		//
+		//	Pipes *must* be initialized in the order they appear in the Pipelines enum.
 		void Initialize() {
 			CreateDefault();
 			CreateGUI();
 			CreateCEF();
+			CreateShadow();
 			VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 			pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 			if (vkCreatePipelineCache(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) != VK_SUCCESS)
 			{
-#ifdef _DEBUG
+				#ifdef _DEBUG
 				throw std::runtime_error("vkCreatePipelineCache Failed!");
-#endif
+				#endif
 			}
 		}
 
@@ -70,6 +82,9 @@ namespace WorldEngine
 		}
 		Pipeline::CEF* GetPipe_CEF() {
 			return static_cast<Pipeline::CEF*>(Pipes[Pipelines::CEF]);
+		}
+		Pipeline::Shadow* GetPipe_Shadow() {
+			return static_cast<Pipeline::Shadow*>(Pipes[Pipelines::Shadow]);
 		}
 	}
 }

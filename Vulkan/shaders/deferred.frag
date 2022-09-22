@@ -4,7 +4,7 @@
 #define SHADOW_FACTOR 0.25
 #define AMBIENT_LIGHT 0.33
 #define USE_PCF
-//#define USE_SHADOWS
+#define USE_SHADOWS
 
 layout(binding = 2) uniform sampler2D samplerposition;
 layout(binding = 3) uniform sampler2D samplerNormal;
@@ -17,8 +17,8 @@ layout(location = 0) out vec4 outFragcolor;
 
 struct DLight {
 	vec4 position;
+	vec4 target;
 	vec4 color;
-	float radius;
 	mat4 viewMatrix;
 };
 
@@ -100,19 +100,22 @@ void main()
 	// Debug display
 	if (ubo.displayDebugTarget > 0) {
 		switch (ubo.displayDebugTarget) {
-			case 1:
+			case 1: 
+				outFragcolor.rgb = shadow(vec3(1.0), fragPos).rgb;
+				break;
+			case 2: 
 				outFragcolor.rgb = fragPos;
 				break;
-			case 2:
-				outFragcolor.rgb = normal.rgb;
+			case 3: 
+				outFragcolor.rgb = normal;
 				break;
-			case 3:
+			case 4: 
 				outFragcolor.rgb = albedo.rgb;
 				break;
-			case 4:
+			case 5: 
 				outFragcolor.rgb = albedo.aaa;
 				break;
-		}
+		}		
 		outFragcolor.a = 1.0;
 		return;
 	}
@@ -121,7 +124,7 @@ void main()
 	vec3 fragcolor  = albedo.rgb * AMBIENT_LIGHT;
 
 	vec3 N = normalize(normal);
-	
+
 	for(int i = 0; i < LIGHT_COUNT; ++i)
 	{
 		// Vector to light
@@ -133,29 +136,64 @@ void main()
 		// Viewer to fragment
 		vec3 V = PushConstants.pos.xyz - fragPos;
 		V = normalize(V);
-		
-		//if(dist < ubo.lights[i].radius)
-		{
-			// Light to fragment
-			L = normalize(L);
 
-			// Attenuation
-			float atten = ubo.lights[i].radius / (pow(dist, 2.0) + 1.0);
+		float lightCosInnerAngle = cos(radians(15.0));
+		float lightCosOuterAngle = cos(radians(25.0));
+		float lightRange = 100.0;
 
-			// Diffuse part
-			vec3 N = normalize(normal.xyz);
-			float NdotL = max(0.0, dot(N, L));
-			vec3 diff = ubo.lights[i].color.xyz * albedo.rgb * NdotL * atten;
+		// Direction vector from source to target
+		vec3 dir = normalize(ubo.lights[i].position.xyz - ubo.lights[i].target.xyz);
 
-			// Specular part
-			// Specular map values are stored in alpha of albedo mrt
-			vec3 R = reflect(-L, N);
-			float NdotR = max(0.0, dot(R, V));
-			vec3 spec = ubo.lights[i].color.xyz * albedo.a * pow(NdotR, 16.0) * atten;
+		// Dual cone spot light with smooth transition between inner and outer angle
+		float cosDir = dot(L, dir);
+		float spotEffect = smoothstep(lightCosOuterAngle, lightCosInnerAngle, cosDir);
+		float heightAttenuation = smoothstep(lightRange, 0.0f, dist);
 
-			fragcolor += diff + spec;
-		}
+		// Diffuse lighting
+		float NdotL = max(0.0, dot(N, L));
+		vec3 diff = vec3(NdotL);
+
+		// Specular lighting
+		vec3 R = reflect(-L, N);
+		float NdotR = max(0.0, dot(R, V));
+		vec3 spec = vec3(pow(NdotR, 16.0) * albedo.a * 2.5);
+
+		fragcolor += vec3((diff + spec) * spotEffect * heightAttenuation) * ubo.lights[i].color.rgb * albedo.rgb;
 	}
+//	for(int i = 0; i < LIGHT_COUNT; ++i)
+//	{
+//		// Vector to light
+//		vec3 L = ubo.lights[i].position.xyz - fragPos;
+//		// Distance from light to fragment position
+//		float dist = length(L);
+//		L = normalize(L);
+//
+//		// Viewer to fragment
+//		vec3 V = PushConstants.pos.xyz - fragPos;
+//		V = normalize(V);
+//		
+//		//if(dist < ubo.lights[i].radius)
+//		{
+//			// Light to fragment
+//			L = normalize(L);
+//
+//			// Attenuation
+//			float atten = ubo.lights[i].radius / (pow(dist, 2.0) + 1.0);
+//
+//			// Diffuse part
+//			vec3 N = normalize(normal.xyz);
+//			float NdotL = max(0.0, dot(N, L));
+//			vec3 diff = ubo.lights[i].color.xyz * albedo.rgb * NdotL * atten;
+//
+//			// Specular part
+//			// Specular map values are stored in alpha of albedo mrt
+//			vec3 R = reflect(-L, N);
+//			float NdotR = max(0.0, dot(R, V));
+//			vec3 spec = ubo.lights[i].color.xyz * albedo.a * pow(NdotR, 16.0) * atten;
+//
+//			fragcolor += diff + spec;
+//		}
+//	}
 	#ifdef USE_SHADOWS
 		fragcolor = shadow(fragcolor, fragPos);
 	#endif

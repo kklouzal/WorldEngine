@@ -113,12 +113,12 @@ namespace Gwen { namespace Renderer { class Vulkan; } }
 //	Deferred Rendering Uniform Buffer Object
 struct DLight {
 	glm::vec4 position;
+	glm::vec4 target;
 	glm::vec4 color;
-	glm::f32 radius;
 	glm::mat4 viewMatrix;
 };
 struct DComposition {
-	DLight lights[6];
+	DLight lights[LIGHT_COUNT];
 	glm::i32 debugDisplayTarget = 0;
 };
 struct DShadow {

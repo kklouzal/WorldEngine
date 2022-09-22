@@ -28,6 +28,7 @@ layout(location = 3) out vec4 outWorldPos;
 layout(location = 4) out vec3 outTangent;
 
 void main() {
+    outWorldPos = vec4(inPosition, 1.0);
 
     if (ubo.animated)
     {

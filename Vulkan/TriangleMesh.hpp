@@ -184,8 +184,8 @@ public:
 			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
 		}
 		else {
-			//	TODO: DIRTY HACKY DOESNT ACCOUNT FOR OTHER PIPELINES THAT MIGHT HAVE OBJECTS THAT CAST SHADOWS....UGHHH I'M A FUCKING MASOCHIST.
-			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Default()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Default()->DescriptorSets_Shadow[CurFrame], 0, nullptr);
+			//	TODO: Why do I need to go this deep..?
+			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Shadow()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->DescriptorSets[CurFrame], 0, nullptr);
 		}
 
 		//	Draw Vertex Buffer

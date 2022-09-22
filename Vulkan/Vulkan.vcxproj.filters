@@ -247,6 +247,9 @@
     <ClInclude Include="volk.h">
       <Filter>Header Files\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Pipe_Shadow.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">
