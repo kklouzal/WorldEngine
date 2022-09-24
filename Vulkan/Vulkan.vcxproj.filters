@@ -292,4 +292,7 @@
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="compatibility.manifest" />
+  </ItemGroup>
 </Project>
