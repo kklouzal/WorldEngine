@@ -10,6 +10,10 @@ namespace Pipeline {
 		DShadow uboShadow;										//	Doesnt Need Cleanup
 		std::vector<VkBuffer> uboShadowBuff = {};				//	Cleaned Up
 		std::vector<VmaAllocation> uboShadowAlloc = {};			//	Cleaned Up
+		//
+		std::array<VkClearValue, 4> clearValues = {};
+		VkViewport viewport;
+		VkRect2D scissor;
 
 		~Shadow()
 		{
@@ -140,6 +144,10 @@ namespace Pipeline {
 				};
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 			}
+			//
+			clearValues[0].depthStencil = { 1.0f, 0 };
+			viewport = vks::initializers::viewport((float)FB_DIM, (float)FB_DIM, 0.0f, 1.0f);
+			scissor = vks::initializers::rect2D(FB_DIM, FB_DIM, 0, 0);
 		}
 
 		//

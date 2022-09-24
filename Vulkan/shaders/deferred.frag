@@ -2,9 +2,7 @@
 
 #define LIGHT_COUNT 6
 #define SHADOW_FACTOR 0.25
-#define AMBIENT_LIGHT 0.33
-#define USE_PCF
-#define USE_SHADOWS
+#define AMBIENT_LIGHT 0.25
 
 layout(binding = 2) uniform sampler2D samplerposition;
 layout(binding = 3) uniform sampler2D samplerNormal;
@@ -78,14 +76,7 @@ vec3 shadow(vec3 fragcolor, vec3 fragpos) {
 	{
 		vec4 shadowClip	= ubo.lights[i].viewMatrix * vec4(fragpos, 1.0);
 
-		float shadowFactor;
-		#ifdef USE_PCF
-			shadowFactor= filterPCF(shadowClip, i);
-		#else
-			shadowFactor = textureProj(shadowClip, i, vec2(0.0));
-		#endif
-
-		fragcolor *= shadowFactor;
+		fragcolor *= filterPCF(shadowClip, i);
 	}
 	return fragcolor;
 }
@@ -160,42 +151,5 @@ void main()
 
 		fragcolor += vec3((diff + spec) * spotEffect * heightAttenuation) * ubo.lights[i].color.rgb * albedo.rgb;
 	}
-//	for(int i = 0; i < LIGHT_COUNT; ++i)
-//	{
-//		// Vector to light
-//		vec3 L = ubo.lights[i].position.xyz - fragPos;
-//		// Distance from light to fragment position
-//		float dist = length(L);
-//		L = normalize(L);
-//
-//		// Viewer to fragment
-//		vec3 V = PushConstants.pos.xyz - fragPos;
-//		V = normalize(V);
-//		
-//		//if(dist < ubo.lights[i].radius)
-//		{
-//			// Light to fragment
-//			L = normalize(L);
-//
-//			// Attenuation
-//			float atten = ubo.lights[i].radius / (pow(dist, 2.0) + 1.0);
-//
-//			// Diffuse part
-//			vec3 N = normalize(normal.xyz);
-//			float NdotL = max(0.0, dot(N, L));
-//			vec3 diff = ubo.lights[i].color.xyz * albedo.rgb * NdotL * atten;
-//
-//			// Specular part
-//			// Specular map values are stored in alpha of albedo mrt
-//			vec3 R = reflect(-L, N);
-//			float NdotR = max(0.0, dot(R, V));
-//			vec3 spec = ubo.lights[i].color.xyz * albedo.a * pow(NdotR, 16.0) * atten;
-//
-//			fragcolor += diff + spec;
-//		}
-//	}
-	#ifdef USE_SHADOWS
-		fragcolor = shadow(fragcolor, fragPos);
-	#endif
-	outFragcolor = vec4(fragcolor, 1.0);
+	outFragcolor = vec4(shadow(fragcolor, fragPos), 1.0);
 }

@@ -611,51 +611,41 @@ namespace WorldEngine
 		//	Render Frame
 		inline void RenderFrame()
 		{
-			// 
+			//==================================================
 			//
 			//		START DRAWING OFFSCREEN
 			//
 			// 
-			//	Wait for SwapChain presentation to finish
+			//	Wait for this semaphore to signal
 			submitInfo.pWaitSemaphores = &semaphores[currentFrame].presentComplete;
-			//
-			//	Signal ready for offscreen work
+			//	Signal this semaphore when we complete
 			submitInfo.pSignalSemaphores = &semaphores[currentFrame].offscreenSync;
-			//
-			//	Submit work
+			//	Work to submit to GPU
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
 			//
+
+			//==================================================
+			//
+			//		BEGIN SHADOW PASS
 			//
 			//
-
-
-			std::array<VkClearValue, 4> clearValues = {};
-			clearValues[0].depthStencil = { 1.0f, 0 };
-			VkViewport viewport;
-			VkRect2D scissor;
-
 			VkRenderPassBeginInfo renderPassBeginInfo0 = vks::initializers::renderPassBeginInfo();
 			renderPassBeginInfo0.renderPass = frameBuffers.shadow->renderPass;
 			renderPassBeginInfo0.framebuffer = frameBuffers.shadow->framebuffers[currentFrame];
 			renderPassBeginInfo0.renderArea.extent.width = frameBuffers.shadow->width;
 			renderPassBeginInfo0.renderArea.extent.height = frameBuffers.shadow->height;
 			renderPassBeginInfo0.clearValueCount = 1;
-			renderPassBeginInfo0.pClearValues = clearValues.data();
+			renderPassBeginInfo0.pClearValues = WorldEngine::MaterialCache::GetPipe_Shadow()->clearValues.data();
 
 			//	Record
 			VkCommandBufferBeginInfo cmdBufInfo0 = vks::initializers::commandBufferBeginInfo();
 			VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo0));
 
-			viewport = vks::initializers::viewport((float)frameBuffers.shadow->width, (float)frameBuffers.shadow->height, 0.0f, 1.0f);
-			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport);
-			scissor = vks::initializers::rect2D(frameBuffers.shadow->width, frameBuffers.shadow->height, 0, 0);
-			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor);
-
+			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->viewport);
+			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->scissor);
 			vkCmdSetDepthBias(offscreenCommandBuffers[currentFrame], depthBiasConstant,	0.0f, depthBiasSlope);
-
 			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo0, VK_SUBPASS_CONTENTS_INLINE);
-
 			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Shadow()->graphicsPipeline);
 
 
@@ -680,7 +670,7 @@ namespace WorldEngine
 							indexSize = ((TriangleMeshSceneNode*)Node.second)->_Mesh->_GLTF->Indices.size();
 							bDrawn = true;
 						}
-						if (instanceCount < 100)
+						if (instanceCount < 1024)
 						{
 							WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[instanceCount] = Node.second->Model;
 						}
@@ -697,11 +687,13 @@ namespace WorldEngine
 
 
 			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
-			//VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
+			//==================================================
 
-
+			//==================================================
 			//
-			//	Setup renderpass
+			//		BEGIN SCENE NODE PASS
+			//
+			//
 			VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
 			renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
 			renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffers[currentFrame];
@@ -711,8 +703,6 @@ namespace WorldEngine
 			renderPassBeginInfo1.pClearValues = clearValues_Deferred.data();
 			//
 			//	Begin recording commandbuffer
-			//VkCommandBufferBeginInfo cmdBufInfo1 = vks::initializers::commandBufferBeginInfo();
-			//VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1));
 			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport_Deferred);
 			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor_Deferred);
@@ -724,8 +714,7 @@ namespace WorldEngine
 			//
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
-				if (Node.second)
-				{
+				if (Node.second) {
 					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame, false);
 				}
 			}
@@ -734,19 +723,19 @@ namespace WorldEngine
 			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
 			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+
+			//==================================================
 			//
 			//		START DRAWING ONSCREEN
 			// 
 			// 
-			//	Wait for offscreen semaphore
+			//	Wait for this semaphore to signal
 			submitInfo.pWaitSemaphores = &semaphores[currentFrame].offscreenSync;
-			//
-			//	Signal ready with render complete
+			//	Signal this semaphore when we complete
 			submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
-			//
-			//	Submit work
+			//	Work to submit to GPU
 			submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
-
+			//
 			std::vector<VkCommandBuffer> secondaryCommandBuffers;
 			//
 			VkRenderPassBeginInfo renderPassBeginInfo2 = vks::initializers::renderPassBeginInfo();
@@ -775,9 +764,12 @@ namespace WorldEngine
 			commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 			//
 
-
+			//==================================================
+			// 
+			//		START DRAWING DEFERRED COMPOSITION
+			// 
 			//
-			//	Begin recording
+			//	Begin recording state
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo));
 			vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport_Main);
 			vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
@@ -787,18 +779,18 @@ namespace WorldEngine
 			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 			vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
-
-			//
 			//
 			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers[currentFrame]);
+			//==================================================
 
-			//
+			//==================================================
+			// 
 			//		START DRAWING CEF
 			// 
 			//
-			//	Begin recording
+			//	Begin recording state
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_CEF[currentFrame], &commandBufferBeginInfo));
 			vkCmdSetViewport(commandBuffers_CEF[currentFrame], 0, 1, &viewport_Main);
 			vkCmdSetScissor(commandBuffers_CEF[currentFrame], 0, 1, &scissor_Main);
@@ -808,45 +800,42 @@ namespace WorldEngine
 			vkCmdBindDescriptorSets(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_CEF()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 			vkCmdDraw(commandBuffers_CEF[currentFrame], 3, 1, 0, 0);
 			//
-			//
 			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_CEF[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_CEF[currentFrame]);
+			//==================================================
 
+			//==================================================
 			//
 			//		START DRAWING GUI
 			// 
 			//
-			//	Begin recording
+			//	Begin recording state
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo));
 			//
 			//	Issue draw commands
 			if (_EventReceiver) {
 				GUI::StartDraw();
-
-				for (auto& _Node : SceneGraph::SceneNodes)
-				{
-					if (_Node.second)
-					{
+				//	Scene Nodes
+				for (auto& _Node : SceneGraph::SceneNodes) {
+					if (_Node.second) {
 						_Node.second->drawGUI();
 					}
 				}
-
-				//
 				//	Crosshairs
-				if (!_EventReceiver->IsCursorActive())
-				{
+				if (!_EventReceiver->IsCursorActive()) {
 					SceneGraph::GetCamera().DrawGUI();
 				}
-
+				//
 				GUI::EndDraw(commandBuffers_GUI[currentFrame], currentFrame);
 			}
-			//
 			//
 			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_GUI[currentFrame]);
+			//==================================================
 
+			//==================================================
 			//
 			//		END ONSCREEN DRAWING
 			// 
@@ -854,7 +843,8 @@ namespace WorldEngine
 			vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], (uint32_t)secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 			vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentFrame]));
-
+			//
+			//	Submit work to GPU
 			vkResetFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence);
 			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, semaphores[currentFrame].inFlightFence));
 		}
