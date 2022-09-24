@@ -18,7 +18,7 @@ layout(std140, binding = 0) uniform UniformBufferObject {
 } ubo;
 
 layout(std140, binding = 1) readonly buffer JointMatrices {
-	mat4 jointMatrices[];
+    mat4 jointMatrices[];
 };
 
 layout(location = 0) out vec3 outNormal;
@@ -30,23 +30,18 @@ layout(location = 4) out vec3 outTangent;
 void main() {
     outWorldPos = inPosition;
 
-    if (ubo.animated)
-    {
-        mat4 skinMat =
-            inWeights.x * jointMatrices[int(inBones.x)] +
-            inWeights.y * jointMatrices[int(inBones.y)] +
-            inWeights.z * jointMatrices[int(inBones.z)] +
-            inWeights.w * jointMatrices[int(inBones.w)];
+    mat4 skinMat =
+        inWeights.x * jointMatrices[int(inBones.x)] +
+        inWeights.y * jointMatrices[int(inBones.y)] +
+        inWeights.z * jointMatrices[int(inBones.z)] +
+        inWeights.w * jointMatrices[int(inBones.w)];
 
-        gl_Position = PushConstants.view_proj * ubo.model * skinMat * vec4(inPosition, 1.0);
-    } else {
-        gl_Position = PushConstants.view_proj * ubo.model * vec4(inPosition, 1.0);
-    }
+    gl_Position = PushConstants.view_proj * ubo.model * skinMat * vec4(inPosition, 1.0);
     
     outUV = inTexCoord;
     
-	mat3 mNormal = transpose(inverse(mat3(ubo.model)));
-	outNormal = mNormal * normalize(inNormal);
+    mat3 mNormal = transpose(inverse(mat3(ubo.model)));
+    outNormal = mNormal * normalize(inNormal);
     outTangent = mNormal * normalize(inTangent);
 
     outColor = inColor;

@@ -253,6 +253,9 @@
     <ClInclude Include="Pipe_Composition.hpp">
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
+    <ClInclude Include="Pipe_Animated.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">
@@ -292,6 +295,12 @@
       <Filter>Source Files\Shaders\Geom</Filter>
     </None>
     <None Include="shaders\shadow.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="shaders\Fragment_Animated.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
+    <None Include="shaders\Vertex_Animated.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
   </ItemGroup>

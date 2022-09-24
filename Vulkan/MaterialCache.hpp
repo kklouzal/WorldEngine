@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pipe_Default.hpp"
+#include "Pipe_Animated.hpp"
 #include "Pipe_GUI.hpp"
 #include "Pipe_CEF.hpp"
 #include "Pipe_Shadow.hpp"
@@ -8,6 +9,7 @@
 
 enum Pipelines {
 	Default,
+	Animated,
 	GUI,
 	CEF,
 	Shadow,
@@ -24,11 +26,18 @@ namespace WorldEngine
 
 		//
 		//	Create Default Pipe
-		//	Handles rendering scene nodes offscreen
+		//	Handles rendering static scene nodes offscreen
 		void CreateDefault() {
 			printf("Create Default Pipe\n");
 			Pipes.emplace_back(new Pipeline::Default(pipelineCache));
+		}
 
+		//
+		//	Create Animated Pipe
+		//	Handles rendering animated scene nodes offscreen
+		void CreateAnimated() {
+			printf("Create Animated Pipe\n");
+			Pipes.emplace_back(new Pipeline::Animated(pipelineCache));
 		}
 
 		//
@@ -69,6 +78,7 @@ namespace WorldEngine
 		//	Pipes *MUST* be initialized in the order they appear in the Pipelines enum.
 		void Initialize() {
 			CreateDefault();
+			CreateAnimated();
 			CreateGUI();
 			CreateCEF();
 			CreateShadow();
@@ -92,6 +102,9 @@ namespace WorldEngine
 
 		Pipeline::Default* GetPipe_Default() {
 			return static_cast<Pipeline::Default*>(Pipes[Pipelines::Default]);
+		}
+		Pipeline::Default* GetPipe_Animated() {
+			return static_cast<Pipeline::Default*>(Pipes[Pipelines::Animated]);
 		}
 		Pipeline::GUI* GetPipe_GUI() {
 			return static_cast<Pipeline::GUI*>(Pipes[Pipelines::GUI]);

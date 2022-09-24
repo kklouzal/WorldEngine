@@ -191,21 +191,21 @@ struct Vertex {
 
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[4].binding = 0;
-		attributeDescriptions[4].location = 4;
-		attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Joint
-		attributeDescriptions[4].offset = offsetof(Vertex, Bones);
+		attributeDescriptions[4].location = 6;
+		attributeDescriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;	//	Tangent
+		attributeDescriptions[4].offset = offsetof(Vertex, Tangents);
 
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[5].binding = 0;
-		attributeDescriptions[5].location = 5;
-		attributeDescriptions[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Weight
-		attributeDescriptions[5].offset = offsetof(Vertex, Weights);
+		attributeDescriptions[5].location = 4;
+		attributeDescriptions[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Joint
+		attributeDescriptions[5].offset = offsetof(Vertex, Bones);
 
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[6].binding = 0;
-		attributeDescriptions[6].location = 6;
-		attributeDescriptions[6].format = VK_FORMAT_R32G32B32_SFLOAT;	//	Tangent
-		attributeDescriptions[6].offset = offsetof(Vertex, Tangents);
+		attributeDescriptions[6].location = 5;
+		attributeDescriptions[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Weight
+		attributeDescriptions[6].offset = offsetof(Vertex, Weights);
 
 		return attributeDescriptions;
 	}

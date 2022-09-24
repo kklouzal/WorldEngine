@@ -188,6 +188,7 @@
     <ClInclude Include="Menu.hpp" />
     <ClInclude Include="NetCode.hpp" />
     <ClInclude Include="NetCode.impl.hpp" />
+    <ClInclude Include="Pipe_Animated.hpp" />
     <ClInclude Include="Pipe_CEF.hpp" />
     <ClInclude Include="Pipe_Composition.hpp" />
     <ClInclude Include="Pipe_Shadow.hpp" />
@@ -231,12 +232,14 @@
     <None Include="shaders\cef.vert" />
     <None Include="shaders\deferred.frag" />
     <None Include="shaders\deferred.vert" />
+    <None Include="shaders\Fragment_Animated.frag" />
     <None Include="shaders\Fragment_Default.frag" />
     <None Include="shaders\Fragment_GUI.frag" />
     <None Include="shaders\shadow.geom" />
     <None Include="shaders\shadow.vert" />
     <None Include="shaders\ui.frag" />
     <None Include="shaders\ui.vert" />
+    <None Include="shaders\Vertex_Animated.vert" />
     <None Include="shaders\Vertex_Default.vert" />
     <None Include="shaders\Vertex_GUI.vert" />
     <None Include="Tool_NPC.hpp" />
