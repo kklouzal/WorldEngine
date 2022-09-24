@@ -1,46 +1,34 @@
 #pragma once
 
 namespace Pipeline {
-	struct Shadow : public PipelineObject
+	struct Composition : public PipelineObject
 	{
 		std::vector<VkDescriptorSet> DescriptorSets = {};
 		VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
-		//
-		//	Per-Frame Shadow Rendering Uniform Buffer Objects
-		DShadow uboShadow;										//	Doesnt Need Cleanup
-		std::vector<VkBuffer> uboShadowBuff = {};				//	Cleaned Up
-		std::vector<VmaAllocation> uboShadowAlloc = {};			//	Cleaned Up
-		//
-		std::array<VkClearValue, 4> clearValues = {};
-		VkViewport viewport;
-		VkRect2D scissor;
-		//
-		std::vector<VkRenderPassBeginInfo> renderPass = {};
 
-		~Shadow()
+		~Composition()
 		{
-			//
-			for (int i = 0; i < uboShadowBuff.size(); i++)
-			{
-				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, uboShadowBuff[i], uboShadowAlloc[i]);
-			}
 			//
 			vkDestroyDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, DescriptorPool, nullptr);
 		}
 
-		Shadow(VkPipelineCache PipelineCache)
+		Composition(VkPipelineCache PipelineCache)
 			: PipelineObject()
 		{
-			//
-			clearValues[0].depthStencil = { 1.0f, 0 };
-			viewport = vks::initializers::viewport((float)FB_DIM, (float)FB_DIM, 0.0f, 1.0f);
-			scissor = vks::initializers::rect2D(FB_DIM, FB_DIM, 0, 0);
 			//
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				//	Binding 1: Geometry Uniform Buffer
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_GEOMETRY_BIT, 0)
+				//	Binding 0 : Position/Color texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+				//	Binding 1 : Normal texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+				//	Binding 2 : Albedo texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+				//	Binding 3 : Fragment UBO
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+				//	Binding 4: Shadow map
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -48,6 +36,12 @@ namespace Pipeline {
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
+			VkPushConstantRange push_constant;
+			push_constant.offset = 0;
+			push_constant.size = sizeof(CameraPushConstant);
+			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
+			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 			VK_CHECK_RESULT(vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			//
@@ -76,36 +70,22 @@ namespace Pipeline {
 			//	Load shader files
 			VkPipelineShaderStageCreateInfo vertShaderStageInfo1 = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 			vertShaderStageInfo1.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vertShaderStageInfo1.module = createShaderModule(readFile("shaders/shadow.vert.spv"));
+			vertShaderStageInfo1.module = createShaderModule(readFile("shaders/deferred.vert.spv"));
 			vertShaderStageInfo1.pName = "main";
 			shaderStages[0] = vertShaderStageInfo1;
 			VkPipelineShaderStageCreateInfo fragShaderStageInfo1 = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-			fragShaderStageInfo1.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-			fragShaderStageInfo1.module = createShaderModule(readFile("shaders/shadow.geom.spv"));
+			fragShaderStageInfo1.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			fragShaderStageInfo1.module = createShaderModule(readFile("shaders/deferred.frag.spv"));
 			fragShaderStageInfo1.pName = "main";
 			shaderStages[1] = fragShaderStageInfo1;
 			//
 			pipelineCI.pStages = shaderStages.data();
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			//
-			// Shadow pass doesn't use any color attachments
-			colorBlendState.attachmentCount = 0;
-			colorBlendState.pAttachments = nullptr;
-			// Cull front faces
 			rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
-			depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-			// Enable depth bias
-			rasterizationState.depthBiasEnable = VK_TRUE;
-			// Add depth bias to dynamic state, so we can change it at runtime
-			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
-			dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-			//	Bind vertex input
-			auto binding = Vertex::getBindingDescription();
-			auto description = Vertex::getAttributeDescriptions();
-			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
-			pipelineCI.pVertexInputState = &vertexInputInfo;
-			//
-			pipelineCI.renderPass = WorldEngine::VulkanDriver::frameBuffers.shadow->renderPass;
+			//	Empty vertex input state, vertices are generated by the vertex shader
+			VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
+			pipelineCI.pVertexInputState = &emptyInputState;
 			//	Create composite graphics pipeline
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline));
 			//	Cleanup Shader Modules
@@ -118,57 +98,63 @@ namespace Pipeline {
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)SwapChainCount * 4)
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 3),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 4)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, (uint32_t)SwapChainCount);
 			VK_CHECK_RESULT(vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &DescriptorPool));
 			//
 			//	Create and Update individual Descriptor sets and uniform buffers
 			DescriptorSets.resize(SwapChainCount);
-			uboShadowBuff.resize(SwapChainCount);
-			uboShadowAlloc.resize(SwapChainCount);
-			renderPass.resize(SwapChainCount);
 			for (size_t i = 0; i < SwapChainCount; i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool, &descriptorSetLayout, 1);
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, &DescriptorSets[i]));
+				// Image descriptors for the offscreen color attachments
+				VkDescriptorImageInfo texDescriptorPosition =
+					vks::initializers::descriptorImageInfo(
+						DeferredSampler,
+						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[0].view,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-				//
-				//	Uniform Buffer Creation
-				VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DShadow));
-				uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-				VmaAllocationCreateInfo uniformAllocInfo = {};
-				uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-				uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &uniformBufferInfo, &uniformAllocInfo, &uboShadowBuff[i], &uboShadowAlloc[i], nullptr);
-				//
-				VkDescriptorBufferInfo bufferInfo_shadow = {};
-				bufferInfo_shadow.buffer = uboShadowBuff[i];
-				bufferInfo_shadow.offset = 0;
-				bufferInfo_shadow.range = sizeof(DShadow);
+				VkDescriptorImageInfo texDescriptorNormal =
+					vks::initializers::descriptorImageInfo(
+						DeferredSampler,
+						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[1].view,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorImageInfo texDescriptorAlbedo =
+					vks::initializers::descriptorImageInfo(
+						DeferredSampler,
+						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[2].view,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorBufferInfo bufferInfo_composition = {};
+				bufferInfo_composition.buffer = WorldEngine::VulkanDriver::uboCompositionBuff[i];
+				bufferInfo_composition.offset = 0;
+				bufferInfo_composition.range = sizeof(DComposition);
+
+				VkDescriptorImageInfo texDescriptorShadowMap =
+					vks::initializers::descriptorImageInfo(
+						WorldEngine::VulkanDriver::frameBuffers.shadow->sampler,
+						WorldEngine::VulkanDriver::frameBuffers.shadow->attachments[0].view,
+						VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo_shadow),
+					// Binding 2 : Position texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptorPosition),
+					// Binding 3 : Normals texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texDescriptorNormal),
+					// Binding 4 : Albedo texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &texDescriptorAlbedo),
+					// Binding 5 : Fragment shader uniform buffer
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &bufferInfo_composition),
+					// Binding 6: Shadow map
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &texDescriptorShadowMap)
 				};
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
-				//
-				//	Render Pass Info
-				renderPass[i] = vks::initializers::renderPassBeginInfo();
-				renderPass[i].renderPass = WorldEngine::VulkanDriver::frameBuffers.shadow->renderPass;
-				renderPass[i].framebuffer = WorldEngine::VulkanDriver::frameBuffers.shadow->framebuffers[i];
-				renderPass[i].renderArea.extent.width = FB_DIM;
-				renderPass[i].renderArea.extent.height = FB_DIM;
-				renderPass[i].clearValueCount = 1;
-				renderPass[i].pClearValues = clearValues.data();
 			}
-		}
-
-		//
-		//	TODO: Implement staging buffer
-		void UploadBuffersToGPU(const size_t& CurFrame)
-		{
-			memcpy(uboShadowAlloc[CurFrame]->GetMappedData(), &uboShadow, sizeof(uboShadow));
 		}
 	};
 }

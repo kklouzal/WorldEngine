@@ -630,22 +630,13 @@ namespace WorldEngine
 			//		BEGIN SHADOW PASS
 			//
 			//
-			VkRenderPassBeginInfo renderPassBeginInfo0 = vks::initializers::renderPassBeginInfo();
-			renderPassBeginInfo0.renderPass = frameBuffers.shadow->renderPass;
-			renderPassBeginInfo0.framebuffer = frameBuffers.shadow->framebuffers[currentFrame];
-			renderPassBeginInfo0.renderArea.extent.width = frameBuffers.shadow->width;
-			renderPassBeginInfo0.renderArea.extent.height = frameBuffers.shadow->height;
-			renderPassBeginInfo0.clearValueCount = 1;
-			renderPassBeginInfo0.pClearValues = WorldEngine::MaterialCache::GetPipe_Shadow()->clearValues.data();
-
-			//	Record
 			VkCommandBufferBeginInfo cmdBufInfo0 = vks::initializers::commandBufferBeginInfo();
 			VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo0));
 
 			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->viewport);
 			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->scissor);
 			vkCmdSetDepthBias(offscreenCommandBuffers[currentFrame], depthBiasConstant,	0.0f, depthBiasSlope);
-			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo0, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &WorldEngine::MaterialCache::GetPipe_Shadow()->renderPass[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Shadow()->graphicsPipeline);
 
 
@@ -685,7 +676,8 @@ namespace WorldEngine
 			}
 			// end hacky instancing
 
-
+			//
+			//	End shadow pass
 			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 			//==================================================
 
@@ -719,8 +711,11 @@ namespace WorldEngine
 				}
 			}
 			//
-			//	End and submit
+			//	End scene node pass
 			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
+			//==================================================
+			//
+			//	Submit work to GPU
 			VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
 			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
 
@@ -775,9 +770,9 @@ namespace WorldEngine
 			vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
 			//
 			//	Draw our combined image view over the entire screen
-			vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline_Composition);
-			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
-			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
+			vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Composition()->graphicsPipeline);
+			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Composition()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Composition()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Composition()->DescriptorSets[currentFrame], 0, nullptr);
 			vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
 			//
 			//	End recording state

@@ -4,10 +4,10 @@
 #define SHADOW_FACTOR 0.25
 #define AMBIENT_LIGHT 0.25
 
-layout(binding = 2) uniform sampler2D samplerposition;
-layout(binding = 3) uniform sampler2D samplerNormal;
-layout(binding = 4) uniform sampler2D samplerAlbedo;
-layout(binding = 6) uniform sampler2DArray samplerShadowMap;
+layout(binding = 0) uniform sampler2D samplerposition;
+layout(binding = 1) uniform sampler2D samplerNormal;
+layout(binding = 2) uniform sampler2D samplerAlbedo;
+layout(binding = 4) uniform sampler2DArray samplerShadowMap;
 
 layout(location = 0) in vec2 inUV;
 
@@ -25,7 +25,7 @@ layout(std140, push_constant) uniform CameraPushConstant {
     vec4 pos;
 } PushConstants;
 
-layout(std140, binding = 5) uniform DComposition
+layout(std140, binding = 3) uniform DComposition
 {
 	DLight lights[6];
 	int displayDebugTarget;
