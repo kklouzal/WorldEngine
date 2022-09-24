@@ -176,10 +176,17 @@ public:
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
 	}
 
-	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame)
+	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame, bool bShadow)
 	{
 		//	Bind Descriptor Sets
-		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
+		if (!bShadow)
+		{
+			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
+		}
+		else {
+			//	TODO: Why do I need to go this deep..?
+			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Shadow()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->DescriptorSets[CurFrame], 0, nullptr);
+		}
 
 		//	Draw Vertex Buffer
 		VkDeviceSize offsets[] = { 0 };

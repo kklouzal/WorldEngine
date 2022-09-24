@@ -1,12 +1,16 @@
 #pragma once
 
 #include "Forwards.hpp"
-#define SHADOWMAP_DIM 2048
 
 namespace WorldEngine
 {
 	namespace VulkanDriver
 	{
+		float zNear = 0.1f;
+		float zFar = 128.0f;
+		float lightFOV = 100.0f;
+		//
+		//
 		uint32_t WIDTH = 1280;
 		uint32_t HEIGHT = 1024;
 		bool VSYNC = false;
@@ -28,6 +32,7 @@ namespace WorldEngine
 		//
 		//	Per-Frame Synchronization Object Resources
 		struct {
+			VkSemaphore shadowComplete;
 			VkSemaphore presentComplete;
 			VkSemaphore renderComplete;
 			VkSemaphore offscreenSync;
@@ -63,6 +68,9 @@ namespace WorldEngine
 
 		VkRenderPass renderPass = VK_NULL_HANDLE;				//	Cleaned Up
 
+		float depthBiasConstant = 1.25f;
+		float depthBiasSlope = 1.75f;
+
 		VkViewport viewport_Deferred;							//
 		VkRect2D scissor_Deferred;								//
 		VkViewport viewport_Main;								//
@@ -74,6 +82,7 @@ namespace WorldEngine
 		std::vector<VkCommandBuffer> commandBuffers_Push;		//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_GUI;		//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_CEF;		//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_Shadow;		//	Doesnt Need Cleanup
 
 		DComposition uboComposition;							//	Doesnt Need Cleanup
 		std::vector<VkBuffer> uboCompositionBuff = {};			//	Cleaned Up
@@ -107,6 +116,7 @@ namespace WorldEngine
 		//	Main Loop
 		inline void mainLoop();
 		inline void Render();
+		inline void RenderFrame();
 		inline void updateUniformBufferComposition(const size_t& CurFrame);
 		//
 		//	Vulkan Initialization Stage 1
@@ -302,12 +312,23 @@ namespace WorldEngine
 				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_CEF, &commandBuffers_CEF[i]));
 			}
 			//
+			//	Per-Frame Secondary Shadow Command Buffers
+			commandBuffers_Shadow.resize(frameBuffers_Main.size());
+			for (int i = 0; i < frameBuffers_Main.size(); i++)
+			{
+				VkCommandBufferAllocateInfo cmdBufAllocateInfo_CEF = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_CEF, &commandBuffers_Shadow[i]));
+			}
+			//
 			//	Per-Frame Synchronization Objects
 			VkSemaphoreCreateInfo semaphoreCreateInfo = vks::initializers::semaphoreCreateInfo();
 			VkFenceCreateInfo fenceCreateInfo = vks::initializers::fenceCreateInfo(VK_FENCE_CREATE_SIGNALED_BIT);
 			imagesInFlight.resize(swapChain.imageCount, VK_NULL_HANDLE);
 			for (uint32_t i = 0; i < swapChain.imageCount; i++)
 			{
+				// Create a semaphore used to synchronize image presentation
+				// Ensures that the image is displayed before we start submitting new commands to the queue
+				VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].shadowComplete));
 				// Create a semaphore used to synchronize image presentation
 				// Ensures that the image is displayed before we start submitting new commands to the queue
 				VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete));
@@ -429,6 +450,7 @@ namespace WorldEngine
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.offscreenSync, nullptr);
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.renderComplete, nullptr);
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.presentComplete, nullptr);
+				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.shadowComplete, nullptr);
 				vkDestroyFence(_VulkanDevice->logicalDevice, sync.inFlightFence, nullptr);
 			}
 			//
@@ -507,6 +529,7 @@ namespace WorldEngine
 						dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
 					//}
 					SceneGraph::updateUniformBuffer(currentFrame);
+					updateUniformBufferComposition(currentFrame);
 					//
 					//	Frustum Culling
 					//performFrustumCulling(SceneGraph::GetCamera().View_Proj);
@@ -536,11 +559,10 @@ namespace WorldEngine
 			vkDeviceWaitIdle(_VulkanDevice->logicalDevice);
 		}
 
+		//
+		//	Render-->Present
 		inline void Render()
 		{
-			//
-			//	Grab our CPC before doing any blocking/waiting calls
-			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 			// 
 			//	Wait on this frame if it is still being used by the GPU
 			vkWaitForFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence, VK_TRUE, UINT64_MAX);
@@ -564,20 +586,114 @@ namespace WorldEngine
 				VK_CHECK_RESULT(result);
 			}
 			//
+			//		DRAW FRAME
+			RenderFrame();
+			//
+			//		PRESENT TO SCREEN
+			//
+			result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores[currentFrame].renderComplete);
+			if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
+				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+					// Swap chain is no longer compatible with the surface and needs to be recreated
+					//windowResize();
+					//return;
+				}
+				else {
+					VK_CHECK_RESULT(result);
+				}
+			}
+			//
+			//	Submit this frame to the GPU and increment our currentFrame identifier
+			currentFrame = (currentFrame + 1) % swapChain.imageCount;
+		}
+
+		//
+		//	Render Frame
+		inline void RenderFrame()
+		{
+			//==================================================
+			//
 			//		START DRAWING OFFSCREEN
 			//
 			// 
-			//	Wait for SwapChain presentation to finish
+			//	Wait for this semaphore to signal
 			submitInfo.pWaitSemaphores = &semaphores[currentFrame].presentComplete;
-			//
-			//	Signal ready for offscreen work
+			//	Signal this semaphore when we complete
 			submitInfo.pSignalSemaphores = &semaphores[currentFrame].offscreenSync;
-			//
-			//	Submit work
+			//	Work to submit to GPU
 			submitInfo.commandBufferCount = 1;
 			submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
 			//
-			//	Setup renderpass	
+
+			//==================================================
+			//
+			//		BEGIN SHADOW PASS
+			//
+			//
+			VkRenderPassBeginInfo renderPassBeginInfo0 = vks::initializers::renderPassBeginInfo();
+			renderPassBeginInfo0.renderPass = frameBuffers.shadow->renderPass;
+			renderPassBeginInfo0.framebuffer = frameBuffers.shadow->framebuffers[currentFrame];
+			renderPassBeginInfo0.renderArea.extent.width = frameBuffers.shadow->width;
+			renderPassBeginInfo0.renderArea.extent.height = frameBuffers.shadow->height;
+			renderPassBeginInfo0.clearValueCount = 1;
+			renderPassBeginInfo0.pClearValues = WorldEngine::MaterialCache::GetPipe_Shadow()->clearValues.data();
+
+			//	Record
+			VkCommandBufferBeginInfo cmdBufInfo0 = vks::initializers::commandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo0));
+
+			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->viewport);
+			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->scissor);
+			vkCmdSetDepthBias(offscreenCommandBuffers[currentFrame], depthBiasConstant,	0.0f, depthBiasSlope);
+			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo0, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Shadow()->graphicsPipeline);
+
+
+			// hacky instancing
+			vkCmdBindDescriptorSets(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Shadow()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->DescriptorSets[currentFrame], 0, nullptr);
+
+			size_t instanceCount = 0;
+
+			bool bDrawn = false;
+			uint32_t indexSize = 0;
+			for (auto& Node : SceneGraph::SceneNodes) {
+				if (Node.second)
+				{
+					if (Node.second->Name == "TriangleMeshSceneNode")
+					{
+						if (!bDrawn)
+						{
+							((TriangleMeshSceneNode*)Node.second)->_Mesh;
+							VkDeviceSize offsets[] = { 0 };
+							vkCmdBindVertexBuffers(offscreenCommandBuffers[currentFrame], 0, 1, &((TriangleMeshSceneNode*)Node.second)->_Mesh->vertexBuffer, offsets);
+							vkCmdBindIndexBuffer(offscreenCommandBuffers[currentFrame], ((TriangleMeshSceneNode*)Node.second)->_Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+							indexSize = ((TriangleMeshSceneNode*)Node.second)->_Mesh->_GLTF->Indices.size();
+							bDrawn = true;
+						}
+						if (instanceCount < 1024)
+						{
+							WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[instanceCount] = Node.second->Model;
+						}
+						instanceCount++;
+					}
+				}
+			}
+
+			if (bDrawn && instanceCount > 0)
+			{
+				vkCmdDrawIndexed(offscreenCommandBuffers[currentFrame], indexSize, instanceCount, 0, 0, 0);
+			}
+			// end hacky instancing
+
+
+			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
+			//==================================================
+
+			//==================================================
+			//
+			//		BEGIN SCENE NODE PASS
+			//
+			//
 			VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
 			renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
 			renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffers[currentFrame];
@@ -587,21 +703,19 @@ namespace WorldEngine
 			renderPassBeginInfo1.pClearValues = clearValues_Deferred.data();
 			//
 			//	Begin recording commandbuffer
-			VkCommandBufferBeginInfo cmdBufInfo1 = vks::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo1));
 			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport_Deferred);
 			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor_Deferred);
 			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline);
 			//
 			//	Update Camera Push Constants
+			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
-				if (Node.second)
-				{
-					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
+				if (Node.second) {
+					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame, false);
 				}
 			}
 			//
@@ -609,19 +723,19 @@ namespace WorldEngine
 			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
 			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
+
+			//==================================================
 			//
 			//		START DRAWING ONSCREEN
 			// 
 			// 
-			//	Wait for offscreen semaphore
+			//	Wait for this semaphore to signal
 			submitInfo.pWaitSemaphores = &semaphores[currentFrame].offscreenSync;
-			//
-			//	Signal ready with render complete
+			//	Signal this semaphore when we complete
 			submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
-			//
-			//	Submit work
+			//	Work to submit to GPU
 			submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
-
+			//
 			std::vector<VkCommandBuffer> secondaryCommandBuffers;
 			//
 			VkRenderPassBeginInfo renderPassBeginInfo2 = vks::initializers::renderPassBeginInfo();
@@ -649,16 +763,13 @@ namespace WorldEngine
 			commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 			commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
 			//
-			
 
-			/*VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_Push[currentFrame], &commandBufferBeginInfo));
-			vkCmdBindPipeline(commandBuffers_Push[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline_Composition);
-			vkCmdPushConstants(commandBuffers_Push[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_Push[currentFrame]));
-			secondaryCommandBuffers.push_back(commandBuffers_Push[currentFrame]);*/
-			
+			//==================================================
+			// 
+			//		START DRAWING DEFERRED COMPOSITION
+			// 
 			//
-			//	Begin recording
+			//	Begin recording state
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo));
 			vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport_Main);
 			vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
@@ -668,18 +779,18 @@ namespace WorldEngine
 			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Default()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 			vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
-
-			//
 			//
 			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers[currentFrame]);
+			//==================================================
 
-			//
+			//==================================================
+			// 
 			//		START DRAWING CEF
 			// 
 			//
-			//	Begin recording
+			//	Begin recording state
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_CEF[currentFrame], &commandBufferBeginInfo));
 			vkCmdSetViewport(commandBuffers_CEF[currentFrame], 0, 1, &viewport_Main);
 			vkCmdSetScissor(commandBuffers_CEF[currentFrame], 0, 1, &scissor_Main);
@@ -689,50 +800,42 @@ namespace WorldEngine
 			vkCmdBindDescriptorSets(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_CEF()->DescriptorSets_Composition[currentFrame], 0, nullptr);
 			vkCmdDraw(commandBuffers_CEF[currentFrame], 3, 1, 0, 0);
 			//
-			//
 			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_CEF[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_CEF[currentFrame]);
+			//==================================================
 
+			//==================================================
 			//
 			//		START DRAWING GUI
 			// 
 			//
-			//	Begin recording
+			//	Begin recording state
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_GUI[currentFrame], &commandBufferBeginInfo));
 			//
 			//	Issue draw commands
 			if (_EventReceiver) {
 				GUI::StartDraw();
-
-				for (auto& _Node : SceneGraph::SceneNodes)
-				{
-					if (_Node.second)
-					{
+				//	Scene Nodes
+				for (auto& _Node : SceneGraph::SceneNodes) {
+					if (_Node.second) {
 						_Node.second->drawGUI();
 					}
 				}
-
-				//
 				//	Crosshairs
-				if (!_EventReceiver->IsCursorActive())
-				{
+				if (!_EventReceiver->IsCursorActive()) {
 					SceneGraph::GetCamera().DrawGUI();
 				}
-
+				//
 				GUI::EndDraw(commandBuffers_GUI[currentFrame], currentFrame);
 			}
-			#ifdef _DEBUG
-			//if (isWorld) {
-				//dynamicsWorld->debugDrawWorld();
-			//}
-			#endif
-			//
 			//
 			//	End recording state
 			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_GUI[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_GUI[currentFrame]);
+			//==================================================
 
+			//==================================================
 			//
 			//		END ONSCREEN DRAWING
 			// 
@@ -740,59 +843,56 @@ namespace WorldEngine
 			vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], (uint32_t)secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
 			vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentFrame]));
-
+			//
+			//	Submit work to GPU
 			vkResetFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence);
 			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, semaphores[currentFrame].inFlightFence));
-
-			//
-			//		PRESENT TO SCREEN
-			//
-			result = swapChain.queuePresent(graphicsQueue, currentFrame, semaphores[currentFrame].renderComplete);
-			if (!((result == VK_SUCCESS) || (result == VK_SUBOPTIMAL_KHR))) {
-				if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-					// Swap chain is no longer compatible with the surface and needs to be recreated
-					//windowResize();
-					//return;
-				}
-				else {
-					VK_CHECK_RESULT(result);
-				}
-			}
-			//
-			//	Submit this frame to the GPU and increment our currentFrame identifier
-			currentFrame = (currentFrame + 1) % swapChain.imageCount;
 		}
 
 		// Update lights and parameters passed to the composition shaders
 		inline void updateUniformBufferComposition(const size_t& CurFrame)
 		{
+			
 			// White
-			uboComposition.lights[0].position = glm::vec4(-50.0f, 10.0f, -50.0f, 0.0f);
+			uboComposition.lights[0].position = glm::vec4(50.0f, -70.0f, 50.0f, 0.0f);
 			uboComposition.lights[0].color = glm::vec4(1.5f);
-			uboComposition.lights[0].radius = 100.0f;
+			uboComposition.lights[0].target = SceneGraph::GetCamera().CPC.pos;
 			// Red
-			uboComposition.lights[1].position = glm::vec4(-50.0f, 10.0f, 0.0f, 0.0f);
+			uboComposition.lights[1].position = glm::vec4(75.0f, -70.0f, 75.0f, 0.0f);
 			uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-			uboComposition.lights[1].radius = 100.0f;
+			uboComposition.lights[1].target = SceneGraph::GetCamera().CPC.pos;
 			// Blue
-			//uboComposition.lights[2].position = glm::vec4(50.0f, 10.0f, 0.0f, 0.0f);
-			uboComposition.lights[2].position = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+			uboComposition.lights[2].position = glm::vec4(100.0f, -70.0f, 100.0f, 0.0f);
 			uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
-			uboComposition.lights[2].radius = 100.0f;
+			uboComposition.lights[2].target = SceneGraph::GetCamera().CPC.pos;
 			// Yellow
-			uboComposition.lights[3].position = glm::vec4(0.0f, 10.0f, -50.0f, 0.0f);
+			uboComposition.lights[3].position = glm::vec4(125.0f, -70.0f, 125.0f, 0.0f);
 			uboComposition.lights[3].color = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
-			uboComposition.lights[3].radius = 100.0f;
+			uboComposition.lights[3].target = SceneGraph::GetCamera().CPC.pos;
 			// Green
-			uboComposition.lights[4].position = glm::vec4(0.0f, 10.0f, 50.0f, 0.0f);
+			uboComposition.lights[4].position = glm::vec4(150.0f, -70.0f, 150.0f, 0.0f);
 			uboComposition.lights[4].color = glm::vec4(0.0f, 1.0f, 0.2f, 0.0f);
-			uboComposition.lights[4].radius = 100.0f;
+			uboComposition.lights[4].target = SceneGraph::GetCamera().CPC.pos;
 			// Yellow
-			uboComposition.lights[5].position = glm::vec4(50.0f, 10.0f, 50.0f, 0.0f);
+			uboComposition.lights[5].position = glm::vec4(175.0f, -70.0f, 175.0f, 0.0f);
 			uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
-			uboComposition.lights[5].radius = 100.0f;
+			uboComposition.lights[5].target = SceneGraph::GetCamera().CPC.pos;
+
+
+			for (uint32_t i = 0; i < LIGHT_COUNT; i++)
+			{
+				// mvp from light's pov (for shadows)
+				glm::mat4 shadowProj = glm::perspective(glm::radians(lightFOV), 1.0f, zNear, zFar);
+				shadowProj[1][1] *= -1;
+				glm::mat4 shadowView = glm::lookAt(glm::vec3(uboComposition.lights[i].position), glm::vec3(uboComposition.lights[i].target), glm::vec3(0.0f, 1.0f, 0.0f));
+				glm::mat4 shadowModel = glm::mat4(1.0f);
+
+				WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;
+				uboComposition.lights[i].viewMatrix = WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i];
+			}
 
 			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
+			WorldEngine::MaterialCache::GetPipe_Shadow()->UploadBuffersToGPU(CurFrame);
 		}
 
 		void initLua()
@@ -1091,7 +1191,6 @@ namespace WorldEngine
 				VkCommandPoolCreateInfo poolInfo = vks::initializers::commandPoolCreateInfo();
 				poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 				poolInfo.queueFamilyIndex = _VulkanDevice->queueFamilyIndices.graphics;
-				//poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 				//
 				VK_CHECK_RESULT(vkCreateCommandPool(_VulkanDevice->logicalDevice, &poolInfo, nullptr, &commandPools[i]));
 				//
@@ -1107,67 +1206,67 @@ namespace WorldEngine
 		//	Vulkan Initialization - Stage 2 - Step 4
 		void prepareOffscreenFrameBuffer()
 		{
-			////
-			////
-			//// Shadow
-			//frameBuffers.shadow = new Framebuffer(_VulkanDevice, allocator);
+			//
+			//
+			// Shadow
+			frameBuffers.shadow = new Framebuffer(_VulkanDevice, allocator);
 
-			//frameBuffers.shadow->width = SHADOWMAP_DIM;
-			//frameBuffers.shadow->height = SHADOWMAP_DIM;
+			frameBuffers.shadow->width = SHADOWMAP_DIM;
+			frameBuffers.shadow->height = SHADOWMAP_DIM;
 
-			//// Create a layered depth attachment for rendering the depth maps from the lights' point of view
-			//// Each layer corresponds to one of the lights
-			//// The actual output to the separate layers is done in the geometry shader using shader instancing
-			//// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
-			//AttachmentCreateInfo attachmentInfo1 = {};
-			//attachmentInfo1.format = SHADOWMAP_FORMAT;
-			//attachmentInfo1.width = SHADOWMAP_DIM;
-			//attachmentInfo1.height = SHADOWMAP_DIM;
-			//attachmentInfo1.layerCount = LIGHT_COUNT;
-			//attachmentInfo1.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			//frameBuffers.shadow->addAttachment(attachmentInfo1);
+			// Create a layered depth attachment for rendering the depth maps from the lights' point of view
+			// Each layer corresponds to one of the lights
+			// The actual output to the separate layers is done in the geometry shader using shader instancing
+			// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
+			AttachmentCreateInfo attachmentInfo = {};
+			attachmentInfo.format = depthFormat;
+			attachmentInfo.width = SHADOWMAP_DIM;
+			attachmentInfo.height = SHADOWMAP_DIM;
+			attachmentInfo.layerCount = LIGHT_COUNT;
+			attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			frameBuffers.shadow->addAttachment(attachmentInfo);
 
-			//// Create sampler to sample from to depth attachment
-			//// Used to sample in the fragment shader for shadowed rendering
-			//VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+			// Create sampler to sample from to depth attachment
+			// Used to sample in the fragment shader for shadowed rendering
+			VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 
-			//// Create default renderpass for the framebuffer
-			//VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass());
+			// Create default renderpass for the framebuffer
+			VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass(swapChain.imageCount));
 			//
 			//
 			//	Deferred
-				frameBuffers.deferred = new Framebuffer(_VulkanDevice, allocator);
-				frameBuffers.deferred->width = FB_DIM;
-				frameBuffers.deferred->height = FB_DIM;
+			frameBuffers.deferred = new Framebuffer(_VulkanDevice, allocator);
+			frameBuffers.deferred->width = FB_DIM;
+			frameBuffers.deferred->height = FB_DIM;
 
-				AttachmentCreateInfo attachmentInfo2 = {};
-				attachmentInfo2.width = FB_DIM;
-				attachmentInfo2.height = FB_DIM;
-				attachmentInfo2.layerCount = 1;
-				attachmentInfo2.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+			AttachmentCreateInfo attachmentInfo2 = {};
+			attachmentInfo2.width = FB_DIM;
+			attachmentInfo2.height = FB_DIM;
+			attachmentInfo2.layerCount = 1;
+			attachmentInfo2.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
-				// Color attachments
-				// Attachment 0: (World space) Positions
-				attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-				frameBuffers.deferred->addAttachment(attachmentInfo2);
+			// Color attachments
+			// Attachment 0: (World space) Positions
+			attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-				// Attachment 1: (World space) Normals
-				attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
-				frameBuffers.deferred->addAttachment(attachmentInfo2);
+			// Attachment 1: (World space) Normals
+			attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-				// Attachment 2: Albedo (color)
-				attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
-				frameBuffers.deferred->addAttachment(attachmentInfo2);
+			// Attachment 2: Albedo (color)
+			attachmentInfo2.format = VK_FORMAT_R8G8B8A8_UNORM;
+			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-				attachmentInfo2.format = depthFormat;
-				attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-				frameBuffers.deferred->addAttachment(attachmentInfo2);
+			attachmentInfo2.format = depthFormat;
+			attachmentInfo2.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
-				// Create sampler to sample from the color attachments
-				VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
+			// Create sampler to sample from the color attachments
+			VK_CHECK_RESULT(frameBuffers.deferred->createSampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
 				
-				// Create default renderpass for the framebuffer
-				VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
+			// Create default renderpass for the framebuffer
+			VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
 		}
 
 		// Main stuct for btDbvt handling

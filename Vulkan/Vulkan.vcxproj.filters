@@ -54,6 +54,9 @@
     <Filter Include="Header Files\Items\Tools">
       <UniqueIdentifier>{2afaa70e-4772-43e0-aabf-c59e8794bec3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Shaders\Geom">
+      <UniqueIdentifier>{08b39d4b-ea76-4a8a-864b-002655b05e1d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -244,6 +247,9 @@
     <ClInclude Include="volk.h">
       <Filter>Header Files\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="Pipe_Shadow.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">
@@ -279,5 +285,14 @@
     <None Include="shaders\cef.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
+    <None Include="shaders\shadow.geom">
+      <Filter>Source Files\Shaders\Geom</Filter>
+    </None>
+    <None Include="shaders\shadow.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="compatibility.manifest" />
   </ItemGroup>
 </Project>
