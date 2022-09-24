@@ -249,6 +249,7 @@ namespace WorldEngine
 		void Initialize()
 		{
 			CefMainArgs args(::GetModuleHandle(NULL));
+			
 
 			CefSettings settings;
 			settings.windowless_rendering_enabled = 1;
@@ -260,6 +261,11 @@ namespace WorldEngine
 			auto P = std::filesystem::path{ szPath }.parent_path();
 			printf("PATH: %s\n", P.generic_string().c_str());
 			CefString(&settings.browser_subprocess_path) = P.generic_string() + "/CEFBrowserSubprocess.exe";
+			CefString(&settings.resources_dir_path) = P.generic_string() + "/Resources/";
+			CefString(&settings.locales_dir_path) = P.generic_string() + "/Resources/locales/";
+			CefString(&settings.user_data_path) = P.generic_string() + "/Resources/data/";
+			CefString(&settings.cache_path) = P.generic_string() + "/Resources/cache/";
+			CefString(&settings.root_cache_path) = P.generic_string() + "/Resources/cache/";
 
 			bool result = CefInitialize(args, settings, nullptr, nullptr);
 			if (!result)
