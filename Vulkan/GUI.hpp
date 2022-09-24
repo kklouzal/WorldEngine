@@ -628,6 +628,8 @@ namespace WorldEngine
             shaderStages[1] = fragShaderStageInfo;
 
             VK_CHECK_RESULT(vkCreateGraphicsPipelines(VulkanDriver::_VulkanDevice->logicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr, &pipeline));
+            vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, vertShaderStageInfo.module, nullptr);
+            vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, fragShaderStageInfo.module, nullptr);
 
             // Font texture Sampler
             VkSamplerCreateInfo samplerInfo = vks::initializers::samplerCreateInfo();

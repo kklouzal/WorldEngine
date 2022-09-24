@@ -3,14 +3,8 @@
 namespace Pipeline {
 	struct Default : public PipelineObject
 	{
-		/*VkPipeline graphicsPipeline_Composition = VK_NULL_HANDLE;
-		std::vector<VkDescriptorSet> DescriptorSets_Composition = {};
-		VkDescriptorSetLayout descriptorSetLayout_Composition = VK_NULL_HANDLE;
-		VkDescriptorPool DescriptorPool_Composition = VK_NULL_HANDLE;*/
 
-		~Default()
-		{
-		}
+		~Default() {}
 
 		Default(VkPipelineCache PipelineCache)
 			: PipelineObject()
@@ -36,7 +30,7 @@ namespace Pipeline {
 			VkPushConstantRange push_constant;
 			push_constant.offset = 0;
 			push_constant.size = sizeof(CameraPushConstant);
-			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
 			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 			VK_CHECK_RESULT(vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
@@ -72,16 +66,16 @@ namespace Pipeline {
 			//	Offscreen model render pass pipeline
 			rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 			//	Load shader files
-			VkPipelineShaderStageCreateInfo vertShaderStageInfo2 = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-			vertShaderStageInfo2.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vertShaderStageInfo2.module = createShaderModule(readFile("shaders/Vertex_Default.vert.spv"));
-			vertShaderStageInfo2.pName = "main";
-			shaderStages[0] = vertShaderStageInfo2;
-			VkPipelineShaderStageCreateInfo fragShaderStageInfo2 = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-			fragShaderStageInfo2.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			fragShaderStageInfo2.module = createShaderModule(readFile("shaders/Fragment_Default.frag.spv"));
-			fragShaderStageInfo2.pName = "main";
-			shaderStages[1] = fragShaderStageInfo2;
+			VkPipelineShaderStageCreateInfo vertShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+			vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+			vertShaderStageInfo.module = createShaderModule(readFile("shaders/Vertex_Default.vert.spv"));
+			vertShaderStageInfo.pName = "main";
+			shaderStages[0] = vertShaderStageInfo;
+			VkPipelineShaderStageCreateInfo fragShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+			fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+			fragShaderStageInfo.module = createShaderModule(readFile("shaders/Fragment_Default.frag.spv"));
+			fragShaderStageInfo.pName = "main";
+			shaderStages[1] = fragShaderStageInfo;
 			//	Bind vertex input
 			auto binding = Vertex::getBindingDescription();
 			auto description = Vertex::getAttributeDescriptions();
@@ -100,8 +94,8 @@ namespace Pipeline {
 			//	Create offscreen graphics pipeline
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline));
 			//	Cleanup Shader Modules
-			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, vertShaderStageInfo2.module, nullptr);
-			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, fragShaderStageInfo2.module, nullptr);
+			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, vertShaderStageInfo.module, nullptr);
+			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, fragShaderStageInfo.module, nullptr);
 
 		}
 		//

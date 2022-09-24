@@ -702,7 +702,7 @@ namespace WorldEngine
 			//
 			//	Update Camera Push Constants
 			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
-			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
@@ -1087,7 +1087,7 @@ namespace WorldEngine
 			// Color attachment
 			attachments[0].format = swapChain.colorFormat;
 			attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-			attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
