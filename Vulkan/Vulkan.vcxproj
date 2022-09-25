@@ -216,6 +216,7 @@
     <ClInclude Include="Tool_Weld.hpp" />
     <ClInclude Include="TriangleMesh.hpp" />
     <ClInclude Include="TriangleMeshSceneNode.hpp" />
+    <ClInclude Include="Vertex.hpp" />
     <ClInclude Include="VHACD.h" />
     <ClInclude Include="vk_mem_alloc.h" />
     <ClInclude Include="volk.h" />

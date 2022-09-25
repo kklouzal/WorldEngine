@@ -84,12 +84,6 @@ namespace WorldEngine
 
 		//
 		//	Raytest
-		/*void castRay(const btVector3& From, const btVector3& To, ndRayCastClosestHitCallback& Results)
-		{
-			WorldEngine::VulkanDriver::_ndWorld->RayCast(Results, From, (To - From));
-		}*/
-		//
-		//	Raytest
 		btCollisionWorld::ClosestRayResultCallback castRay(const btVector3& From, const btVector3& To)
 		{
 			btCollisionWorld::ClosestRayResultCallback closestResults(From, To);
@@ -142,7 +136,6 @@ namespace WorldEngine
 			//
 			//	Cleanup SceneNodes
 			for (size_t i = 0; i < SceneNodes.size(); i++) {
-				//_Driver->_ndWorld->RemoveBody(SceneNodes[i]);
 				delete SceneNodes[i];
 			}
 			for (auto Shape : _CollisionShapes) {
@@ -278,35 +271,36 @@ namespace WorldEngine
 		//	SkinnedMesh Create Function
 		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
 		{
-			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
-			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
-			btCollisionShape* ColShape = LoadDecomp(Infos, File);
-			//
-			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
-			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, Infos->InverseBindMatrices, Infos->JointMap);
-			//
-			MeshNode->_CollisionShape = ColShape;
-			btTransform Transform;
-			Transform.setIdentity();
-			Transform.setOrigin(Position);
+			//Pipeline::Animated* Pipe = WorldEngine::MaterialCache::GetPipe_Animated();
+			//GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
+			//btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			////
+			//TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
+			//SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, Infos->InverseBindMatrices, Infos->JointMap);
+			////
+			//MeshNode->_CollisionShape = ColShape;
+			//btTransform Transform;
+			//Transform.setIdentity();
+			//Transform.setOrigin(Position);
 
-			bool isDynamic = (Mass != 0.f);
+			//bool isDynamic = (Mass != 0.f);
 
-			btVector3 localInertia(0, 0, 0);
-			if (isDynamic) {
-				MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
-			}
+			//btVector3 localInertia(0, 0, 0);
+			//if (isDynamic) {
+			//	MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+			//}
 
-			SkinnedMeshSceneNodeMotionState* MotionState = new SkinnedMeshSceneNodeMotionState(MeshNode, Transform);
-			btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
-			MeshNode->_RigidBody = new btRigidBody(rbInfo);
-			MeshNode->_RigidBody->setUserPointer(MeshNode);
-			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+			//SkinnedMeshSceneNodeMotionState* MotionState = new SkinnedMeshSceneNodeMotionState(MeshNode, Transform);
+			//btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+			//MeshNode->_RigidBody = new btRigidBody(rbInfo);
+			//MeshNode->_RigidBody->setUserPointer(MeshNode);
+			//WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
-			//
-			//	Push new SceneNode into the SceneGraph
-			SceneNodes[NodeID] = MeshNode;
-			return MeshNode;
+			////
+			////	Push new SceneNode into the SceneGraph
+			//SceneNodes[NodeID] = MeshNode;
+			//return MeshNode;
+			return nullptr;
 		}
 
 		//

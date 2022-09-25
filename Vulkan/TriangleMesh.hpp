@@ -1,8 +1,4 @@
 #pragma once
-#include <vector>
-#include <array>
-
-#include <chrono>
 
 class TriangleMesh {
 

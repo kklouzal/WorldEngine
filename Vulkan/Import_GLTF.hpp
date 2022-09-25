@@ -19,41 +19,6 @@ class ImportGLTF
     std::unordered_map<const char*, GLTFInfo*> Model_Cache;
 public:
 
-    //struct SKNode
-    //{
-    //    SKNode*                 parent;
-    //    uint32_t                index;
-    //    std::vector<SKNode*>    children;
-    //};
-
-    //std::vector<SKNode*>        nodes;
-    //
-    //void LoadNode(const tinygltf::Node inputNode, tinygltf::Model inputModel, SKNode* parent, uint32_t nodeIndex)
-    //{
-    //    SKNode* _Node = new SKNode{};
-    //    _Node->parent = parent;
-    //    _Node->index = nodeIndex;
-
-    //    // Load node's children
-    //    if (inputNode.children.size() > 0)
-    //    {
-    //        for (size_t i = 0; i < inputNode.children.size(); i++)
-    //        {
-    //            LoadNode(inputModel.nodes[inputNode.children[i]], inputModel, _Node, inputNode.children[i]);
-    //        }
-    //    }
-
-    //    if (parent)
-    //    {
-    //        parent->children.push_back(_Node);
-    //        printf("LOAD NODE %i\n", nodeIndex);
-    //    }
-    //    else
-    //    {
-    //        nodes.push_back(_Node);
-    //    }
-    //}
-
     GLTFInfo* loadModel(const char* filename, PipelineObject* Pipe)
     {
         

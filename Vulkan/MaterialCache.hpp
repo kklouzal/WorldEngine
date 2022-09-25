@@ -1,19 +1,19 @@
 #pragma once
 
+#include "Pipe_Shadow.hpp"
 #include "Pipe_Default.hpp"
 #include "Pipe_Animated.hpp"
+#include "Pipe_Composition.hpp"
 #include "Pipe_GUI.hpp"
 #include "Pipe_CEF.hpp"
-#include "Pipe_Shadow.hpp"
-#include "Pipe_Composition.hpp"
 
 enum Pipelines {
+	Shadow,
 	Default,
 	Animated,
+	Composition,
 	GUI,
-	CEF,
-	Shadow,
-	Composition
+	CEF
 };
 
 namespace WorldEngine
@@ -23,6 +23,15 @@ namespace WorldEngine
 		VkPipelineCache pipelineCache;
 		std::vector<PipelineObject*> Pipes;
 		//
+
+		//
+		//	Create Shadow Pipe
+		//	Handles creating shadow maps for scene nodes offscreen
+		void CreateShadow()
+		{
+			printf("Create Shadow Pipe\n");
+			Pipes.emplace_back(new Pipeline::Shadow(pipelineCache));
+		}
 
 		//
 		//	Create Default Pipe
@@ -38,6 +47,15 @@ namespace WorldEngine
 		void CreateAnimated() {
 			printf("Create Animated Pipe\n");
 			Pipes.emplace_back(new Pipeline::Animated(pipelineCache));
+		}
+
+		//
+		//	Create Composition Pipe
+		//	Handles rendering final deferred composition output to the screen
+		void CreateComposition()
+		{
+			printf("Create Composition Pipe\n");
+			Pipes.emplace_back(new Pipeline::Composition(pipelineCache));
 		}
 
 		//
@@ -57,32 +75,14 @@ namespace WorldEngine
 		}
 
 		//
-		//	Create Shadow Pipe
-		//	Handles creating shadow maps for scene nodes offscreen
-		void CreateShadow()
-		{
-			printf("Create Shadow Pipe\n");
-			Pipes.emplace_back(new Pipeline::Shadow(pipelineCache));
-		}
-
-		//
-		//	Create Composition Pipe
-		//	Handles rendering final deferred composition output to the screen
-		void CreateComposition()
-		{
-			printf("Create Composition Pipe\n");
-			Pipes.emplace_back(new Pipeline::Composition(pipelineCache));
-		}
-
-		//
 		//	Pipes *MUST* be initialized in the order they appear in the Pipelines enum.
 		void Initialize() {
+			CreateShadow();
 			CreateDefault();
 			CreateAnimated();
+			CreateComposition();
 			CreateGUI();
 			CreateCEF();
-			CreateShadow();
-			CreateComposition();
 			VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
 			pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 			if (vkCreatePipelineCache(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) != VK_SUCCESS)
@@ -100,23 +100,23 @@ namespace WorldEngine
 			vkDestroyPipelineCache(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, pipelineCache, nullptr);
 		}
 
+		Pipeline::Shadow* GetPipe_Shadow() {
+			return static_cast<Pipeline::Shadow*>(Pipes[Pipelines::Shadow]);
+		}
 		Pipeline::Default* GetPipe_Default() {
 			return static_cast<Pipeline::Default*>(Pipes[Pipelines::Default]);
 		}
-		Pipeline::Default* GetPipe_Animated() {
-			return static_cast<Pipeline::Default*>(Pipes[Pipelines::Animated]);
+		Pipeline::Animated* GetPipe_Animated() {
+			return static_cast<Pipeline::Animated*>(Pipes[Pipelines::Animated]);
+		}
+		Pipeline::Composition* GetPipe_Composition() {
+			return static_cast<Pipeline::Composition*>(Pipes[Pipelines::Composition]);
 		}
 		Pipeline::GUI* GetPipe_GUI() {
 			return static_cast<Pipeline::GUI*>(Pipes[Pipelines::GUI]);
 		}
 		Pipeline::CEF* GetPipe_CEF() {
 			return static_cast<Pipeline::CEF*>(Pipes[Pipelines::CEF]);
-		}
-		Pipeline::Shadow* GetPipe_Shadow() {
-			return static_cast<Pipeline::Shadow*>(Pipes[Pipelines::Shadow]);
-		}
-		Pipeline::Composition* GetPipe_Composition() {
-			return static_cast<Pipeline::Composition*>(Pipes[Pipelines::Composition]);
 		}
 	}
 }

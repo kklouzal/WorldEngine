@@ -1,6 +1,6 @@
 #version 450
 
-layout(location = 0) in vec3 inPosition;
+layout(location = 0) in vec4 inPosition;
 layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
@@ -24,11 +24,13 @@ layout(std140, binding = 1) readonly buffer JointMatrices {
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 outColor;
-layout(location = 3) out vec3 outWorldPos;
+layout(location = 3) out vec4 outWorldPos;
 layout(location = 4) out vec3 outTangent;
 
 void main() {
     outWorldPos = inPosition;
+    outUV = inTexCoord;
+    outColor = inColor;
 
     mat4 skinMat =
         inWeights.x * jointMatrices[int(inBones.x)] +
@@ -36,13 +38,11 @@ void main() {
         inWeights.z * jointMatrices[int(inBones.z)] +
         inWeights.w * jointMatrices[int(inBones.w)];
 
-    gl_Position = PushConstants.view_proj * ubo.model * skinMat * vec4(inPosition, 1.0);
+    gl_Position = PushConstants.view_proj * ubo.model * skinMat * inPosition;
     
-    outUV = inTexCoord;
     
     mat3 mNormal = transpose(inverse(mat3(ubo.model)));
     outNormal = mNormal * normalize(inNormal);
     outTangent = mNormal * normalize(inTangent);
 
-    outColor = inColor;
 }

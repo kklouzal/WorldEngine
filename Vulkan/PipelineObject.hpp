@@ -65,9 +65,9 @@ protected:
 		samplerInfo1.minLod = 0.0f;
 		samplerInfo1.maxLod = 0.0f;
 		if (vkCreateSampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &samplerInfo1, nullptr, &Sampler) != VK_SUCCESS) {
-#ifdef _DEBUG
+			#ifdef _DEBUG
 			throw std::runtime_error("failed to create texture sampler!");
-#endif
+			#endif
 		}
 
 		VkSamplerCreateInfo samplerInfo2 = vks::initializers::samplerCreateInfo();
@@ -95,9 +95,9 @@ protected:
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 		if (!file.is_open()) {
-#ifdef _DEBUG
+			#ifdef _DEBUG
 			throw std::runtime_error("failed to open file!");
-#endif
+			#endif
 		}
 
 		const size_t fileSize = (size_t)file.tellg();
@@ -116,16 +116,11 @@ protected:
 
 		VkShaderModule shaderModule;
 		if (vkCreateShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-#ifdef _DEBUG
+			#ifdef _DEBUG
 			throw std::runtime_error("failed to create shader module!");
-#endif
+			#endif
 		}
 
 		return shaderModule;
 	}
 };
-
-namespace Pipeline {
-	struct Default;
-	struct GUI;
-}

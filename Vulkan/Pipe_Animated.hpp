@@ -78,7 +78,7 @@ namespace Pipeline {
 			shaderStages[1] = fragShaderStageInfo;
 			//	Bind vertex input
 			auto binding = Vertex::getBindingDescription();
-			auto description = Vertex::getAttributeDescriptions();
+			auto description = Vertex::getAttributeDescriptions_Animated();
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			//	Separate render pass
