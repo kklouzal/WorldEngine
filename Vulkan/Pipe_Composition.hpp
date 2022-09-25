@@ -5,6 +5,12 @@ namespace Pipeline {
 	{
 		std::vector<VkDescriptorSet> DescriptorSets = {};
 		VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
+		//
+		std::array<VkClearValue, 2> clearValues;
+		VkViewport viewport;
+		VkRect2D scissor;
+		//
+		std::vector<VkRenderPassBeginInfo> renderPass = {};
 
 		~Composition()
 		{
@@ -15,6 +21,10 @@ namespace Pipeline {
 		Composition(VkPipelineCache PipelineCache)
 			: PipelineObject()
 		{
+			viewport = vks::initializers::viewport((float)WorldEngine::VulkanDriver::WIDTH, (float)WorldEngine::VulkanDriver::HEIGHT, 0.0f, 1.0f);
+			scissor = vks::initializers::rect2D(WorldEngine::VulkanDriver::WIDTH, WorldEngine::VulkanDriver::HEIGHT, 0, 0);
+			clearValues[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+			clearValues[1].depthStencil = { 1.0f, 0 };
 			//
 			//
 			//	DescriptorSetLayout
@@ -98,7 +108,7 @@ namespace Pipeline {
 			//
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 3),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 1),
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 4)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, (uint32_t)SwapChainCount);
@@ -106,6 +116,7 @@ namespace Pipeline {
 			//
 			//	Create and Update individual Descriptor sets and uniform buffers
 			DescriptorSets.resize(SwapChainCount);
+			renderPass.resize(SwapChainCount);
 			for (size_t i = 0; i < SwapChainCount; i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool, &descriptorSetLayout, 1);
@@ -154,6 +165,15 @@ namespace Pipeline {
 				};
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
+				//
+				//	Render Pass Info
+				renderPass[i] = vks::initializers::renderPassBeginInfo();
+				renderPass[i].renderPass = WorldEngine::VulkanDriver::renderPass;
+				renderPass[i].renderArea.offset = { 0, 0 };
+				renderPass[i].renderArea.extent = { WorldEngine::VulkanDriver::WIDTH, WorldEngine::VulkanDriver::HEIGHT };
+				renderPass[i].clearValueCount = static_cast<uint32_t>(clearValues.size());;
+				renderPass[i].pClearValues = clearValues.data();
+				renderPass[i].framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
 			}
 		}
 	};

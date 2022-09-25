@@ -11,9 +11,9 @@ namespace Pipeline {
 		std::vector<VkBuffer> uboShadowBuff = {};				//	Cleaned Up
 		std::vector<VmaAllocation> uboShadowAlloc = {};			//	Cleaned Up
 		//
-		std::array<VkClearValue, 4> clearValues = {};
 		VkViewport viewport;
 		VkRect2D scissor;
+		std::array<VkClearValue, 4> clearValues = {};
 		//
 		std::vector<VkRenderPassBeginInfo> renderPass = {};
 
@@ -32,9 +32,9 @@ namespace Pipeline {
 			: PipelineObject()
 		{
 			//
-			clearValues[0].depthStencil = { 1.0f, 0 };
 			viewport = vks::initializers::viewport((float)SHADOWMAP_DIM, (float)SHADOWMAP_DIM, 0.0f, 1.0f);
 			scissor = vks::initializers::rect2D(SHADOWMAP_DIM, SHADOWMAP_DIM, 0, 0);
+			clearValues[0].depthStencil = { 1.0f, 0 };
 			//
 			//
 			//	DescriptorSetLayout

@@ -73,10 +73,7 @@ namespace WorldEngine
 
 		VkViewport viewport_Deferred;							//
 		VkRect2D scissor_Deferred;								//
-		VkViewport viewport_Main;								//
-		VkRect2D scissor_Main;									//
 		std::array<VkClearValue, 4> clearValues_Deferred;		//
-		std::array<VkClearValue, 2> clearValues_Main;			//
 
 		std::vector<VkCommandBuffer> commandBuffers;			//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_Push;		//	Doesnt Need Cleanup
@@ -257,17 +254,13 @@ namespace WorldEngine
 			createFrameBuffers();
 			prepareOffscreenFrameBuffer();
 			//
-			//	Rendering Viewports and Clear Values
+			//	Deferred Rendering Viewport and Clear Value
 			viewport_Deferred = vks::initializers::viewport((float)FB_DIM, (float)FB_DIM, 0.0f, 1.0f);
 			scissor_Deferred = vks::initializers::rect2D(FB_DIM, FB_DIM, 0, 0);
 			clearValues_Deferred[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 			clearValues_Deferred[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 			clearValues_Deferred[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 			clearValues_Deferred[3].depthStencil = { 1.0f, 0 };
-			viewport_Main = vks::initializers::viewport((float)WIDTH, (float)HEIGHT, 0.0f, 1.0f);
-			scissor_Main = vks::initializers::rect2D(WIDTH, HEIGHT, 0, 0);
-			clearValues_Main[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
-			clearValues_Main[1].depthStencil = { 1.0f, 0 };
 			//
 			//	Per-Frame Deferred Rendering Uniform Buffer Objects
 			uboCompositionBuff.resize(swapChain.images.size());
@@ -733,20 +726,12 @@ namespace WorldEngine
 			//
 			std::vector<VkCommandBuffer> secondaryCommandBuffers;
 			//
-			VkRenderPassBeginInfo renderPassBeginInfo2 = vks::initializers::renderPassBeginInfo();
-			renderPassBeginInfo2.renderPass = renderPass;
-			renderPassBeginInfo2.renderArea.offset = { 0, 0 };
-			renderPassBeginInfo2.renderArea.extent = { WIDTH, HEIGHT };
-			renderPassBeginInfo2.clearValueCount = static_cast<uint32_t>(clearValues_Main.size());;
-			renderPassBeginInfo2.pClearValues = clearValues_Main.data();
-			renderPassBeginInfo2.framebuffer = frameBuffers_Main[currentFrame];
-			//
 			//	Set target Primary Command Buffer
 			VkCommandBufferBeginInfo cmdBufInfo2 = vks::initializers::commandBufferBeginInfo();
 			VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers[currentFrame], &cmdBufInfo2));
 			//
 			//	Begin render pass
-			vkCmdBeginRenderPass(primaryCommandBuffers[currentFrame], &renderPassBeginInfo2, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+			vkCmdBeginRenderPass(primaryCommandBuffers[currentFrame], &MaterialCache::GetPipe_Composition()->renderPass[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 			//
 			//	Secondary CommandBuffer Inheritance Info
 			VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
@@ -766,8 +751,8 @@ namespace WorldEngine
 			//
 			//	Begin recording state
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo));
-			vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport_Main);
-			vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor_Main);
+			vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->viewport);
+			vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->scissor);
 			//
 			//	Draw our combined image view over the entire screen
 			vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Composition()->graphicsPipeline);
@@ -787,8 +772,8 @@ namespace WorldEngine
 			//
 			//	Begin recording state
 			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_CEF[currentFrame], &commandBufferBeginInfo));
-			vkCmdSetViewport(commandBuffers_CEF[currentFrame], 0, 1, &viewport_Main);
-			vkCmdSetScissor(commandBuffers_CEF[currentFrame], 0, 1, &scissor_Main);
+			vkCmdSetViewport(commandBuffers_CEF[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->viewport);
+			vkCmdSetScissor(commandBuffers_CEF[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->scissor);
 			//
 			//	Draw CEF fullscreen triangle
 			vkCmdBindPipeline(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->graphicsPipeline);

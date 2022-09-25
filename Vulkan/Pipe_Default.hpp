@@ -3,7 +3,6 @@
 namespace Pipeline {
 	struct Default : public PipelineObject
 	{
-
 		~Default() {}
 
 		Default(VkPipelineCache PipelineCache)
