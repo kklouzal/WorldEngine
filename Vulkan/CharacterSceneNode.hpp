@@ -5,7 +5,6 @@ class CharacterSceneNode : public SceneNode
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
-	UniformBufferObject ubo = {};
 public:
 	TriangleMesh* _Mesh = nullptr;
 	std::vector<Item*> Items;

@@ -7,7 +7,6 @@
 //
 #include "Pipe_Shadow.hpp"
 #include "Pipe_Static.hpp"
-#include "Pipe_Static_Instanced.hpp"
 #include "Pipe_Animated.hpp"
 #include "Pipe_Composition.hpp"
 #include "Pipe_GUI.hpp"
@@ -16,9 +15,7 @@
 enum Pipelines {
 	Shadow,
 	Static,
-	Static_Instanced,
 	Animated,
-	//Animated_Instanced,
 	Composition,
 	GUI,
 	CEF
@@ -49,14 +46,6 @@ namespace WorldEngine
 		void CreateStatic() {
 			printf("Create Static Pipe\n");
 			Pipes.emplace_back(new Pipeline::Static(pipelineCache));
-		}
-
-		//
-		//	Create Static Instanced Pipe
-		//	Handles rendering instanced static scene nodes offscreen
-		void CreateStaticInstanced() {
-			printf("Create Static Instanced Pipe\n");
-			Pipes.emplace_back(new Pipeline::Static_Instanced(pipelineCache));
 		}
 
 		//
@@ -100,7 +89,6 @@ namespace WorldEngine
 			//
 			CreateShadow();
 			CreateStatic();
-			CreateStaticInstanced();
 			CreateAnimated();
 			CreateComposition();
 			CreateGUI();
@@ -129,9 +117,6 @@ namespace WorldEngine
 		}
 		Pipeline::Static* GetPipe_Static() {
 			return static_cast<Pipeline::Static*>(Pipes[Pipelines::Static]);
-		}
-		Pipeline::Static_Instanced* GetPipe_StaticInstanced() {
-			return static_cast<Pipeline::Static_Instanced*>(Pipes[Pipelines::Static_Instanced]);
 		}
 		Pipeline::Animated* GetPipe_Animated() {
 			return static_cast<Pipeline::Animated*>(Pipes[Pipelines::Animated]);

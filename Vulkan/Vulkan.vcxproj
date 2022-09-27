@@ -237,7 +237,7 @@
     <None Include="shaders\Fragment_Animated.frag" />
     <None Include="shaders\Fragment_Default.frag" />
     <None Include="shaders\Fragment_GUI.frag" />
-    <None Include="shaders\Fragment_StaticInstanced.frag" />
+    <None Include="shaders\Fragment_Static.frag" />
     <None Include="shaders\shadow.geom" />
     <None Include="shaders\shadow.vert" />
     <None Include="shaders\ui.frag" />
@@ -245,7 +245,7 @@
     <None Include="shaders\Vertex_Animated.vert" />
     <None Include="shaders\Vertex_Default.vert" />
     <None Include="shaders\Vertex_GUI.vert" />
-    <None Include="shaders\Vertex_StaticInstanced.vert" />
+    <None Include="shaders\Vertex_Static.vert" />
     <None Include="Tool_NPC.hpp" />
   </ItemGroup>
   <ItemGroup>

@@ -309,10 +309,10 @@
     <None Include="shaders\Vertex_Animated.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
-    <None Include="shaders\Fragment_StaticInstanced.frag">
+    <None Include="shaders\Fragment_Static.frag">
       <Filter>Source Files\Shaders\Frag</Filter>
     </None>
-    <None Include="shaders\Vertex_StaticInstanced.vert">
+    <None Include="shaders\Vertex_Static.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
   </ItemGroup>
