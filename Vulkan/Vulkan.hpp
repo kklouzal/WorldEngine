@@ -518,7 +518,6 @@ namespace WorldEngine
 					//if (isWorld) {
 						dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
 					//}
-					SceneGraph::updateUniformBuffer(currentFrame);
 					updateUniformBufferComposition(currentFrame);
 					//
 					//	Frustum Culling

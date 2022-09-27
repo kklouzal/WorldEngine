@@ -192,7 +192,6 @@
     <ClInclude Include="Pipe_CEF.hpp" />
     <ClInclude Include="Pipe_Composition.hpp" />
     <ClInclude Include="Pipe_Shadow.hpp" />
-    <ClInclude Include="Pipe_Static_Instanced.hpp" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="TinyGLTF.hpp" />

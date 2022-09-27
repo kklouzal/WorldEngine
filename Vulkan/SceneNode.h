@@ -32,7 +32,6 @@ public:
 		delete _RigidBody;
 		printf("Destroy Base SceneNode (%ju)\n", NodeID);
 	}
-	virtual void updateUniformBuffer(const uint32_t &currentImage) = 0;
 	virtual void drawFrame(const VkCommandBuffer &CommandBuffer, const uint32_t &CurFrame) = 0;
 	virtual void drawGUI() {}
 

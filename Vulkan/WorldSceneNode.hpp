@@ -20,16 +20,14 @@ public:
 		delete _Mesh;
 	}
 
-	void updateUniformBuffer(const uint32_t& currentImage) {
-		if (bNeedsUpdate[currentImage])
-		{
-			_Mesh->instanceData[0].model = Model;
-			_Mesh->updateSSBuffer(currentImage);
-			bNeedsUpdate[currentImage] = false;
-		}
-	}
-
 	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
+		if (bNeedsUpdate[CurFrame])
+		{
+			//	TODO: Store index of this SceneNode in our TriangleMesh...probably the first step in the right direction
+			_Mesh->instanceData[0].model = Model;
+			_Mesh->updateSSBuffer(CurFrame);
+			bNeedsUpdate[CurFrame] = false;
+		}
 		if (!Valid) {
 			_Mesh->draw(CommandBuffer, CurFrame);
 		}

@@ -150,18 +150,6 @@ namespace WorldEngine
 			WorldEngine::MaterialCache::GetPipe_Animated()->EmptyCache();
 		}
 
-		void SceneGraph::updateUniformBuffer(const uint32_t& currentImage)
-		{
-			//
-			//	Update SceneNode Uniform Buffers
-			for (auto& Node : SceneNodes) {
-				if (Node.second)
-				{
-					Node.second->updateUniformBuffer(currentImage);
-				}
-			}
-		}
-
 		btCollisionShape* SceneGraph::LoadDecomp(GLTFInfo* Infos, const char* File)
 		{
 			std::string m_File(File);

@@ -259,9 +259,6 @@
     <ClInclude Include="Vertex.hpp">
       <Filter>Header Files\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="Pipe_Static_Instanced.hpp">
-      <Filter>Header Files\Pipelines</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">
