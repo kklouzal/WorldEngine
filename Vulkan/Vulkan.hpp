@@ -180,11 +180,10 @@ namespace WorldEngine
 		}
 	}
 }
+
 #include "EventReceiver.hpp"
 #include "NetCode.hpp"
 
-#include "PipelineObject.hpp"
-#include "Import_GLTF.hpp"
 #include "CEF.hpp"
 #include "MaterialCache.hpp"
 #include "GUI.hpp"
@@ -194,8 +193,6 @@ namespace WorldEngine
 
 #include "NetCode.impl.hpp"
 #include "EventReceiver.impl.hpp"
-
-
 
 namespace WorldEngine
 {
@@ -691,16 +688,16 @@ namespace WorldEngine
 			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport_Deferred);
 			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor_Deferred);
-			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Default()->graphicsPipeline);
+			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_StaticInstanced()->graphicsPipeline);
 			//
 			//	Update Camera Push Constants
 			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
-			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Default()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_StaticInstanced()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
 				if (Node.second) {
-					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame, false);
+					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 				}
 			}
 			//
@@ -921,7 +918,7 @@ namespace WorldEngine
 			createInfo.pApplicationInfo = &appInfo;
 			createInfo.enabledExtensionCount = glfwExtensionCount;
 			createInfo.ppEnabledExtensionNames = glfwExtensions;
-#ifdef _DEBUG
+			#ifdef _DEBUG
 			const char* validationLayerName = "VK_LAYER_KHRONOS_validation";
 			uint32_t instanceLayerCount;
 			pfEnumerateInstanceLayerProperties(&instanceLayerCount, nullptr);
@@ -941,7 +938,7 @@ namespace WorldEngine
 			else {
 				printf("Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n");
 			}
-#endif
+			#endif
 			volkInitialize();
 			VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &instance));
 			volkLoadInstance(instance);
@@ -958,9 +955,9 @@ namespace WorldEngine
 			//	Get available physical devices
 			vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 			if (deviceCount == 0) {
-#ifdef _DEBUG
+				#ifdef _DEBUG
 				throw std::runtime_error("failed to find GPUs with Vulkan support!");
-#endif
+				#endif
 			}
 			//
 			//	Enumerate devices

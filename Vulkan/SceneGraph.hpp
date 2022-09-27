@@ -24,7 +24,6 @@ namespace WorldEngine
 		//	Empty namespace to hide variables
 		namespace
 		{
-			ImportGLTF* _ImportGLTF = nullptr;
 			Camera _Camera;
 			CharacterSceneNode* _Character;
 			WorldSceneNode* _World;
@@ -46,7 +45,6 @@ namespace WorldEngine
 		//	Constructor
 		void Initialize()
 		{
-			_ImportGLTF = new ImportGLTF;
 			tryCleanupWorld = false;
 			isWorld = false;
 		}
@@ -56,7 +54,6 @@ namespace WorldEngine
 		{
 			printf("Destroy SceneGraph\n");
 			cleanupWorld(true);
-			delete _ImportGLTF;
 		}
 
 		btCollisionShape* LoadDecomp(GLTFInfo* Infos, const char* File);
@@ -96,7 +93,6 @@ namespace WorldEngine
 
 //
 //	Include All SceneNode Types
-#include "TriangleMesh.hpp"
 #include "SceneNode.h"
 
 //
@@ -150,7 +146,9 @@ namespace WorldEngine
 			//SceneNodes.clear();
 			//SceneNodes.shrink_to_fit();
 
-			WorldEngine::MaterialCache::GetPipe_Default()->EmptyCache();
+			WorldEngine::MaterialCache::GetPipe_Static()->EmptyCache();
+			WorldEngine::MaterialCache::GetPipe_StaticInstanced()->EmptyCache();
+			WorldEngine::MaterialCache::GetPipe_Animated()->EmptyCache();
 		}
 
 		void SceneGraph::updateUniformBuffer(const uint32_t& currentImage)
@@ -192,8 +190,8 @@ namespace WorldEngine
 		//	World Create Function
 		WorldSceneNode* SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* File)
 		{
-			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
-			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
+			Pipeline::Static_Instanced* Pipe = WorldEngine::MaterialCache::GetPipe_StaticInstanced();
+			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
 
 			WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
@@ -234,8 +232,8 @@ namespace WorldEngine
 		//	TriangleMesh Create Function
 		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
 		{
-			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
-			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
+			Pipeline::Static_Instanced* Pipe = WorldEngine::MaterialCache::GetPipe_StaticInstanced();
+			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
 			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			//
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
@@ -272,7 +270,7 @@ namespace WorldEngine
 		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
 		{
 			//Pipeline::Animated* Pipe = WorldEngine::MaterialCache::GetPipe_Animated();
-			//GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
+			//GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
 			//btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			////
 			//TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
@@ -307,8 +305,8 @@ namespace WorldEngine
 		//	Character Create Function
 		CharacterSceneNode* SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position)
 		{
-			Pipeline::Default* Pipe = WorldEngine::MaterialCache::GetPipe_Default();
-			GLTFInfo* Infos = _ImportGLTF->loadModel(File, Pipe);
+			Pipeline::Static_Instanced* Pipe = WorldEngine::MaterialCache::GetPipe_StaticInstanced();
+			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
 			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			//
 			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);

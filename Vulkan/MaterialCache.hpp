@@ -1,7 +1,13 @@
 #pragma once
-
+//
+#include "PipelineObject.hpp"
+//
+#include "Import_GLTF.hpp"
+#include "TriangleMesh.hpp"
+//
 #include "Pipe_Shadow.hpp"
-#include "Pipe_Default.hpp"
+#include "Pipe_Static.hpp"
+#include "Pipe_Static_Instanced.hpp"
 #include "Pipe_Animated.hpp"
 #include "Pipe_Composition.hpp"
 #include "Pipe_GUI.hpp"
@@ -9,8 +15,10 @@
 
 enum Pipelines {
 	Shadow,
-	Default,
+	Static,
+	Static_Instanced,
 	Animated,
+	//Animated_Instanced,
 	Composition,
 	GUI,
 	CEF
@@ -20,8 +28,10 @@ namespace WorldEngine
 {
 	namespace MaterialCache
 	{
-		VkPipelineCache pipelineCache;
-		std::vector<PipelineObject*> Pipes;
+		VkPipelineCache pipelineCache = VK_NULL_HANDLE;
+		std::vector<PipelineObject*> Pipes = {};
+		//
+		ImportGLTF* _ImportGLTF = nullptr;
 		//
 
 		//
@@ -34,11 +44,19 @@ namespace WorldEngine
 		}
 
 		//
-		//	Create Default Pipe
+		//	Create Static Pipe
 		//	Handles rendering static scene nodes offscreen
-		void CreateDefault() {
-			printf("Create Default Pipe\n");
-			Pipes.emplace_back(new Pipeline::Default(pipelineCache));
+		void CreateStatic() {
+			printf("Create Static Pipe\n");
+			Pipes.emplace_back(new Pipeline::Static(pipelineCache));
+		}
+
+		//
+		//	Create Static Instanced Pipe
+		//	Handles rendering instanced static scene nodes offscreen
+		void CreateStaticInstanced() {
+			printf("Create Static Instanced Pipe\n");
+			Pipes.emplace_back(new Pipeline::Static_Instanced(pipelineCache));
 		}
 
 		//
@@ -77,8 +95,12 @@ namespace WorldEngine
 		//
 		//	Pipes *MUST* be initialized in the order they appear in the Pipelines enum.
 		void Initialize() {
+			//
+			_ImportGLTF = new ImportGLTF;
+			//
 			CreateShadow();
-			CreateDefault();
+			CreateStatic();
+			CreateStaticInstanced();
 			CreateAnimated();
 			CreateComposition();
 			CreateGUI();
@@ -98,13 +120,18 @@ namespace WorldEngine
 				delete Pipe;
 			}
 			vkDestroyPipelineCache(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, pipelineCache, nullptr);
+			//
+			delete _ImportGLTF;
 		}
 
 		Pipeline::Shadow* GetPipe_Shadow() {
 			return static_cast<Pipeline::Shadow*>(Pipes[Pipelines::Shadow]);
 		}
-		Pipeline::Default* GetPipe_Default() {
-			return static_cast<Pipeline::Default*>(Pipes[Pipelines::Default]);
+		Pipeline::Static* GetPipe_Static() {
+			return static_cast<Pipeline::Static*>(Pipes[Pipelines::Static]);
+		}
+		Pipeline::Static_Instanced* GetPipe_StaticInstanced() {
+			return static_cast<Pipeline::Static_Instanced*>(Pipes[Pipelines::Static_Instanced]);
 		}
 		Pipeline::Animated* GetPipe_Animated() {
 			return static_cast<Pipeline::Animated*>(Pipes[Pipelines::Animated]);

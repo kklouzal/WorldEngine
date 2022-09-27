@@ -108,7 +108,6 @@ public:
 		startFrame = endFrame;
 
 		ubo.model = Model;
-		ubo.Animated = true;
 		controller_.Update(animation_, deltaFrame);
 		//	Samples optimized animation at t = animation_time_
 		ozz::animation::SamplingJob sampling_job;
@@ -149,18 +148,18 @@ public:
 		}
 		//
 		//	Send updated uniform buffer to GPU
-		_Mesh->updateUniformBuffer(currentImage, ubo);
-		//
-		//	Send updated bone matrices to GPU
-		if (Jnts.size() > 0)
-		{
-			_Mesh->updateSSBuffer(currentImage, Jnts.data(), Jnts.size() * sizeof(glm::mat4));
-		}
+		//_Mesh->updateUniformBuffer(currentImage, ubo);
+		////
+		////	Send updated bone matrices to GPU
+		//if (Jnts.size() > 0)
+		//{
+		//	_Mesh->updateSSBuffer(currentImage, Jnts.data(), Jnts.size() * sizeof(glm::mat4));
+		//}
 	}
 
-	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame, bool bShadow) {
+	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
 		if (!Valid) {
-			_Mesh->draw(CommandBuffer, CurFrame, bShadow);
+			_Mesh->draw(CommandBuffer, CurFrame);
 		}
 	}
 };

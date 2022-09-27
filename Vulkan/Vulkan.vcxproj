@@ -192,6 +192,7 @@
     <ClInclude Include="Pipe_CEF.hpp" />
     <ClInclude Include="Pipe_Composition.hpp" />
     <ClInclude Include="Pipe_Shadow.hpp" />
+    <ClInclude Include="Pipe_Static_Instanced.hpp" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="TinyGLTF.hpp" />
@@ -201,7 +202,7 @@
     <ClInclude Include="LuaScripting.hpp" />
     <ClInclude Include="MainMenu.hpp" />
     <ClInclude Include="MyEventReceiver.hpp" />
-    <ClInclude Include="Pipe_Default.hpp" />
+    <ClInclude Include="Pipe_Static.hpp" />
     <ClInclude Include="EventReceiver.hpp" />
     <ClInclude Include="Forwards.hpp" />
     <ClInclude Include="MaterialCache.hpp" />
@@ -236,6 +237,7 @@
     <None Include="shaders\Fragment_Animated.frag" />
     <None Include="shaders\Fragment_Default.frag" />
     <None Include="shaders\Fragment_GUI.frag" />
+    <None Include="shaders\Fragment_StaticInstanced.frag" />
     <None Include="shaders\shadow.geom" />
     <None Include="shaders\shadow.vert" />
     <None Include="shaders\ui.frag" />
@@ -243,6 +245,7 @@
     <None Include="shaders\Vertex_Animated.vert" />
     <None Include="shaders\Vertex_Default.vert" />
     <None Include="shaders\Vertex_GUI.vert" />
+    <None Include="shaders\Vertex_StaticInstanced.vert" />
     <None Include="Tool_NPC.hpp" />
   </ItemGroup>
   <ItemGroup>

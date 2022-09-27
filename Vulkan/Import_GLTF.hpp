@@ -2,16 +2,15 @@
 
 struct GLTFInfo
 {
-    const float* positionBuffer = nullptr;
     size_t vertexCount = 0;
 
-    std::vector<Vertex> Vertices;
-    std::vector<uint32_t> Indices;
-    std::vector<glm::mat4> InverseBindMatrices;
-    const char* TexDiffuse;
+    std::vector<Vertex> Vertices = {};
+    std::vector<uint32_t> Indices = {};
+    std::vector<glm::mat4> InverseBindMatrices = {};
+    const char* TexDiffuse = "";
     TextureObject* DiffuseTex = nullptr;
     TextureObject* NormalTex = nullptr;
-    std::map<std::string, uint16_t> JointMap;
+    std::map<std::string, uint16_t> JointMap = {};
 };
 
 class ImportGLTF

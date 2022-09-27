@@ -1,19 +1,19 @@
 #pragma once
 
 namespace Pipeline {
-	struct Default : public PipelineObject
+	struct Static_Instanced : public PipelineObject
 	{
-		~Default() {}
+		~Static_Instanced() {}
 
-		Default(VkPipelineCache PipelineCache)
+		Static_Instanced(VkPipelineCache PipelineCache)
 			: PipelineObject()
 		{
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				//	Binding 0 : Vertex UBO
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
-				//	Binding 1 : Position/Color texture target
+				//	Binding 0 : Instancing SSBO
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
+				//	Binding 1 : Color texture target
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 				//	Binding 2 : Normal texture target
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2)
@@ -65,12 +65,12 @@ namespace Pipeline {
 			//	Load shader files
 			VkPipelineShaderStageCreateInfo vertShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 			vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vertShaderStageInfo.module = createShaderModule(readFile("shaders/Vertex_Default.vert.spv"));
+			vertShaderStageInfo.module = createShaderModule(readFile("shaders/Vertex_StaticInstanced.vert.spv"));
 			vertShaderStageInfo.pName = "main";
 			shaderStages[0] = vertShaderStageInfo;
 			VkPipelineShaderStageCreateInfo fragShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 			fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			fragShaderStageInfo.module = createShaderModule(readFile("shaders/Fragment_Default.frag.spv"));
+			fragShaderStageInfo.module = createShaderModule(readFile("shaders/Fragment_StaticInstanced.frag.spv"));
 			fragShaderStageInfo.pName = "main";
 			shaderStages[1] = fragShaderStageInfo;
 			//	Bind vertex input
@@ -100,7 +100,7 @@ namespace Pipeline {
 		//	Create Descriptor
 		//
 		//
-		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& UniformBuffers, const std::vector<VkBuffer>& StorageBuffers, const size_t SSBOSize) {
+		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice);
 			//
 			//	Create Descriptor Pool
@@ -118,9 +118,9 @@ namespace Pipeline {
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]));
 
 				VkDescriptorBufferInfo bufferInfo = {};
-				bufferInfo.buffer = UniformBuffers[i];
+				bufferInfo.buffer = StorageBuffers[i];
 				bufferInfo.offset = 0;
-				bufferInfo.range = sizeof(UniformBufferObject);
+				bufferInfo.range = VK_WHOLE_SIZE;
 
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
@@ -135,11 +135,11 @@ namespace Pipeline {
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-					// Binding 0 : vertex data
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo),
-					// Binding 2 : color
+					// Binding 0 : Instancing SSBO
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo),
+					// Binding 1 : Color Texture
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImageColor),
-					// Binding 3 : normal
+					// Binding 2 : Normal Texture
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageNormal)
 				};
 

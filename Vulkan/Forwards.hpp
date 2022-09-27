@@ -140,7 +140,11 @@ struct CameraPushConstant {
 struct UniformBufferObject {
 	glm::mat4 model{};
 	//ozz::math::Float4x4 bones[32]{};
-	bool Animated;
+};
+
+//
+struct InstanceData {
+	glm::mat4 model;
 };
 
 struct DescriptorObject {

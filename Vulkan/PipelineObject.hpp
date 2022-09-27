@@ -123,4 +123,15 @@ protected:
 
 		return shaderModule;
 	}
+
+	public:
+		virtual DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& UniformBuffers, const std::vector<VkBuffer>& StorageBuffers, const size_t SSBOSize)
+		{
+			return nullptr;
+		}
+
+		virtual DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers)
+		{
+			return nullptr;
+		}
 };

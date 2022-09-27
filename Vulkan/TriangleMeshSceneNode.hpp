@@ -5,7 +5,6 @@ class TriangleMeshSceneNode : public SceneNode
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
-	UniformBufferObject ubo = {};
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
@@ -22,15 +21,16 @@ public:
 	void updateUniformBuffer(const uint32_t& currentImage) {
 		if (bNeedsUpdate[currentImage])
 		{
-			ubo.model = Model;
-			_Mesh->updateUniformBuffer(currentImage, ubo);
+			//	TODO: Store index of this SceneNode in our TriangleMesh...probably the first step in the right direction
+			_Mesh->instanceData[0].model = Model;
+			_Mesh->updateSSBuffer(currentImage);
 			bNeedsUpdate[currentImage] = false;
 		}
 	}
 
-	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame, bool bShadow) {
+	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
 		if (!Valid) {
-			_Mesh->draw(CommandBuffer, CurFrame, bShadow);
+			_Mesh->draw(CommandBuffer, CurFrame);
 		}
 	}
 };

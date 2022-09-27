@@ -215,15 +215,15 @@ public:
 	void updateUniformBuffer(const uint32_t& currentImage) {
 		if (bNeedsUpdate[currentImage])
 		{
-			ubo.model = Model;
-			_Mesh->updateUniformBuffer(currentImage, ubo);
+			_Mesh->instanceData[0].model = Model;
+			_Mesh->updateSSBuffer(currentImage);
 			bNeedsUpdate[currentImage] = false;
 		}
 	}
 
-	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame, bool bShadow) {
+	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
 		if (!Valid) {
-			_Mesh->draw(CommandBuffer, CurFrame, bShadow);
+			_Mesh->draw(CommandBuffer, CurFrame);
 		}
 	}
 

@@ -3,8 +3,8 @@
 class TriangleMesh {
 
 public:
-
-	Pipeline::Default* Pipe;
+	std::vector<InstanceData> instanceData;
+	PipelineObject* Pipe;
 
 	GLTFInfo* _GLTF;
 	size_t vertexBufferSize;
@@ -17,11 +17,8 @@ public:
 	VkBuffer indexBuffer = VK_NULL_HANDLE;
 	VmaAllocation indexAllocation = VMA_NULL;
 
-	std::vector<VkBuffer> uniformBuffers = {};
-	std::vector<VmaAllocation> uniformAllocations = {};
-
-	std::vector <VkBuffer> storagespaceBuffers = {};
-	std::vector <VmaAllocation> stragespaceAllocations = {};
+	std::vector <VkBuffer> instanceStorageSpaceBuffers = {};
+	std::vector <VmaAllocation> instanceStorageSpaceAllocations = {};
 
 	TextureObject* Texture_Albedo;
 	TextureObject* Texture_Normal;
@@ -29,28 +26,17 @@ public:
 
 public:
 	
-	//
-	//	TODO: SSBOSize needs passed down differently..
-	//	this is dirty..
-	//	TODO: Separate TriangleMesh & SkinnedTriangleMesh
-	//	this is real dirty...
-	TriangleMesh(Pipeline::Default* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
+	TriangleMesh(PipelineObject* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
 		: Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
-		createUniformBuffers();
 		//
-		//	diiiirty
-		size_t SSBOSize = sizeof(glm::mat4);
-		if (GLTF->InverseBindMatrices.size() > 0)
-		{
-			SSBOSize = sizeof(glm::mat4) * GLTF->InverseBindMatrices.size();
-		}
+		//	Start with a single instance, grow as needed.
+		instanceData.resize(1);
+		size_t SSBOSize = sizeof(InstanceData) * instanceData.size();
 		createStorageBuffer(SSBOSize);
-		//
-		//
 		Texture_Albedo = Albedo;
 		Texture_Normal = Normal;
-		Descriptor = Pipe->createDescriptor(Albedo, Normal, uniformBuffers, storagespaceBuffers, SSBOSize);
+		Descriptor = Pipe->createDescriptor(Albedo, Normal, instanceStorageSpaceBuffers);
 	}
 
 	~TriangleMesh() {
@@ -59,19 +45,16 @@ public:
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, vertexBuffer, vertexAllocation);
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, indexBuffer, indexAllocation);
 		//	Destroy VMA Buffers
-		for (size_t i = 0; i < uniformBuffers.size(); i++) {
-			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, uniformBuffers[i], uniformAllocations[i]);
-		}
-		for (size_t i = 0; i < storagespaceBuffers.size(); i++) {
-			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, storagespaceBuffers[i], stragespaceAllocations[i]);
+		for (size_t i = 0; i < instanceStorageSpaceBuffers.size(); i++) {
+			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, instanceStorageSpaceBuffers[i], instanceStorageSpaceAllocations[i]);
 		}
 		delete Descriptor;
 	}
 
 	void createStorageBuffer(size_t SSBO_Size)
 	{
-		storagespaceBuffers.resize(WorldEngine::VulkanDriver::swapChain.images.size());
-		stragespaceAllocations.resize(WorldEngine::VulkanDriver::swapChain.images.size());
+		instanceStorageSpaceBuffers.resize(WorldEngine::VulkanDriver::swapChain.images.size());
+		instanceStorageSpaceAllocations.resize(WorldEngine::VulkanDriver::swapChain.images.size());
 
 		for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
 			VkBufferCreateInfo ssboBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -83,27 +66,7 @@ public:
 			ssboAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			ssboAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo, &ssboAllocInfo, &storagespaceBuffers[i], &stragespaceAllocations[i], nullptr);
-		}
-	}
-
-	void createUniformBuffers()
-	{
-		uniformBuffers.resize(WorldEngine::VulkanDriver::swapChain.images.size());
-		uniformAllocations.resize(WorldEngine::VulkanDriver::swapChain.images.size());
-
-		for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
-
-			VkBufferCreateInfo uniformBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			uniformBufferInfo.size = sizeof(UniformBufferObject);
-			uniformBufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-			VmaAllocationCreateInfo uniformAllocInfo = {};
-			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &uniformBufferInfo, &uniformAllocInfo, &uniformBuffers[i], &uniformAllocations[i], nullptr);
+			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo, &ssboAllocInfo, &instanceStorageSpaceBuffers[i], &instanceStorageSpaceAllocations[i], nullptr);
 		}
 	}
 
@@ -172,17 +135,10 @@ public:
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
 	}
 
-	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame, bool bShadow)
+	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame)
 	{
 		//	Bind Descriptor Sets
-		if (!bShadow)
-		{
-			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
-		}
-		else {
-			//	TODO: Why do I need to go this deep..?
-			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Shadow()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->DescriptorSets[CurFrame], 0, nullptr);
-		}
+		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
 
 		//	Draw Vertex Buffer
 		VkDeviceSize offsets[] = { 0 };
@@ -192,13 +148,10 @@ public:
 		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
 	}
 
-	void updateUniformBuffer(const uint32_t &currentImage, UniformBufferObject &ubo)
+	//
+	//	TODO: Do away with this? memcpy only changed regions of the buffer when editing instanceData vector.
+	void updateSSBuffer(const uint32_t& currentImage)
 	{
-		memcpy(uniformAllocations[currentImage]->GetMappedData(), &ubo, sizeof(ubo));
-	}
-
-	void updateSSBuffer(const uint32_t& currentImage, void* Data, size_t Size)
-	{
-		memcpy(stragespaceAllocations[currentImage]->GetMappedData(), Data, Size);
+		memcpy(instanceStorageSpaceAllocations[currentImage]->GetMappedData(), instanceData.data(), sizeof(InstanceData) * instanceData.size());
 	}
 };
