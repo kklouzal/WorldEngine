@@ -188,8 +188,11 @@
     <ClInclude Include="Menu.hpp" />
     <ClInclude Include="NetCode.hpp" />
     <ClInclude Include="NetCode.impl.hpp" />
+    <ClInclude Include="Pipe_Animated.hpp" />
     <ClInclude Include="Pipe_CEF.hpp" />
+    <ClInclude Include="Pipe_Composition.hpp" />
     <ClInclude Include="Pipe_Shadow.hpp" />
+    <ClInclude Include="Pipe_Static_Instanced.hpp" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="TinyGLTF.hpp" />
@@ -199,7 +202,7 @@
     <ClInclude Include="LuaScripting.hpp" />
     <ClInclude Include="MainMenu.hpp" />
     <ClInclude Include="MyEventReceiver.hpp" />
-    <ClInclude Include="Pipe_Default.hpp" />
+    <ClInclude Include="Pipe_Static.hpp" />
     <ClInclude Include="EventReceiver.hpp" />
     <ClInclude Include="Forwards.hpp" />
     <ClInclude Include="MaterialCache.hpp" />
@@ -214,6 +217,7 @@
     <ClInclude Include="Tool_Weld.hpp" />
     <ClInclude Include="TriangleMesh.hpp" />
     <ClInclude Include="TriangleMeshSceneNode.hpp" />
+    <ClInclude Include="Vertex.hpp" />
     <ClInclude Include="VHACD.h" />
     <ClInclude Include="vk_mem_alloc.h" />
     <ClInclude Include="volk.h" />
@@ -230,14 +234,18 @@
     <None Include="shaders\cef.vert" />
     <None Include="shaders\deferred.frag" />
     <None Include="shaders\deferred.vert" />
+    <None Include="shaders\Fragment_Animated.frag" />
     <None Include="shaders\Fragment_Default.frag" />
     <None Include="shaders\Fragment_GUI.frag" />
+    <None Include="shaders\Fragment_Static.frag" />
     <None Include="shaders\shadow.geom" />
     <None Include="shaders\shadow.vert" />
     <None Include="shaders\ui.frag" />
     <None Include="shaders\ui.vert" />
+    <None Include="shaders\Vertex_Animated.vert" />
     <None Include="shaders\Vertex_Default.vert" />
     <None Include="shaders\Vertex_GUI.vert" />
+    <None Include="shaders\Vertex_Static.vert" />
     <None Include="Tool_NPC.hpp" />
   </ItemGroup>
   <ItemGroup>

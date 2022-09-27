@@ -11,9 +11,11 @@ namespace Pipeline {
 		std::vector<VkBuffer> uboShadowBuff = {};				//	Cleaned Up
 		std::vector<VmaAllocation> uboShadowAlloc = {};			//	Cleaned Up
 		//
-		std::array<VkClearValue, 4> clearValues = {};
 		VkViewport viewport;
 		VkRect2D scissor;
+		std::array<VkClearValue, 4> clearValues = {};
+		//
+		std::vector<VkRenderPassBeginInfo> renderPass = {};
 
 		~Shadow()
 		{
@@ -29,6 +31,11 @@ namespace Pipeline {
 		Shadow(VkPipelineCache PipelineCache)
 			: PipelineObject()
 		{
+			//
+			viewport = vks::initializers::viewport((float)SHADOWMAP_DIM, (float)SHADOWMAP_DIM, 0.0f, 1.0f);
+			scissor = vks::initializers::rect2D(SHADOWMAP_DIM, SHADOWMAP_DIM, 0, 0);
+			clearValues[0].depthStencil = { 1.0f, 0 };
+			//
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
@@ -67,16 +74,16 @@ namespace Pipeline {
 			pipelineCI.pDynamicState = &dynamicState;
 			//
 			//	Load shader files
-			VkPipelineShaderStageCreateInfo vertShaderStageInfo1 = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-			vertShaderStageInfo1.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vertShaderStageInfo1.module = createShaderModule(readFile("shaders/shadow.vert.spv"));
-			vertShaderStageInfo1.pName = "main";
-			shaderStages[0] = vertShaderStageInfo1;
-			VkPipelineShaderStageCreateInfo fragShaderStageInfo1 = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-			fragShaderStageInfo1.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
-			fragShaderStageInfo1.module = createShaderModule(readFile("shaders/shadow.geom.spv"));
-			fragShaderStageInfo1.pName = "main";
-			shaderStages[1] = fragShaderStageInfo1;
+			VkPipelineShaderStageCreateInfo vertShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+			vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+			vertShaderStageInfo.module = createShaderModule(readFile("shaders/shadow.vert.spv"));
+			vertShaderStageInfo.pName = "main";
+			shaderStages[0] = vertShaderStageInfo;
+			VkPipelineShaderStageCreateInfo fragShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+			fragShaderStageInfo.stage = VK_SHADER_STAGE_GEOMETRY_BIT;
+			fragShaderStageInfo.module = createShaderModule(readFile("shaders/shadow.geom.spv"));
+			fragShaderStageInfo.pName = "main";
+			shaderStages[1] = fragShaderStageInfo;
 			//
 			pipelineCI.pStages = shaderStages.data();
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
@@ -94,7 +101,7 @@ namespace Pipeline {
 			dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 			//	Bind vertex input
 			auto binding = Vertex::getBindingDescription();
-			auto description = Vertex::getAttributeDescriptions();
+			auto description = Vertex::getAttributeDescriptions_Shadow();
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			//
@@ -102,8 +109,8 @@ namespace Pipeline {
 			//	Create composite graphics pipeline
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline));
 			//	Cleanup Shader Modules
-			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, vertShaderStageInfo1.module, nullptr);
-			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, fragShaderStageInfo1.module, nullptr);
+			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, vertShaderStageInfo.module, nullptr);
+			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, fragShaderStageInfo.module, nullptr);
 			//
 			//
 			//	Descriptors
@@ -120,6 +127,7 @@ namespace Pipeline {
 			DescriptorSets.resize(SwapChainCount);
 			uboShadowBuff.resize(SwapChainCount);
 			uboShadowAlloc.resize(SwapChainCount);
+			renderPass.resize(SwapChainCount);
 			for (size_t i = 0; i < SwapChainCount; i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool, &descriptorSetLayout, 1);
@@ -143,11 +151,17 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo_shadow),
 				};
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+
+				//
+				//	Render Pass Info
+				renderPass[i] = vks::initializers::renderPassBeginInfo();
+				renderPass[i].renderPass = WorldEngine::VulkanDriver::frameBuffers.shadow->renderPass;
+				renderPass[i].framebuffer = WorldEngine::VulkanDriver::frameBuffers.shadow->framebuffers[i];
+				renderPass[i].renderArea.extent.width = SHADOWMAP_DIM;
+				renderPass[i].renderArea.extent.height = SHADOWMAP_DIM;
+				renderPass[i].clearValueCount = 1;
+				renderPass[i].pClearValues = clearValues.data();
 			}
-			//
-			clearValues[0].depthStencil = { 1.0f, 0 };
-			viewport = vks::initializers::viewport((float)FB_DIM, (float)FB_DIM, 0.0f, 1.0f);
-			scissor = vks::initializers::rect2D(FB_DIM, FB_DIM, 0, 0);
 		}
 
 		//

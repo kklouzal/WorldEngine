@@ -115,7 +115,7 @@
     <ClInclude Include="Pipe_GUI.hpp">
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
-    <ClInclude Include="Pipe_Default.hpp">
+    <ClInclude Include="Pipe_Static.hpp">
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
     <ClInclude Include="LuaScripting.hpp">
@@ -250,6 +250,18 @@
     <ClInclude Include="Pipe_Shadow.hpp">
       <Filter>Header Files\Pipelines</Filter>
     </ClInclude>
+    <ClInclude Include="Pipe_Composition.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipe_Animated.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
+    <ClInclude Include="Vertex.hpp">
+      <Filter>Header Files\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="Pipe_Static_Instanced.hpp">
+      <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_Default.frag">
@@ -289,6 +301,18 @@
       <Filter>Source Files\Shaders\Geom</Filter>
     </None>
     <None Include="shaders\shadow.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="shaders\Fragment_Animated.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
+    <None Include="shaders\Vertex_Animated.vert">
+      <Filter>Source Files\Shaders\Vert</Filter>
+    </None>
+    <None Include="shaders\Fragment_Static.frag">
+      <Filter>Source Files\Shaders\Frag</Filter>
+    </None>
+    <None Include="shaders\Vertex_Static.vert">
       <Filter>Source Files\Shaders\Vert</Filter>
     </None>
   </ItemGroup>
