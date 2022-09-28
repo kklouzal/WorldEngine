@@ -5,29 +5,32 @@ class TriangleMeshSceneNode : public SceneNode
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
+	//InstanceData& instanceData;
+	size_t instanceIndex;
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
 	TriangleMeshSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), SceneNode() {
+		: _Mesh(Mesh), /*instanceData(Mesh->RegisterInstance()),*/ instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode() {
 		Name = "TriangleMeshSceneNode";
+		//instanceData = _Mesh->RegisterInstance();
 	}
 
 	~TriangleMeshSceneNode() {
 		printf("Destroy TriangleMeshSceneNode\n");
-		delete _Mesh;
 	}
 
 	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
 		if (bNeedsUpdate[CurFrame])
 		{
-			//	TODO: Store index of this SceneNode in our TriangleMesh...probably the first step in the right direction
-			_Mesh->instanceData[0].model = Model;
-			_Mesh->updateSSBuffer(CurFrame);
+			_Mesh->instanceData[instanceIndex].model = Model;
+			//_Mesh->instanceData[0].model = Model;
+			//instanceData.model = Model;
+			//_Mesh->updateSSBuffer(CurFrame);	//TODO: Move this out into main loop..
 			bNeedsUpdate[CurFrame] = false;
 		}
 		if (!Valid) {
-			_Mesh->draw(CommandBuffer, CurFrame);
+			//_Mesh->draw(CommandBuffer, CurFrame);
 		}
 	}
 };

@@ -144,7 +144,7 @@ struct UniformBufferObject {
 
 //
 struct InstanceData {
-	glm::mat4 model;
+	glm::mat4 model{};
 };
 
 struct DescriptorObject {

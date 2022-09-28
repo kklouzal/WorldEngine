@@ -5,6 +5,8 @@ class CharacterSceneNode : public SceneNode
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
+	//InstanceData& instanceData;
+	size_t instanceIndex;
 public:
 	TriangleMesh* _Mesh = nullptr;
 	std::vector<Item*> Items;
@@ -14,11 +16,12 @@ public:
 
 public:
 	CharacterSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), SceneNode()
+		: _Mesh(Mesh), /*instanceData(Mesh->RegisterInstance()),*/ instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode()
 	{
 		printf("Create CharacterSceneNode\n");
 		Name = "Character";
 		canPhys = false;
+		//instanceData = _Mesh->RegisterInstance();
 		//
 		//	Reserve 10 item slots (hotbar slots currently)
 		for (int i = 0; i < 10; i++)
@@ -52,7 +55,6 @@ public:
 
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
-		delete _Mesh;
 	}
 
 	Item* GetCurrentItem() const
@@ -214,13 +216,14 @@ public:
 	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
 		if (bNeedsUpdate[CurFrame])
 		{
-			//	TODO: Store index of this SceneNode in our TriangleMesh...probably the first step in the right direction
-			_Mesh->instanceData[0].model = Model;
-			_Mesh->updateSSBuffer(CurFrame);
+			_Mesh->instanceData[instanceIndex].model = Model;
+			//_Mesh->instanceData[0].model = Model;
+			//instanceData.model = Model;
+			//_Mesh->updateSSBuffer(CurFrame);	//TODO: Move this out into main loop..
 			bNeedsUpdate[CurFrame] = false;
 		}
 		if (!Valid) {
-			_Mesh->draw(CommandBuffer, CurFrame);
+			//_Mesh->draw(CommandBuffer, CurFrame);
 		}
 	}
 

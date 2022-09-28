@@ -3,9 +3,11 @@
 class TriangleMesh {
 
 public:
+	bool bFirstInstance = true;
 	std::vector<InstanceData> instanceData;
 	PipelineObject* Pipe;
 
+	const char* FileName;
 	GLTFInfo* _GLTF;
 	size_t vertexBufferSize;
 	size_t indexBufferSize;
@@ -26,11 +28,11 @@ public:
 
 public:
 	
-	TriangleMesh(PipelineObject* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
-		: Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
+	TriangleMesh(PipelineObject* Pipeline, const char* FileName, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
+		: Pipe(Pipeline), FileName(FileName), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
 		//
-		//	Start with a single instance, grow as needed.
+		//	Start with zero instances, grow as needed.
 		instanceData.resize(1);
 		size_t SSBOSize = sizeof(InstanceData) * instanceData.size();
 		createStorageBuffer(SSBOSize);
@@ -49,6 +51,48 @@ public:
 			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, instanceStorageSpaceBuffers[i], instanceStorageSpaceAllocations[i]);
 		}
 		delete Descriptor;
+	}
+
+	InstanceData& RegisterInstance()
+	{
+		instanceData.emplace_back();
+		ResizeInstanceBuffer();
+		return instanceData.back();
+	}
+
+	size_t RegisterInstanceIndex()
+	{
+		printf("Register Instance Index\n");
+		if (instanceData.size() == 1 && bFirstInstance)
+		{
+			bFirstInstance = false;
+			printf("Return 0 Index\n");
+			return 0;
+		}
+		instanceData.push_back(InstanceData());
+		ResizeInstanceBuffer();
+		printf("Return New Index\n");
+		return instanceData.size() - 1;
+	}
+
+	//
+	//	TODO: This is bad.. Need to ensure any of the buffers aren't currently in use.
+	void ResizeInstanceBuffer()
+	{
+		printf("Resize Instance Buffer\n");
+		//
+		//	Delete
+		for (size_t i = 0; i < instanceStorageSpaceBuffers.size(); i++) {
+			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, instanceStorageSpaceBuffers[i], instanceStorageSpaceAllocations[i]);
+		}
+		//
+		//	Recreate
+		size_t SSBOSize = sizeof(InstanceData) * instanceData.size();
+		createStorageBuffer(SSBOSize);
+		Pipe->updateDescriptor(Descriptor, Texture_Albedo, Texture_Normal, instanceStorageSpaceBuffers);
+		for (size_t i = 0; i < instanceStorageSpaceBuffers.size(); i++) {
+			memcpy(instanceStorageSpaceAllocations[i]->GetMappedData(), instanceData.data(), SSBOSize);
+		}
 	}
 
 	void createStorageBuffer(size_t SSBO_Size)
@@ -144,8 +188,7 @@ public:
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);
 		vkCmdBindIndexBuffer(CmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), instanceData.size(), 0, 0, 0);
 	}
 
 	//

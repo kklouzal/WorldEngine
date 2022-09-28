@@ -177,10 +177,11 @@ namespace WorldEngine
 		//	World Create Function
 		WorldSceneNode* SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* File)
 		{
-			Pipeline::Static* Pipe = WorldEngine::MaterialCache::GetPipe_Static();
+			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
+			//
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
-
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos);
+			//
 			WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
 
 			btCollisionShape* ColShape;
@@ -219,13 +220,14 @@ namespace WorldEngine
 		//	TriangleMesh Create Function
 		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
 		{
-			Pipeline::Static* Pipe = WorldEngine::MaterialCache::GetPipe_Static();
-			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
-			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
+			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos);
+			//
 			TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 			//
+			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			MeshNode->_CollisionShape = ColShape;
 			btTransform Transform;
 			Transform.setIdentity();
@@ -292,13 +294,14 @@ namespace WorldEngine
 		//	Character Create Function
 		CharacterSceneNode* SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position)
 		{
-			Pipeline::Static* Pipe = WorldEngine::MaterialCache::GetPipe_Static();
-			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
-			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
+			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos);
+			//
 			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
 			//
+			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			MeshNode->_CollisionShape = ColShape;
 			btTransform Transform;
 			Transform.setIdentity();

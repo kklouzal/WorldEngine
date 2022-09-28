@@ -696,8 +696,15 @@ namespace WorldEngine
 			//	Draw all SceneNodes
 			for (auto& Node : SceneGraph::SceneNodes) {
 				if (Node.second) {
+					//
+					//	This just updates the SSBO inside the nodes TriangleMesh
 					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
 				}
+			}
+			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
+			{
+				Mesh->updateSSBuffer(currentFrame);
+				Mesh->draw(offscreenCommandBuffers[currentFrame], currentFrame);
 			}
 			//
 			//	End scene node pass

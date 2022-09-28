@@ -3,7 +3,32 @@
 namespace Pipeline {
 	struct Static : public PipelineObject
 	{
-		~Static() {}
+		std::vector<TriangleMesh*> MeshCache;
+
+		TriangleMesh* createMesh(const char* FileName, GLTFInfo* GLTFInfo_)
+		{
+			//
+			//	Return mesh if already exists
+			for (auto& Mesh : MeshCache) {
+				if (Mesh->FileName == FileName) {
+					printf("Return Existing Mesh\n");
+					return Mesh;
+				}
+			}
+			//
+			//	Create mesh if not exists
+			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex);
+			MeshCache.push_back(Mesh);
+			printf("Return New Mesh\n");
+			return Mesh;
+		}
+
+		~Static()
+		{
+			for (auto& Mesh : MeshCache) {
+				delete Mesh;
+			}
+		}
 
 		Static(VkPipelineCache PipelineCache)
 			: PipelineObject()
@@ -147,6 +172,39 @@ namespace Pipeline {
 			}
 
 			return NewDescriptor;
+		}
+
+		void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers)
+		{
+			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
+				VkDescriptorBufferInfo bufferInfo = {};
+				bufferInfo.buffer = StorageBuffers[i];
+				bufferInfo.offset = 0;
+				bufferInfo.range = VK_WHOLE_SIZE;
+
+				VkDescriptorImageInfo textureImageColor =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						TextureColor->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorImageInfo textureImageNormal =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						TextureNormal->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					// Binding 0 : Instancing SSBO
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo),
+					// Binding 1 : Color Texture
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImageColor),
+					// Binding 2 : Normal Texture
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageNormal)
+				};
+
+				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+			}
 		}
 		//
 		//
