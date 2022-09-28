@@ -162,7 +162,6 @@ namespace WorldEngine
 							//
 							if (bSuccess && !WorldEngine::SceneGraph::SceneNodes.count(NodeID))
 							{
-								printf("MASS %f\n", Mass);
 								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
 							}
 						}

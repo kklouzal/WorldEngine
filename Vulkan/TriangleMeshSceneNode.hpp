@@ -1,37 +1,30 @@
 #pragma once
 
-class TriangleMeshSceneNode : public SceneNode
-{
-	//
-	//	If Valid is false, this node will be resubmitted for drawing.
-	bool Valid = false;
-	//InstanceData& instanceData;
+class TriangleMeshSceneNode : public SceneNode {
 	size_t instanceIndex;
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
 	TriangleMeshSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), /*instanceData(Mesh->RegisterInstance()),*/ instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode() {
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode() {
 		Name = "TriangleMeshSceneNode";
-		//instanceData = _Mesh->RegisterInstance();
 	}
 
 	~TriangleMeshSceneNode() {
 		printf("Destroy TriangleMeshSceneNode\n");
 	}
 
-	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
+	void drawFrame(const uint32_t& CurFrame) {
 		if (bNeedsUpdate[CurFrame])
 		{
 			_Mesh->instanceData[instanceIndex].model = Model;
-			//_Mesh->instanceData[0].model = Model;
-			//instanceData.model = Model;
-			//_Mesh->updateSSBuffer(CurFrame);	//TODO: Move this out into main loop..
 			bNeedsUpdate[CurFrame] = false;
 		}
-		if (!Valid) {
-			//_Mesh->draw(CommandBuffer, CurFrame);
-		}
+	}
+
+	void GPUUpdatePosition()
+	{
+		_Mesh->instanceData[instanceIndex].model = Model;
 	}
 };
 
@@ -48,6 +41,7 @@ public:
 	void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
 		_btPos.getOpenGLMatrix(ModelPtr);
+		_SceneNode->GPUUpdatePosition();
 	}
 
 	void setWorldTransform(const btTransform& worldTrans) {
@@ -61,6 +55,8 @@ public:
 		if (_SceneNode->_Camera) {
 			_SceneNode->_Camera->SetPosition(_SceneNode->Pos + _SceneNode->_Camera->getOffset());
 		}
+		//
+		_SceneNode->GPUUpdatePosition();
 		//
 		//	Update server with our new values
 		// 

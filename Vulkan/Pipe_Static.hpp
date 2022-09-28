@@ -11,7 +11,6 @@ namespace Pipeline {
 			//	Return mesh if already exists
 			for (auto& Mesh : MeshCache) {
 				if (Mesh->FileName == FileName) {
-					printf("Return Existing Mesh\n");
 					return Mesh;
 				}
 			}
@@ -19,7 +18,6 @@ namespace Pipeline {
 			//	Create mesh if not exists
 			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex);
 			MeshCache.push_back(Mesh);
-			printf("Return New Mesh\n");
 			return Mesh;
 		}
 

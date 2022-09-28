@@ -694,13 +694,13 @@ namespace WorldEngine
 			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Static()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
-			for (auto& Node : SceneGraph::SceneNodes) {
-				if (Node.second) {
-					//
-					//	This just updates the SSBO inside the nodes TriangleMesh
-					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
-				}
-			}
+			//for (auto& Node : SceneGraph::SceneNodes) {
+			//	if (Node.second) {
+			//		//
+			//		//	This just updates the SSBO inside the nodes TriangleMesh
+			//		Node.second->drawFrame(currentFrame);
+			//	}
+			//}
 			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
 			{
 				Mesh->updateSSBuffer(currentFrame);

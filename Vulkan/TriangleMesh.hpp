@@ -12,7 +12,6 @@ public:
 	size_t vertexBufferSize;
 	size_t indexBufferSize;
 
-
 	VkBuffer vertexBuffer = VK_NULL_HANDLE;
 	VmaAllocation vertexAllocation = VMA_NULL;
 
@@ -53,25 +52,15 @@ public:
 		delete Descriptor;
 	}
 
-	InstanceData& RegisterInstance()
-	{
-		instanceData.emplace_back();
-		ResizeInstanceBuffer();
-		return instanceData.back();
-	}
-
 	size_t RegisterInstanceIndex()
 	{
-		printf("Register Instance Index\n");
 		if (instanceData.size() == 1 && bFirstInstance)
 		{
 			bFirstInstance = false;
-			printf("Return 0 Index\n");
 			return 0;
 		}
 		instanceData.push_back(InstanceData());
 		ResizeInstanceBuffer();
-		printf("Return New Index\n");
 		return instanceData.size() - 1;
 	}
 
@@ -79,7 +68,6 @@ public:
 	//	TODO: This is bad.. Need to ensure any of the buffers aren't currently in use.
 	void ResizeInstanceBuffer()
 	{
-		printf("Resize Instance Buffer\n");
 		//
 		//	Delete
 		for (size_t i = 0; i < instanceStorageSpaceBuffers.size(); i++) {
@@ -179,11 +167,12 @@ public:
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
 	}
 
-	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame)
+	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame, bool bShadow = false)
 	{
-		//	Bind Descriptor Sets
-		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
-
+		if (!bShadow) {
+			//	Bind Descriptor Sets
+			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
+		}
 		//	Draw Vertex Buffer
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);
