@@ -123,6 +123,7 @@ struct DLight {
 struct DComposition {
 	DLight lights[LIGHT_COUNT];
 	glm::i32 debugDisplayTarget = 0;
+	glm::vec4 camPos{};
 };
 struct DShadow {
 	glm::mat4 mvp[LIGHT_COUNT];

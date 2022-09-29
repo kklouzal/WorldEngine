@@ -143,7 +143,8 @@ namespace Pipeline {
 				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
 				commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 				commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
-
+				//
+				//	Begin recording state
 				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
 				vkCmdSetViewport(CommandBuffers[i], 0, 1, &viewport);
 				vkCmdSetScissor(CommandBuffers[i], 0, 1, &scissor);

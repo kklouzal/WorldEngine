@@ -6,6 +6,7 @@ public:
 	bool bCastsShadows;
 	bool bFirstInstance = true;
 	std::vector<InstanceData> instanceData;
+	std::vector<glm::mat4*> instanceData_Shadow;
 	PipelineObject* Pipe;
 
 	const char* FileName;
@@ -34,6 +35,10 @@ public:
 		//
 		//	Start with zero instances, grow as needed.
 		instanceData.resize(1);
+		if (bCastsShadows)
+		{
+			instanceData_Shadow.resize(1);
+		}
 		size_t SSBOSize = sizeof(InstanceData) * instanceData.size();
 		createStorageBuffer(SSBOSize);
 		Texture_Albedo = Albedo;
@@ -58,10 +63,21 @@ public:
 		if (instanceData.size() == 1 && bFirstInstance)
 		{
 			bFirstInstance = false;
+			//
+			//	Invalidate our command buffers
+			WorldEngine::MaterialCache::bRecordBuffers = true;
 			return 0;
 		}
 		instanceData.push_back(InstanceData());
 		ResizeInstanceBuffer();
+		if (bCastsShadows)
+		{
+			instanceData_Shadow.resize(instanceData.size());
+		}
+		//
+		//	Invalidate our command buffers
+		WorldEngine::MaterialCache::bRecordBuffers = true;
+		//
 		return instanceData.size() - 1;
 	}
 

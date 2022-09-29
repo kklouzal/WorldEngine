@@ -27,5 +27,12 @@ public:
 	void GPUUpdatePosition()
 	{
 		_Mesh->instanceData[instanceIndex].model = Model;
+		if (_Mesh->bCastsShadows)
+		{
+			if (_Mesh->instanceData_Shadow[instanceIndex] != NULL)
+			{
+				*_Mesh->instanceData_Shadow[instanceIndex] = Model;
+			}
+		}
 	}
 };

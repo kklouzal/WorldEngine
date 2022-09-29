@@ -397,6 +397,7 @@ namespace WorldEngine
 			//	Core Classes
 			SceneGraph::Initialize();
 			MaterialCache::Initialize();
+			MaterialCache::GetPipe_Composition()->ResetCommandPools(commandBuffers_CMP);
 			MaterialCache::GetPipe_CEF()->ResetCommandPools(commandBuffers_CEF);
 		}
 
@@ -606,49 +607,15 @@ namespace WorldEngine
 			//==================================================
 			//
 			//		BEGIN SHADOW PASS
+			//		(Pre-Recorded Command Buffers)
 			//
 			//
-			VkCommandBufferBeginInfo cmdBufInfo_shadow = vks::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Shadow[currentFrame], &cmdBufInfo_shadow));
-
-			vkCmdSetViewport(primaryCommandBuffers_Shadow[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->viewport);
-			vkCmdSetScissor(primaryCommandBuffers_Shadow[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->scissor);
-			vkCmdSetDepthBias(primaryCommandBuffers_Shadow[currentFrame], depthBiasConstant, 0.0f, depthBiasSlope);
-			vkCmdBeginRenderPass(primaryCommandBuffers_Shadow[currentFrame], &WorldEngine::MaterialCache::GetPipe_Shadow()->renderPass[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdBindPipeline(primaryCommandBuffers_Shadow[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Shadow()->graphicsPipeline);
-
-
-			// hacky instancing
-			vkCmdBindDescriptorSets(primaryCommandBuffers_Shadow[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Shadow()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->DescriptorSets[currentFrame], 0, nullptr);
-
-			size_t indexPos = 0;
-			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
+			if (MaterialCache::bRecordBuffers)
 			{
-				//
-				//	Only draw shadow casing meshes
-				if (!Mesh->bCastsShadows) {
-					continue;
-				}
-				//
-				VkDeviceSize offsets[] = { 0 };
-				vkCmdBindVertexBuffers(primaryCommandBuffers_Shadow[currentFrame], 0, 1, &Mesh->vertexBuffer, offsets);
-				vkCmdBindIndexBuffer(primaryCommandBuffers_Shadow[currentFrame], Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-				uint32_t indexSize = indexSize = Mesh->_GLTF->Indices.size();
-				size_t instanceCount = 0;
-				for (auto& Instance : Mesh->instanceData)
-				{
-					WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[indexPos + instanceCount] = Instance.model;
-					instanceCount++;
-				}
-				vkCmdDrawIndexed(primaryCommandBuffers_Shadow[currentFrame], indexSize, instanceCount, 0, 0, indexPos);
-				indexPos += instanceCount;
+				//	TODO: split this out into the 3 separate frames_in_flight
+				MaterialCache::GetPipe_Shadow()->ResetCommandPools(primaryCommandBuffers_Shadow, MaterialCache::GetPipe_Static()->MeshCache);
+				MaterialCache::bRecordBuffers = false;
 			}
-			// end hacky instancing
-
-			//
-			//	End shadow pass
-			vkCmdEndRenderPass(primaryCommandBuffers_Shadow[currentFrame]);
-			VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Shadow[currentFrame]));
 			//==================================================
 
 			//==================================================
@@ -688,9 +655,6 @@ namespace WorldEngine
 			vkCmdEndRenderPass(primaryCommandBuffers_Node[currentFrame]);
 			VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Node[currentFrame]));
 			//==================================================
-			//
-			//	Submit work to GPU
-			//VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo1, VK_NULL_HANDLE));
 
 			//==================================================
 			//
@@ -729,21 +693,8 @@ namespace WorldEngine
 			//==================================================
 			// 
 			//		START DRAWING DEFERRED COMPOSITION
-			// 
+			//		(Pre-Recorded Command Buffers)
 			//
-			//	Begin recording state
-			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_CMP[currentFrame], &commandBufferBeginInfo));
-			vkCmdSetViewport(commandBuffers_CMP[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->viewport);
-			vkCmdSetScissor(commandBuffers_CMP[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->scissor);
-			//
-			//	Draw our combined image view over the entire screen
-			vkCmdBindPipeline(commandBuffers_CMP[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Composition()->graphicsPipeline);
-			vkCmdPushConstants(commandBuffers_CMP[currentFrame], MaterialCache::GetPipe_Composition()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
-			vkCmdBindDescriptorSets(commandBuffers_CMP[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Composition()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Composition()->DescriptorSets[currentFrame], 0, nullptr);
-			vkCmdDraw(commandBuffers_CMP[currentFrame], 3, 1, 0, 0);
-			//
-			//	End recording state
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_CMP[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_CMP[currentFrame]);
 			//==================================================
 
@@ -839,7 +790,7 @@ namespace WorldEngine
 				WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;
 				uboComposition.lights[i].viewMatrix = WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i];
 			}
-
+			uboComposition.camPos = glm::vec4(WorldEngine::SceneGraph::GetCamera().Pos, 1.0f);
 			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
 			WorldEngine::MaterialCache::GetPipe_Shadow()->UploadBuffersToGPU(CurFrame);
 		}

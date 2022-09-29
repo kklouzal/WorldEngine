@@ -1,5 +1,13 @@
 #pragma once
 //
+namespace WorldEngine
+{
+	namespace MaterialCache
+	{
+		bool bRecordBuffers = true;
+	}
+}
+//
 #include "PipelineObject.hpp"
 //
 #include "Import_GLTF.hpp"
