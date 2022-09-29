@@ -411,6 +411,7 @@ namespace WorldEngine
 			//	Core Classes
 			SceneGraph::Initialize();
 			MaterialCache::Initialize();
+			MaterialCache::GetPipe_CEF()->ResetCommandPools(commandBuffers_CEF);
 		}
 
 		//
@@ -632,36 +633,27 @@ namespace WorldEngine
 			// hacky instancing
 			vkCmdBindDescriptorSets(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Shadow()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->DescriptorSets[currentFrame], 0, nullptr);
 
-			size_t instanceCount = 0;
-
-			bool bDrawn = false;
-			uint32_t indexSize = 0;
-			for (auto& Node : SceneGraph::SceneNodes) {
-				if (Node.second)
-				{
-					if (Node.second->Name == "TriangleMeshSceneNode")
-					{
-						if (!bDrawn)
-						{
-							((TriangleMeshSceneNode*)Node.second)->_Mesh;
-							VkDeviceSize offsets[] = { 0 };
-							vkCmdBindVertexBuffers(offscreenCommandBuffers[currentFrame], 0, 1, &((TriangleMeshSceneNode*)Node.second)->_Mesh->vertexBuffer, offsets);
-							vkCmdBindIndexBuffer(offscreenCommandBuffers[currentFrame], ((TriangleMeshSceneNode*)Node.second)->_Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-							indexSize = ((TriangleMeshSceneNode*)Node.second)->_Mesh->_GLTF->Indices.size();
-							bDrawn = true;
-						}
-						if (instanceCount < 1024)
-						{
-							WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[instanceCount] = Node.second->Model;
-						}
-						instanceCount++;
-					}
-				}
-			}
-
-			if (bDrawn && instanceCount > 0)
+			size_t indexPos = 0;
+			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
 			{
-				vkCmdDrawIndexed(offscreenCommandBuffers[currentFrame], indexSize, instanceCount, 0, 0, 0);
+				//
+				//	Only draw shadow casing meshes
+				if (!Mesh->bCastsShadows) {
+					continue;
+				}
+				//
+				VkDeviceSize offsets[] = { 0 };
+				vkCmdBindVertexBuffers(offscreenCommandBuffers[currentFrame], 0, 1, &Mesh->vertexBuffer, offsets);
+				vkCmdBindIndexBuffer(offscreenCommandBuffers[currentFrame], Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+				uint32_t indexSize = indexSize = Mesh->_GLTF->Indices.size();
+				size_t instanceCount = 0;
+				for (auto& Instance : Mesh->instanceData)
+				{
+					WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[indexPos + instanceCount] = Instance.model;
+					instanceCount++;
+				}
+				vkCmdDrawIndexed(offscreenCommandBuffers[currentFrame], indexSize, instanceCount, 0, 0, indexPos);
+				indexPos += instanceCount;
 			}
 			// end hacky instancing
 
@@ -694,13 +686,6 @@ namespace WorldEngine
 			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Static()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
-			//for (auto& Node : SceneGraph::SceneNodes) {
-			//	if (Node.second) {
-			//		//
-			//		//	This just updates the SSBO inside the nodes TriangleMesh
-			//		Node.second->drawFrame(currentFrame);
-			//	}
-			//}
 			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
 			{
 				Mesh->updateSSBuffer(currentFrame);
@@ -771,20 +756,8 @@ namespace WorldEngine
 			//==================================================
 			// 
 			//		START DRAWING CEF
-			// 
+			//		(Pre-Recorded Command Buffers)
 			//
-			//	Begin recording state
-			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_CEF[currentFrame], &commandBufferBeginInfo));
-			vkCmdSetViewport(commandBuffers_CEF[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->viewport);
-			vkCmdSetScissor(commandBuffers_CEF[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->scissor);
-			//
-			//	Draw CEF fullscreen triangle
-			vkCmdBindPipeline(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->graphicsPipeline);
-			vkCmdBindDescriptorSets(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_CEF()->DescriptorSets_Composition[currentFrame], 0, nullptr);
-			vkCmdDraw(commandBuffers_CEF[currentFrame], 3, 1, 0, 0);
-			//
-			//	End recording state
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_CEF[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_CEF[currentFrame]);
 			//==================================================
 
@@ -835,7 +808,6 @@ namespace WorldEngine
 		// Update lights and parameters passed to the composition shaders
 		inline void updateUniformBufferComposition(const size_t& CurFrame)
 		{
-			
 			// White
 			uboComposition.lights[0].position = glm::vec4(50.0f, -70.0f, 50.0f, 0.0f);
 			uboComposition.lights[0].color = glm::vec4(1.5f);
@@ -860,7 +832,6 @@ namespace WorldEngine
 			uboComposition.lights[5].position = glm::vec4(175.0f, -70.0f, 175.0f, 0.0f);
 			uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
 			uboComposition.lights[5].target = SceneGraph::GetCamera().CPC.pos;
-
 
 			for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 			{

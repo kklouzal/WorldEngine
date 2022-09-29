@@ -180,7 +180,7 @@ namespace WorldEngine
 			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			TriangleMesh* Mesh = Pipe->createMesh(File, Infos);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, false);
 			//
 			WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
 
@@ -223,7 +223,7 @@ namespace WorldEngine
 			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			TriangleMesh* Mesh = Pipe->createMesh(File, Infos);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, true);
 			//
 			TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 			//
@@ -297,7 +297,7 @@ namespace WorldEngine
 			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			TriangleMesh* Mesh = Pipe->createMesh(File, Infos);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, true);
 			//
 			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
 			//

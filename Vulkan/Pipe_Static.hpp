@@ -5,7 +5,7 @@ namespace Pipeline {
 	{
 		std::vector<TriangleMesh*> MeshCache;
 
-		TriangleMesh* createMesh(const char* FileName, GLTFInfo* GLTFInfo_)
+		TriangleMesh* createMesh(const char* FileName, GLTFInfo* GLTFInfo_, bool bCastsShadows)
 		{
 			//
 			//	Return mesh if already exists
@@ -16,7 +16,7 @@ namespace Pipeline {
 			}
 			//
 			//	Create mesh if not exists
-			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex);
+			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex, bCastsShadows);
 			MeshCache.push_back(Mesh);
 			return Mesh;
 		}

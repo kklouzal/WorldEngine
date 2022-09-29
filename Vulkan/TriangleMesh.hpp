@@ -3,6 +3,7 @@
 class TriangleMesh {
 
 public:
+	bool bCastsShadows;
 	bool bFirstInstance = true;
 	std::vector<InstanceData> instanceData;
 	PipelineObject* Pipe;
@@ -27,8 +28,8 @@ public:
 
 public:
 	
-	TriangleMesh(PipelineObject* Pipeline, const char* FileName, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
-		: Pipe(Pipeline), FileName(FileName), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
+	TriangleMesh(PipelineObject* Pipeline, const char* FileName, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal, bool bCastsShadows)
+		: bCastsShadows(bCastsShadows), Pipe(Pipeline), FileName(FileName), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
 		//
 		//	Start with zero instances, grow as needed.
