@@ -623,28 +623,8 @@ namespace WorldEngine
 			//==================================================
 			//
 			//		BEGIN SCENE NODE PASS
+			//		(Pre-Recorded Command Buffers)
 			//
-			//
-			//VkCommandBufferBeginInfo cmdBufInfo_Node = vks::initializers::commandBufferBeginInfo();
-			//VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Node[currentFrame], &cmdBufInfo_Node));
-
-			////
-			////	Begin recording commandbuffer
-			//vkCmdBeginRenderPass(primaryCommandBuffers_Node[currentFrame], &renderPass_Geometry[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
-			//vkCmdSetViewport(primaryCommandBuffers_Node[currentFrame], 0, 1, &viewport_Deferred);
-			//vkCmdSetScissor(primaryCommandBuffers_Node[currentFrame], 0, 1, &scissor_Deferred);
-			//vkCmdBindPipeline(primaryCommandBuffers_Node[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Static()->graphicsPipeline);
-			////
-			////	Draw all SceneNodes
-			//for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
-			//{
-			//	Mesh->updateSSBuffer(currentFrame);
-			//	Mesh->draw(primaryCommandBuffers_Node[currentFrame], currentFrame);
-			//}
-			////
-			////	End scene node pass
-			//vkCmdEndRenderPass(primaryCommandBuffers_Node[currentFrame]);
-			//VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Node[currentFrame]));
 			if (MaterialCache::bRecordBuffers)
 			{
 				MaterialCache::GetPipe_Static()->ResetCommandPools(primaryCommandBuffers_Node, MaterialCache::GetPipe_Static()->MeshCache);
