@@ -17,18 +17,18 @@ namespace WorldEngine
 		VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		//
 		//	Framebuffer Resources
-		std::vector<VkFramebuffer>frameBuffers_Main;			//	Cleaned Up
+		std::vector<VkFramebuffer>frameBuffers_Main;					//	Cleaned Up
 		struct {
 			Framebuffer* deferred;
 			Framebuffer* shadow;
-		} frameBuffers;											//	Cleaned Up
+		} frameBuffers;													//	Cleaned Up
 		//
 		//	DepthStencil Resources
 		struct {
 			VkImage image;
 			VmaAllocation allocation;
 			VkImageView view;
-		} depthStencil;											//	Cleaned Up
+		} depthStencil;													//	Cleaned Up
 		//
 		//	Per-Frame Synchronization Object Resources
 		struct {
@@ -37,59 +37,61 @@ namespace WorldEngine
 			VkSemaphore renderComplete;
 			VkSemaphore offscreenSync;
 			VkFence inFlightFence;
-		} semaphores[3];										//	Cleaned Up
+		} semaphores[3];												//	Cleaned Up
 		//
 		//	Frames-In-Flight
-		std::vector<VkFence> imagesInFlight;					//	Doesnt Need Cleanup
-		uint32_t currentImage = 0;								//
-		uint32_t currentFrame = 0;								//
+		std::vector<VkFence> imagesInFlight;							//	Doesnt Need Cleanup
+		uint32_t currentImage = 0;										//
+		uint32_t currentFrame = 0;										//
 
-		GLFWwindow* _Window = nullptr;							//
-		uint32_t glfwExtensionCount = 0;						//
-		const char** glfwExtensions;							//
-		VkInstance instance = VK_NULL_HANDLE;					//	Cleaned Up
+		GLFWwindow* _Window = nullptr;									//
+		uint32_t glfwExtensionCount = 0;								//
+		const char** glfwExtensions;									//
+		VkInstance instance = VK_NULL_HANDLE;							//	Cleaned Up
 
-		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;		//	Cleaned Up
-		VkPhysicalDeviceProperties deviceProperties;			//
-		VkPhysicalDeviceFeatures deviceFeatures;				//
-		VkPhysicalDeviceFeatures enabledFeatures{};				//
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;				//	Cleaned Up
+		VkPhysicalDeviceProperties deviceProperties;					//
+		VkPhysicalDeviceFeatures deviceFeatures;						//
+		VkPhysicalDeviceFeatures enabledFeatures{};						//
 		std::vector<const char*> enabledDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };	//
-		std::vector<const char*> enabledInstanceExtensions;		//
-		VkQueue graphicsQueue = VK_NULL_HANDLE;					//
-		VkQueue presentQueue = VK_NULL_HANDLE;					//
-		VkSubmitInfo submitInfo;								//
+		std::vector<const char*> enabledInstanceExtensions;				//
+		VkQueue graphicsQueue = VK_NULL_HANDLE;							//
+		VkQueue presentQueue = VK_NULL_HANDLE;							//
+		VkSubmitInfo submitInfo1;										//
+		VkSubmitInfo submitInfo2;										//
 		//
-		VkFormat depthFormat;									//
+		VkFormat depthFormat;											//
 		//
 		//	MAYBE only need a single pool and primary buffer..
-		std::vector <VkCommandPool> commandPools;				//	Cleaned Up
-		std::vector <VkCommandBuffer> primaryCommandBuffers;	//	Doesnt Need Cleanup
-		std::vector <VkCommandBuffer> offscreenCommandBuffers;	//	Doesnt Need Cleanup
+		std::vector <VkCommandPool> commandPools;						//	Cleaned Up
+		std::vector <VkCommandBuffer> primaryCommandBuffers_OnScreen;	//	Doesnt Need Cleanup
+		std::vector <VkCommandBuffer> primaryCommandBuffers_Shadow;		//	Doesnt Need Cleanup
+		std::vector <VkCommandBuffer> primaryCommandBuffers_Node;		//	Doesnt Need Cleanup
 
-		VkRenderPass renderPass = VK_NULL_HANDLE;				//	Cleaned Up
+		VkRenderPass renderPass = VK_NULL_HANDLE;						//	Cleaned Up
 
 		float depthBiasConstant = 1.25f;
 		float depthBiasSlope = 1.75f;
 
-		VkViewport viewport_Deferred;							//
-		VkRect2D scissor_Deferred;								//
-		std::array<VkClearValue, 4> clearValues_Deferred;		//
+		VkViewport viewport_Deferred;									//
+		VkRect2D scissor_Deferred;										//
+		std::array<VkClearValue, 4> clearValues_Deferred;				//
 
-		std::vector<VkCommandBuffer> commandBuffers;			//	Doesnt Need Cleanup
-		std::vector<VkCommandBuffer> commandBuffers_Push;		//	Doesnt Need Cleanup
-		std::vector<VkCommandBuffer> commandBuffers_GUI;		//	Doesnt Need Cleanup
-		std::vector<VkCommandBuffer> commandBuffers_CEF;		//	Doesnt Need Cleanup
-		std::vector<VkCommandBuffer> commandBuffers_Shadow;		//	Doesnt Need Cleanup
+		std::vector<VkRenderPassBeginInfo> renderPass_Geometry;
 
-		DComposition uboComposition;							//	Doesnt Need Cleanup
-		std::vector<VkBuffer> uboCompositionBuff = {};			//	Cleaned Up
-		std::vector<VmaAllocation> uboCompositionAlloc = {};	//	Cleaned Up
+		std::vector<VkCommandBuffer> commandBuffers_CMP;				//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_GUI;				//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_CEF;				//	Doesnt Need Cleanup
+
+		DComposition uboComposition;									//	Doesnt Need Cleanup
+		std::vector<VkBuffer> uboCompositionBuff = {};					//	Cleaned Up
+		std::vector<VmaAllocation> uboCompositionAlloc = {};			//	Cleaned Up
 
 		// Core Classes
-		VmaAllocator allocator = VMA_NULL;						//	Cleaned Up
-		VulkanSwapChain swapChain;								//	Cleaned Up
-		VulkanDevice* _VulkanDevice;							//	Cleaned Up
-		EventReceiver* _EventReceiver;							//	Cleaned Up
+		VmaAllocator allocator = VMA_NULL;								//	Cleaned Up
+		VulkanSwapChain swapChain;										//	Cleaned Up
+		VulkanDevice* _VulkanDevice;									//	Cleaned Up
+		EventReceiver* _EventReceiver;									//	Cleaned Up
 		//
 		//	Bullet Physics
 		btDefaultCollisionConfiguration* collisionConfiguration;
@@ -185,6 +187,7 @@ namespace WorldEngine
 #include "NetCode.hpp"
 
 #include "CEF.hpp"
+#include "Camera.hpp"
 #include "MaterialCache.hpp"
 #include "GUI.hpp"
 
@@ -272,18 +275,12 @@ namespace WorldEngine
 				vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
 			}
 			//
-			//	Per-Frame Primary Command Buffers
-			commandBuffers.resize(frameBuffers_Main.size());
+			//	Per-Frame Secondary Composition Command Buffers
+			commandBuffers_CMP.resize(frameBuffers_Main.size());
 			for (int i = 0; i < frameBuffers_Main.size(); i++)
 			{
 				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers[i]));
-			}
-			commandBuffers_Push.resize(frameBuffers_Main.size());
-			for (int i = 0; i < frameBuffers_Main.size(); i++)
-			{
-				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers_Push[i]));
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers_CMP[i]));
 			}
 			//
 			//	Per-Frame Secondary GUI Command Buffers
@@ -300,14 +297,6 @@ namespace WorldEngine
 			{
 				VkCommandBufferAllocateInfo cmdBufAllocateInfo_CEF = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_CEF, &commandBuffers_CEF[i]));
-			}
-			//
-			//	Per-Frame Secondary Shadow Command Buffers
-			commandBuffers_Shadow.resize(frameBuffers_Main.size());
-			for (int i = 0; i < frameBuffers_Main.size(); i++)
-			{
-				VkCommandBufferAllocateInfo cmdBufAllocateInfo_CEF = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
-				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo_CEF, &commandBuffers_Shadow[i]));
 			}
 			//
 			//	Per-Frame Synchronization Objects
@@ -411,6 +400,8 @@ namespace WorldEngine
 			//	Core Classes
 			SceneGraph::Initialize();
 			MaterialCache::Initialize();
+			MaterialCache::GetPipe_Composition()->ResetCommandPools(commandBuffers_CMP);
+			MaterialCache::GetPipe_CEF()->ResetCommandPools(commandBuffers_CEF);
 		}
 
 		//
@@ -518,7 +509,6 @@ namespace WorldEngine
 					//if (isWorld) {
 						dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
 					//}
-					SceneGraph::updateUniformBuffer(currentFrame);
 					updateUniformBufferComposition(currentFrame);
 					//
 					//	Frustum Culling
@@ -607,107 +597,44 @@ namespace WorldEngine
 			//
 			// 
 			//	Wait for this semaphore to signal
-			submitInfo.pWaitSemaphores = &semaphores[currentFrame].presentComplete;
+			submitInfo1.pWaitSemaphores = &semaphores[currentFrame].presentComplete;
 			//	Signal this semaphore when we complete
-			submitInfo.pSignalSemaphores = &semaphores[currentFrame].offscreenSync;
+			submitInfo1.pSignalSemaphores = &semaphores[currentFrame].offscreenSync;
 			//	Work to submit to GPU
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &offscreenCommandBuffers[currentFrame];
+			submitInfo1.commandBufferCount = 2;
+			std::vector<VkCommandBuffer> offscreenBuffers = { primaryCommandBuffers_Shadow[currentFrame], primaryCommandBuffers_Node[currentFrame] };
+			submitInfo1.pCommandBuffers = offscreenBuffers.data();
+			submitInfo1.pWaitDstStageMask = &submitPipelineStages;
 			//
 
 			//==================================================
 			//
 			//		BEGIN SHADOW PASS
+			//		(Pre-Recorded Command Buffers)
 			//
 			//
-			VkCommandBufferBeginInfo cmdBufInfo0 = vks::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(offscreenCommandBuffers[currentFrame], &cmdBufInfo0));
-
-			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->viewport);
-			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->scissor);
-			vkCmdSetDepthBias(offscreenCommandBuffers[currentFrame], depthBiasConstant,	0.0f, depthBiasSlope);
-			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &WorldEngine::MaterialCache::GetPipe_Shadow()->renderPass[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Shadow()->graphicsPipeline);
-
-
-			// hacky instancing
-			vkCmdBindDescriptorSets(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, WorldEngine::MaterialCache::GetPipe_Shadow()->pipelineLayout, 0, 1, &WorldEngine::MaterialCache::GetPipe_Shadow()->DescriptorSets[currentFrame], 0, nullptr);
-
-			size_t instanceCount = 0;
-
-			bool bDrawn = false;
-			uint32_t indexSize = 0;
-			for (auto& Node : SceneGraph::SceneNodes) {
-				if (Node.second)
-				{
-					if (Node.second->Name == "TriangleMeshSceneNode")
-					{
-						if (!bDrawn)
-						{
-							((TriangleMeshSceneNode*)Node.second)->_Mesh;
-							VkDeviceSize offsets[] = { 0 };
-							vkCmdBindVertexBuffers(offscreenCommandBuffers[currentFrame], 0, 1, &((TriangleMeshSceneNode*)Node.second)->_Mesh->vertexBuffer, offsets);
-							vkCmdBindIndexBuffer(offscreenCommandBuffers[currentFrame], ((TriangleMeshSceneNode*)Node.second)->_Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-							indexSize = ((TriangleMeshSceneNode*)Node.second)->_Mesh->_GLTF->Indices.size();
-							bDrawn = true;
-						}
-						if (instanceCount < 1024)
-						{
-							WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.instancePos[instanceCount] = Node.second->Model;
-						}
-						instanceCount++;
-					}
-				}
-			}
-
-			if (bDrawn && instanceCount > 0)
+			if (MaterialCache::bRecordBuffers)
 			{
-				vkCmdDrawIndexed(offscreenCommandBuffers[currentFrame], indexSize, instanceCount, 0, 0, 0);
+				//	TODO: split this out into the 3 separate frames_in_flight
+				MaterialCache::GetPipe_Shadow()->ResetCommandPools(primaryCommandBuffers_Shadow, MaterialCache::GetPipe_Static()->MeshCache);
 			}
-			// end hacky instancing
-
-			//
-			//	End shadow pass
-			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
 			//==================================================
 
 			//==================================================
 			//
 			//		BEGIN SCENE NODE PASS
+			//		(Pre-Recorded Command Buffers)
 			//
-			//
-			VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
-			renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
-			renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffers[currentFrame];
-			renderPassBeginInfo1.renderArea.extent.width = frameBuffers.deferred->width;
-			renderPassBeginInfo1.renderArea.extent.height = frameBuffers.deferred->height;
-			renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues_Deferred.size());
-			renderPassBeginInfo1.pClearValues = clearValues_Deferred.data();
-			//
-			//	Begin recording commandbuffer
-			vkCmdBeginRenderPass(offscreenCommandBuffers[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdSetViewport(offscreenCommandBuffers[currentFrame], 0, 1, &viewport_Deferred);
-			vkCmdSetScissor(offscreenCommandBuffers[currentFrame], 0, 1, &scissor_Deferred);
-			vkCmdBindPipeline(offscreenCommandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Static()->graphicsPipeline);
-			//
-			//	Update Camera Push Constants
-			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
-			vkCmdPushConstants(offscreenCommandBuffers[currentFrame], MaterialCache::GetPipe_Static()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
-			//
-			//	Draw all SceneNodes
-			for (auto& Node : SceneGraph::SceneNodes) {
-				if (Node.second) {
-					Node.second->drawFrame(offscreenCommandBuffers[currentFrame], currentFrame);
-				}
+			if (MaterialCache::bRecordBuffers)
+			{
+				MaterialCache::GetPipe_Static()->ResetCommandPools(primaryCommandBuffers_Node, MaterialCache::GetPipe_Static()->MeshCache);
+				MaterialCache::bRecordBuffers = false;
 			}
-			//
-			//	End scene node pass
-			vkCmdEndRenderPass(offscreenCommandBuffers[currentFrame]);
+			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
+			{
+				Mesh->updateSSBuffer(currentFrame);
+			}
 			//==================================================
-			//
-			//	Submit work to GPU
-			VK_CHECK_RESULT(vkEndCommandBuffer(offscreenCommandBuffers[currentFrame]));
-			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
 
 			//==================================================
 			//
@@ -715,20 +642,22 @@ namespace WorldEngine
 			// 
 			// 
 			//	Wait for this semaphore to signal
-			submitInfo.pWaitSemaphores = &semaphores[currentFrame].offscreenSync;
+			submitInfo2.pWaitSemaphores = &semaphores[currentFrame].offscreenSync;
 			//	Signal this semaphore when we complete
-			submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
+			submitInfo2.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
 			//	Work to submit to GPU
-			submitInfo.pCommandBuffers = &primaryCommandBuffers[currentFrame];
+			submitInfo2.pCommandBuffers = &primaryCommandBuffers_OnScreen[currentFrame];
+			submitInfo2.commandBufferCount = 1;
+			submitInfo2.pWaitDstStageMask = &submitPipelineStages;
 			//
 			std::vector<VkCommandBuffer> secondaryCommandBuffers;
 			//
 			//	Set target Primary Command Buffer
-			VkCommandBufferBeginInfo cmdBufInfo2 = vks::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers[currentFrame], &cmdBufInfo2));
+			VkCommandBufferBeginInfo cmdBufInfo_OnScreen = vks::initializers::commandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_OnScreen[currentFrame], &cmdBufInfo_OnScreen));
 			//
 			//	Begin render pass
-			vkCmdBeginRenderPass(primaryCommandBuffers[currentFrame], &MaterialCache::GetPipe_Composition()->renderPass[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+			vkCmdBeginRenderPass(primaryCommandBuffers_OnScreen[currentFrame], &MaterialCache::GetPipe_Composition()->renderPass[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 			//
 			//	Secondary CommandBuffer Inheritance Info
 			VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
@@ -744,41 +673,16 @@ namespace WorldEngine
 			//==================================================
 			// 
 			//		START DRAWING DEFERRED COMPOSITION
-			// 
+			//		(Pre-Recorded Command Buffers)
 			//
-			//	Begin recording state
-			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers[currentFrame], &commandBufferBeginInfo));
-			vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->viewport);
-			vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->scissor);
-			//
-			//	Draw our combined image view over the entire screen
-			vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Composition()->graphicsPipeline);
-			vkCmdPushConstants(commandBuffers[currentFrame], MaterialCache::GetPipe_Composition()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(CameraPushConstant), &CPC);
-			vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Composition()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_Composition()->DescriptorSets[currentFrame], 0, nullptr);
-			vkCmdDraw(commandBuffers[currentFrame], 3, 1, 0, 0);
-			//
-			//	End recording state
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers[currentFrame]));
-			secondaryCommandBuffers.push_back(commandBuffers[currentFrame]);
+			secondaryCommandBuffers.push_back(commandBuffers_CMP[currentFrame]);
 			//==================================================
 
 			//==================================================
 			// 
 			//		START DRAWING CEF
-			// 
+			//		(Pre-Recorded Command Buffers)
 			//
-			//	Begin recording state
-			VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffers_CEF[currentFrame], &commandBufferBeginInfo));
-			vkCmdSetViewport(commandBuffers_CEF[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->viewport);
-			vkCmdSetScissor(commandBuffers_CEF[currentFrame], 0, 1, &MaterialCache::GetPipe_Composition()->scissor);
-			//
-			//	Draw CEF fullscreen triangle
-			vkCmdBindPipeline(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->graphicsPipeline);
-			vkCmdBindDescriptorSets(commandBuffers_CEF[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_CEF()->pipelineLayout, 0, 1, &MaterialCache::GetPipe_CEF()->DescriptorSets_Composition[currentFrame], 0, nullptr);
-			vkCmdDraw(commandBuffers_CEF[currentFrame], 3, 1, 0, 0);
-			//
-			//	End recording state
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffers_CEF[currentFrame]));
 			secondaryCommandBuffers.push_back(commandBuffers_CEF[currentFrame]);
 			//==================================================
 
@@ -801,7 +705,14 @@ namespace WorldEngine
 				}
 				//	Crosshairs
 				if (!_EventReceiver->IsCursorActive()) {
-					SceneGraph::GetCamera().DrawGUI();
+					ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+					ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 15, WorldEngine::VulkanDriver::HEIGHT / 2 - 15));
+					ImGui::SetNextWindowBgAlpha(0.f);
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+					ImGui::Begin("Example: Simple overlay", 0, window_flags);
+					ImGui::Image(WorldEngine::GUI::UseTextureFile("media/crosshairs/focus1.png"), ImVec2(30, 30), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0));
+					ImGui::PopStyleVar();
+					ImGui::End();
 				}
 				//
 				GUI::EndDraw(commandBuffers_GUI[currentFrame], currentFrame);
@@ -817,44 +728,43 @@ namespace WorldEngine
 			//		END ONSCREEN DRAWING
 			// 
 			//	Execute render commands from the secondary command buffers
-			vkCmdExecuteCommands(primaryCommandBuffers[currentFrame], (uint32_t)secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
-			vkCmdEndRenderPass(primaryCommandBuffers[currentFrame]);
-			VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers[currentFrame]));
+			vkCmdExecuteCommands(primaryCommandBuffers_OnScreen[currentFrame], (uint32_t)secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
+			vkCmdEndRenderPass(primaryCommandBuffers_OnScreen[currentFrame]);
+			VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_OnScreen[currentFrame]));
 			//
 			//	Submit work to GPU
 			vkResetFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence);
-			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, semaphores[currentFrame].inFlightFence));
+			std::vector<VkSubmitInfo> submitInfo = { submitInfo1, submitInfo2 };
+			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 2, submitInfo.data(), semaphores[currentFrame].inFlightFence));
 		}
 
 		// Update lights and parameters passed to the composition shaders
 		inline void updateUniformBufferComposition(const size_t& CurFrame)
 		{
-			
 			// White
 			uboComposition.lights[0].position = glm::vec4(50.0f, -70.0f, 50.0f, 0.0f);
 			uboComposition.lights[0].color = glm::vec4(1.5f);
-			uboComposition.lights[0].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[0].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Red
 			uboComposition.lights[1].position = glm::vec4(75.0f, -70.0f, 75.0f, 0.0f);
 			uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-			uboComposition.lights[1].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[1].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Blue
 			uboComposition.lights[2].position = glm::vec4(100.0f, -70.0f, 100.0f, 0.0f);
 			uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
-			uboComposition.lights[2].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[2].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Yellow
 			uboComposition.lights[3].position = glm::vec4(125.0f, -70.0f, 125.0f, 0.0f);
 			uboComposition.lights[3].color = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
-			uboComposition.lights[3].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[3].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Green
 			uboComposition.lights[4].position = glm::vec4(150.0f, -70.0f, 150.0f, 0.0f);
 			uboComposition.lights[4].color = glm::vec4(0.0f, 1.0f, 0.2f, 0.0f);
-			uboComposition.lights[4].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[4].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Yellow
 			uboComposition.lights[5].position = glm::vec4(175.0f, -70.0f, 175.0f, 0.0f);
 			uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
-			uboComposition.lights[5].target = SceneGraph::GetCamera().CPC.pos;
-
+			uboComposition.lights[5].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 
 			for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 			{
@@ -867,9 +777,12 @@ namespace WorldEngine
 				WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;
 				uboComposition.lights[i].viewMatrix = WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i];
 			}
-
+			uboComposition.camPos = glm::vec4(WorldEngine::SceneGraph::GetCamera()->Pos, 1.0f);
 			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
 			WorldEngine::MaterialCache::GetPipe_Shadow()->UploadBuffersToGPU(CurFrame);
+
+			SceneGraph::GetCamera()->UpdateCameraUBO(CurFrame, WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
+			
 		}
 
 		void initLua()
@@ -1019,12 +932,18 @@ namespace WorldEngine
 			swapChain.connect(instance, physicalDevice, _VulkanDevice->logicalDevice);
 			//
 			//	Submit Information
-			submitInfo = vks::initializers::submitInfo();
-			submitInfo.pWaitDstStageMask = &submitPipelineStages;
-			submitInfo.waitSemaphoreCount = 1;
-			submitInfo.pWaitSemaphores = &semaphores[0].presentComplete;
-			submitInfo.signalSemaphoreCount = 1;
-			submitInfo.pSignalSemaphores = &semaphores[0].renderComplete;
+			submitInfo1 = vks::initializers::submitInfo();
+			submitInfo1.pWaitDstStageMask = &submitPipelineStages;
+			submitInfo1.waitSemaphoreCount = 1;
+			submitInfo1.pWaitSemaphores = &semaphores[0].presentComplete;
+			submitInfo1.signalSemaphoreCount = 1;
+			submitInfo1.pSignalSemaphores = &semaphores[0].renderComplete;
+			submitInfo2 = vks::initializers::submitInfo();
+			submitInfo2.pWaitDstStageMask = &submitPipelineStages;
+			submitInfo2.waitSemaphoreCount = 1;
+			submitInfo2.pWaitSemaphores = &semaphores[0].presentComplete;
+			submitInfo2.signalSemaphoreCount = 1;
+			submitInfo2.pSignalSemaphores = &semaphores[0].renderComplete;
 		}
 
 		//
@@ -1155,8 +1074,9 @@ namespace WorldEngine
 			// Create per-frame resources
 			frameBuffers_Main.resize(swapChain.imageCount);
 			commandPools.resize(swapChain.imageCount);
-			primaryCommandBuffers.resize(swapChain.imageCount);
-			offscreenCommandBuffers.resize(swapChain.imageCount);
+			primaryCommandBuffers_OnScreen.resize(swapChain.imageCount);
+			primaryCommandBuffers_Shadow.resize(swapChain.imageCount);
+			primaryCommandBuffers_Node.resize(swapChain.imageCount);
 			for (uint32_t i = 0; i < swapChain.imageCount; i++)
 			{
 				//
@@ -1173,9 +1093,11 @@ namespace WorldEngine
 				//
 				//	Primary CommandBuffers
 				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &primaryCommandBuffers[i]));
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &primaryCommandBuffers_OnScreen[i]));
 				VkCommandBufferAllocateInfo cmdBufAllocateInfo2 = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo2, &offscreenCommandBuffers[i]));
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo2, &primaryCommandBuffers_Shadow[i]));
+				VkCommandBufferAllocateInfo cmdBufAllocateInfo3 = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo2, &primaryCommandBuffers_Node[i]));
 			}
 		}
 
@@ -1228,7 +1150,7 @@ namespace WorldEngine
 			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
 			// Attachment 1: (World space) Normals
-			attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			attachmentInfo2.format = VK_FORMAT_A2B10G10R10_UNORM_PACK32;
 			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
 			// Attachment 2: Albedo (color)
@@ -1244,6 +1166,18 @@ namespace WorldEngine
 				
 			// Create default renderpass for the framebuffer
 			VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
+
+			renderPass_Geometry.resize(swapChain.imageCount);
+			for (int i = 0; i < swapChain.imageCount; i++)
+			{
+				renderPass_Geometry[i] = vks::initializers::renderPassBeginInfo();
+				renderPass_Geometry[i].renderPass = frameBuffers.deferred->renderPass;
+				renderPass_Geometry[i].framebuffer = frameBuffers.deferred->framebuffers[i];
+				renderPass_Geometry[i].renderArea.extent.width = frameBuffers.deferred->width;
+				renderPass_Geometry[i].renderArea.extent.height = frameBuffers.deferred->height;
+				renderPass_Geometry[i].clearValueCount = static_cast<uint32_t>(clearValues_Deferred.size());
+				renderPass_Geometry[i].pClearValues = clearValues_Deferred.data();
+			}
 		}
 
 		// Main stuct for btDbvt handling

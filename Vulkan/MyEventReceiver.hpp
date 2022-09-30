@@ -22,7 +22,7 @@ public:
 		//	Only keyboard-move-camera when menus closed and world initialized
 		if (!IsCursorActive() && IsWorldInitialized()) {
 			CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
-			Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
+			Camera* Cam = WorldEngine::SceneGraph::GetCamera();
 
 			//Character->moveForward((dInt32(isW) - dInt32(isS)) * 10.0f);
 			//Character->moveRight((dInt32(isD) - dInt32(isA)) * 10.0f);
@@ -253,7 +253,7 @@ public:
 						{
 							//
 							//	Calculate Ray
-							Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
+							Camera* Cam = WorldEngine::SceneGraph::GetCamera();
 							auto CamPos = Cam->Pos;
 							btVector3 From(CamPos.x, CamPos.y, CamPos.z);
 							auto CamDir = CamPos + Cam->Ang * 1000.0f;
@@ -323,7 +323,7 @@ public:
 				else if (NewEvent.Action == EventActions::Move)
 				{
 					CharacterSceneNode* Character = WorldEngine::SceneGraph::GetCharacter();
-					Camera* Cam = &WorldEngine::SceneGraph::GetCamera();
+					Camera* Cam = WorldEngine::SceneGraph::GetCamera();
 
 					if (isPrimary == true && isR == true)
 					{

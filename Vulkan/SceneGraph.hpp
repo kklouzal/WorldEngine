@@ -2,7 +2,6 @@
 
 #include "ConvexDecomposition.hpp"
 
-#include "Camera.hpp"
 
 //
 //	Forward Declare Individual Scene Nodes
@@ -24,7 +23,6 @@ namespace WorldEngine
 		//	Empty namespace to hide variables
 		namespace
 		{
-			Camera _Camera;
 			CharacterSceneNode* _Character;
 			WorldSceneNode* _World;
 			//
@@ -47,6 +45,7 @@ namespace WorldEngine
 		{
 			tryCleanupWorld = false;
 			isWorld = false;
+			_Camera = new Camera;
 		}
 		//
 		//	Destructor
@@ -54,13 +53,11 @@ namespace WorldEngine
 		{
 			printf("Destroy SceneGraph\n");
 			cleanupWorld(true);
+			delete _Camera;
 		}
 
 		btCollisionShape* LoadDecomp(GLTFInfo* Infos, const char* File);
 
-		Camera& GetCamera() {
-			return _Camera;
-		}
 		CharacterSceneNode* GetCharacter() {
 			return _Character;
 		}
@@ -116,7 +113,7 @@ namespace WorldEngine
 			//
 			//	Load World/Charater/Etc..
 			_Character = createCharacterSceneNode(NodeID, CharacterFile, CharacterPosition);
-			_Character->_Camera = &_Camera;
+			_Character->_Camera = _Camera;
 		}
 
 		void SceneGraph::cleanupWorld(const bool& bForce)
@@ -150,18 +147,6 @@ namespace WorldEngine
 			WorldEngine::MaterialCache::GetPipe_Animated()->EmptyCache();
 		}
 
-		void SceneGraph::updateUniformBuffer(const uint32_t& currentImage)
-		{
-			//
-			//	Update SceneNode Uniform Buffers
-			for (auto& Node : SceneNodes) {
-				if (Node.second)
-				{
-					Node.second->updateUniformBuffer(currentImage);
-				}
-			}
-		}
-
 		btCollisionShape* SceneGraph::LoadDecomp(GLTFInfo* Infos, const char* File)
 		{
 			std::string m_File(File);
@@ -189,10 +174,11 @@ namespace WorldEngine
 		//	World Create Function
 		WorldSceneNode* SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* File)
 		{
-			Pipeline::Static* Pipe = WorldEngine::MaterialCache::GetPipe_Static();
+			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
+			//
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->NormalTex);
-
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, false);
+			//
 			WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
 
 			btCollisionShape* ColShape;
@@ -231,13 +217,14 @@ namespace WorldEngine
 		//	TriangleMesh Create Function
 		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
 		{
-			Pipeline::Static* Pipe = WorldEngine::MaterialCache::GetPipe_Static();
-			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
-			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
+			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, true);
+			//
 			TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
 			//
+			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			MeshNode->_CollisionShape = ColShape;
 			btTransform Transform;
 			Transform.setIdentity();
@@ -304,13 +291,14 @@ namespace WorldEngine
 		//	Character Create Function
 		CharacterSceneNode* SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position)
 		{
-			Pipeline::Static* Pipe = WorldEngine::MaterialCache::GetPipe_Static();
-			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
-			TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
+			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, true);
+			//
 			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
 			//
+			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			MeshNode->_CollisionShape = ColShape;
 			btTransform Transform;
 			Transform.setIdentity();

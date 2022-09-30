@@ -170,5 +170,53 @@ namespace Pipeline {
 		{
 			memcpy(uboShadowAlloc[CurFrame]->GetMappedData(), &uboShadow, sizeof(uboShadow));
 		}
+
+		void ResetCommandPools(std::vector <VkCommandBuffer>& primaryCommandBuffers_Shadow, std::vector<TriangleMesh*>& MeshCache)
+		{
+			for (int i = 0; i < primaryCommandBuffers_Shadow.size(); i++)
+			{
+				VkCommandBufferBeginInfo cmdBufInfo_shadow = vks::initializers::commandBufferBeginInfo();
+				VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Shadow[i], &cmdBufInfo_shadow));
+
+				vkCmdSetViewport(primaryCommandBuffers_Shadow[i], 0, 1, &viewport);
+				vkCmdSetScissor(primaryCommandBuffers_Shadow[i], 0, 1, &scissor);
+				vkCmdSetDepthBias(primaryCommandBuffers_Shadow[i], WorldEngine::VulkanDriver::depthBiasConstant, 0.0f, WorldEngine::VulkanDriver::depthBiasSlope);
+				vkCmdBeginRenderPass(primaryCommandBuffers_Shadow[i], &renderPass[i], VK_SUBPASS_CONTENTS_INLINE);
+				vkCmdBindPipeline(primaryCommandBuffers_Shadow[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+
+				// hacky instancing
+				vkCmdBindDescriptorSets(primaryCommandBuffers_Shadow[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &DescriptorSets[i], 0, nullptr);
+
+				size_t indexPos = 0;
+				for (auto& Mesh : MeshCache)
+				{
+					//
+					//	Only draw shadow casing meshes
+					if (!Mesh->bCastsShadows) {
+						continue;
+					}
+					//
+					VkDeviceSize offsets[] = { 0 };
+					vkCmdBindVertexBuffers(primaryCommandBuffers_Shadow[i], 0, 1, &Mesh->vertexBuffer, offsets);
+					vkCmdBindIndexBuffer(primaryCommandBuffers_Shadow[i], Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+					uint32_t indexSize = indexSize = Mesh->_GLTF->Indices.size();
+					size_t instanceCount = 0;
+					for (auto& Instance : Mesh->instanceData)
+					{
+						Mesh->instanceData_Shadow[instanceCount] = &uboShadow.instancePos[indexPos + instanceCount];// = &Instance.model;
+						instanceCount++;
+					}
+					vkCmdDrawIndexed(primaryCommandBuffers_Shadow[i], indexSize, instanceCount, 0, 0, indexPos);
+					indexPos += instanceCount;
+				}
+				// end hacky instancing
+
+				//
+				//	End shadow pass
+				vkCmdEndRenderPass(primaryCommandBuffers_Shadow[i]);
+				VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Shadow[i]));
+			}
+		}
 	};
 }

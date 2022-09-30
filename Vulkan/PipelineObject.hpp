@@ -129,4 +129,7 @@ protected:
 		{
 			return nullptr;
 		}
+
+		virtual void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers)
+		{}
 };

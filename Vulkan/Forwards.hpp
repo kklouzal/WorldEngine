@@ -123,6 +123,7 @@ struct DLight {
 struct DComposition {
 	DLight lights[LIGHT_COUNT];
 	glm::i32 debugDisplayTarget = 0;
+	glm::vec4 camPos{};
 };
 struct DShadow {
 	glm::mat4 mvp[LIGHT_COUNT];
@@ -135,6 +136,9 @@ struct CameraPushConstant {
 	glm::mat4 view_proj{};
 	glm::vec4 pos;
 };
+struct CameraUniformBuffer {
+	glm::mat4 view_proj{};
+};
 //
 //	Model Uniform Buffer Object
 struct UniformBufferObject {
@@ -144,7 +148,7 @@ struct UniformBufferObject {
 
 //
 struct InstanceData {
-	glm::mat4 model;
+	glm::mat4 model{};
 };
 
 struct DescriptorObject {

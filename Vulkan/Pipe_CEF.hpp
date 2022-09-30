@@ -5,6 +5,9 @@ namespace Pipeline {
 	{
 		std::vector<VkDescriptorSet> DescriptorSets_Composition = {};
 		VkDescriptorPool DescriptorPool_Composition = VK_NULL_HANDLE;
+		//
+		VkViewport viewport;
+		VkRect2D scissor;
 
 		~CEF()
 		{
@@ -14,6 +17,8 @@ namespace Pipeline {
 		CEF(VkPipelineCache PipelineCache)
 			: PipelineObject()
 		{
+			viewport = vks::initializers::viewport((float)WorldEngine::VulkanDriver::WIDTH, (float)WorldEngine::VulkanDriver::HEIGHT, 0.0f, 1.0f);
+			scissor = vks::initializers::rect2D(WorldEngine::VulkanDriver::WIDTH, WorldEngine::VulkanDriver::HEIGHT, 0, 0);
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
@@ -121,6 +126,36 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptorCEF),
 				};
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+			}
+		}
+
+		void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers)
+		{
+			for (size_t i = 0; i < CommandBuffers.size(); i++)
+			{
+				//
+				//	Secondary CommandBuffer Inheritance Info
+				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
+				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
+				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
+				//
+				//	Secondary CommandBuffer Begin Info
+				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+				commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+				commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+				//
+				//	Begin recording state
+				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
+				vkCmdSetViewport(CommandBuffers[i], 0, 1, &viewport);
+				vkCmdSetScissor(CommandBuffers[i], 0, 1, &scissor);
+				//
+				//	Draw CEF fullscreen triangle
+				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				vkCmdBindDescriptorSets(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &DescriptorSets_Composition[i], 0, nullptr);
+				vkCmdDraw(CommandBuffers[i], 3, 1, 0, 0);
+				//
+				//	End recording state
+				VK_CHECK_RESULT(vkEndCommandBuffer(CommandBuffers[i]));
 			}
 		}
 	};

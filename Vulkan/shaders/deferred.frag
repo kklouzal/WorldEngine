@@ -20,15 +20,11 @@ struct DLight {
 	mat4 viewMatrix;
 };
 
-layout(std140, push_constant) uniform CameraPushConstant {
-    mat4 view_proj;
-    vec4 pos;
-} PushConstants;
-
 layout(std140, binding = 3) uniform DComposition
 {
 	DLight lights[6];
 	int displayDebugTarget;
+	vec4 camPos;
 } ubo;
 
 float textureProj(vec4 P, float layer, vec2 offset)
@@ -125,7 +121,7 @@ void main()
 		L = normalize(L);
 
 		// Viewer to fragment
-		vec3 V = PushConstants.pos.xyz - fragPos;
+		vec3 V = ubo.camPos.xyz - fragPos;
 		V = normalize(V);
 
 		float lightCosInnerAngle = cos(radians(15.0));

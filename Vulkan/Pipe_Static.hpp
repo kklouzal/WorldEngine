@@ -3,7 +3,30 @@
 namespace Pipeline {
 	struct Static : public PipelineObject
 	{
-		~Static() {}
+		std::vector<TriangleMesh*> MeshCache;
+
+		TriangleMesh* createMesh(const char* FileName, GLTFInfo* GLTFInfo_, bool bCastsShadows)
+		{
+			//
+			//	Return mesh if already exists
+			for (auto& Mesh : MeshCache) {
+				if (Mesh->FileName == FileName) {
+					return Mesh;
+				}
+			}
+			//
+			//	Create mesh if not exists
+			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex, bCastsShadows);
+			MeshCache.push_back(Mesh);
+			return Mesh;
+		}
+
+		~Static()
+		{
+			for (auto& Mesh : MeshCache) {
+				delete Mesh;
+			}
+		}
 
 		Static(VkPipelineCache PipelineCache)
 			: PipelineObject()
@@ -13,10 +36,12 @@ namespace Pipeline {
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
 				//	Binding 0 : Instancing SSBO
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
-				//	Binding 1 : Color texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
-				//	Binding 2 : Normal texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2)
+				//	Binding 1 : Camera UBO
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1),
+				//	Binding 2 : Color texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT, 2),
+				//	Binding 3 : Normal texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -24,12 +49,12 @@ namespace Pipeline {
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			VkPushConstantRange push_constant;
+			/*VkPushConstantRange push_constant;
 			push_constant.offset = 0;
 			push_constant.size = sizeof(CameraPushConstant);
 			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;*/
 			VK_CHECK_RESULT(vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			//
@@ -93,7 +118,6 @@ namespace Pipeline {
 			//	Cleanup Shader Modules
 			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, vertShaderStageInfo.module, nullptr);
 			vkDestroyShaderModule(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, fragShaderStageInfo.module, nullptr);
-
 		}
 		//
 		//
@@ -121,6 +145,11 @@ namespace Pipeline {
 				bufferInfo.buffer = StorageBuffers[i];
 				bufferInfo.offset = 0;
 				bufferInfo.range = VK_WHOLE_SIZE;
+				//
+				VkDescriptorBufferInfo bufferInfo_camera = {};
+				bufferInfo_camera.buffer = WorldEngine::SceneGraph::GetCamera()->uboCamBuff[i];
+				bufferInfo_camera.offset = 0;
+				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
 
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
@@ -137,16 +166,58 @@ namespace Pipeline {
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 					// Binding 0 : Instancing SSBO
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo),
-					// Binding 1 : Color Texture
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &textureImageColor),
-					// Binding 2 : Normal Texture
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageNormal)
+					// Binding 1 : Camera UBO
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
+					// Binding 2 : Color Texture
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageColor),
+					// Binding 3 : Normal Texture
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageNormal)
 				};
 
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 			}
 
 			return NewDescriptor;
+		}
+
+		void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers)
+		{
+			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
+				VkDescriptorBufferInfo bufferInfo = {};
+				bufferInfo.buffer = StorageBuffers[i];
+				bufferInfo.offset = 0;
+				bufferInfo.range = VK_WHOLE_SIZE;
+				//
+				VkDescriptorBufferInfo bufferInfo_camera = {};
+				bufferInfo_camera.buffer = WorldEngine::SceneGraph::GetCamera()->uboCamBuff[i];
+				bufferInfo_camera.offset = 0;
+				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
+
+				VkDescriptorImageInfo textureImageColor =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						TextureColor->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				VkDescriptorImageInfo textureImageNormal =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						TextureNormal->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					// Binding 0 : Instancing SSBO
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo),
+					// Binding 1 : Camera UBO
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
+					// Binding 2 : Color Texture
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageColor),
+					// Binding 3 : Normal Texture
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageNormal)
+				};
+
+				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
+			}
 		}
 		//
 		//
@@ -391,6 +462,32 @@ namespace Pipeline {
 
 			_Textures2.push_back(Tex);
 			return Tex;
+		}
+
+		void ResetCommandPools(std::vector<VkCommandBuffer>& primaryCommandBuffers_Node, std::vector<TriangleMesh*>& MeshCache)
+		{
+			for (int i = 0; i < primaryCommandBuffers_Node.size(); i++)
+			{
+				VkCommandBufferBeginInfo cmdBufInfo_Node = vks::initializers::commandBufferBeginInfo();
+				VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Node[i], &cmdBufInfo_Node));
+
+				//
+				//	Begin recording commandbuffer
+				vkCmdBeginRenderPass(primaryCommandBuffers_Node[i], &WorldEngine::VulkanDriver::renderPass_Geometry[i], VK_SUBPASS_CONTENTS_INLINE);
+				vkCmdSetViewport(primaryCommandBuffers_Node[i], 0, 1, &WorldEngine::VulkanDriver::viewport_Deferred);
+				vkCmdSetScissor(primaryCommandBuffers_Node[i], 0, 1, &WorldEngine::VulkanDriver::scissor_Deferred);
+				vkCmdBindPipeline(primaryCommandBuffers_Node[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				//
+				//	Draw all SceneNodes
+				for (auto& Mesh : MeshCache)
+				{
+					Mesh->draw(primaryCommandBuffers_Node[i], i);
+				}
+				//
+				//	End scene node pass
+				vkCmdEndRenderPass(primaryCommandBuffers_Node[i]);
+				VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Node[i]));
+			}
 		}
 	};
 }

@@ -46,7 +46,7 @@ struct Vertex {
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Color
+		attributeDescriptions[1].format = VK_FORMAT_R8G8B8A8_UNORM;	//	Color
 		attributeDescriptions[1].offset = offsetof(Vertex, color);
 
 		attributeDescriptions.emplace_back();
@@ -70,7 +70,7 @@ struct Vertex {
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Color
+		attributeDescriptions[1].format = VK_FORMAT_R8G8B8A8_UNORM;	//	Color
 		attributeDescriptions[1].offset = offsetof(Vertex, color);
 
 		attributeDescriptions.emplace_back();
@@ -82,13 +82,13 @@ struct Vertex {
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[3].binding = 0;
 		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;		//	Normal
+		attributeDescriptions[3].format = VK_FORMAT_A2B10G10R10_UNORM_PACK32;		//	Normal
 		attributeDescriptions[3].offset = offsetof(Vertex, normal);
 
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[4].binding = 0;
 		attributeDescriptions[4].location = 4;
-		attributeDescriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;		//	Tangent
+		attributeDescriptions[4].format = VK_FORMAT_A2B10G10R10_UNORM_PACK32;		//	Tangent
 		attributeDescriptions[4].offset = offsetof(Vertex, Tangents);
 
 		return attributeDescriptions;
@@ -106,7 +106,7 @@ struct Vertex {
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[1].binding = 0;
 		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Color
+		attributeDescriptions[1].format = VK_FORMAT_R8G8B8A8_UNORM;	//	Color
 		attributeDescriptions[1].offset = offsetof(Vertex, color);
 
 		attributeDescriptions.emplace_back();
@@ -118,13 +118,13 @@ struct Vertex {
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[3].binding = 0;
 		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;		//	Normal
+		attributeDescriptions[3].format = VK_FORMAT_A2B10G10R10_UNORM_PACK32;		//	Normal
 		attributeDescriptions[3].offset = offsetof(Vertex, normal);
 
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[4].binding = 0;
 		attributeDescriptions[4].location = 4;
-		attributeDescriptions[4].format = VK_FORMAT_R32G32B32_SFLOAT;		//	Tangent
+		attributeDescriptions[4].format = VK_FORMAT_A2B10G10R10_UNORM_PACK32;		//	Tangent
 		attributeDescriptions[4].offset = offsetof(Vertex, Tangents);
 
 		attributeDescriptions.emplace_back();

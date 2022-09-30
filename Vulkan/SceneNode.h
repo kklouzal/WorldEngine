@@ -32,8 +32,7 @@ public:
 		delete _RigidBody;
 		printf("Destroy Base SceneNode (%ju)\n", NodeID);
 	}
-	virtual void updateUniformBuffer(const uint32_t &currentImage) = 0;
-	virtual void drawFrame(const VkCommandBuffer &CommandBuffer, const uint32_t &CurFrame) = 0;
+	virtual void drawFrame(const uint32_t &CurFrame) = 0;
 	virtual void drawGUI() {}
 
 	void SetNodeID(const uintmax_t ID)
@@ -89,6 +88,8 @@ public:
 		bNeedsUpdate[2] = true;
 	}
 
+	virtual void GPUUpdatePosition() {}
+
 	btVector3 GetLinearVelocity()
 	{
 		return _RigidBody->getLinearVelocity();
@@ -125,6 +126,7 @@ public:
 	void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
 		worldTrans.getOpenGLMatrix(ModelPtr);
+		_SceneNode->GPUUpdatePosition();
 	}
 
 	//
@@ -134,6 +136,7 @@ public:
 		_SceneNode->bNeedsUpdate[0] = true;
 		_SceneNode->bNeedsUpdate[1] = true;
 		_SceneNode->bNeedsUpdate[2] = true;
+		_SceneNode->GPUUpdatePosition();
 	}
 };
 

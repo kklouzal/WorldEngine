@@ -17,11 +17,39 @@ public:
 
 	CameraPushConstant CPC;
 
+	CameraUniformBuffer CamUBO;						//	Doesnt Need Cleanup
+	std::vector<VkBuffer> uboCamBuff = {};			//	Cleaned Up
+	std::vector<VmaAllocation> uboCamAlloc = {};	//	Cleaned Up
+
 public:
 
 	Camera() : Pos(glm::vec3(0, 0, 0)), Ang(glm::vec3(0, 0, -1)), Up(glm::vec3(0.0f, 1.0f, 0.0f)) {
 		View = glm::lookAt(Pos, Pos + Ang, Up);
 		Offset = glm::vec3(0, 2, 0);
+		//
+		const size_t SwapChainCount = WorldEngine::VulkanDriver::swapChain.images.size();
+		uboCamBuff.resize(SwapChainCount);
+		uboCamAlloc.resize(SwapChainCount);
+		for (size_t i = 0; i < SwapChainCount; i++)
+		{
+			//
+			//	Uniform Buffer Creation
+			VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DShadow));
+			uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			VmaAllocationCreateInfo uniformAllocInfo = {};
+			uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+			uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCamBuff[i], &uboCamAlloc[i], nullptr);
+		}
+	}
+
+	~Camera()
+	{
+		//
+		for (int i = 0; i < uboCamBuff.size(); i++)
+		{
+			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, uboCamBuff[i], uboCamAlloc[i]);
+		}
 	}
 
 	void GoForward(float Speed) {
@@ -101,15 +129,34 @@ public:
 		return CPC;
 	}
 
+	void UpdateCameraUBO(size_t CurFrame, const float& ScrWidth, const float& ScrHeight, const float& zNear, const float& zFar, const float& FOV)
+	{
+		CamUBO.view_proj = glm::perspective(glm::radians(FOV), ScrWidth / ScrHeight, zNear, zFar);
+		CamUBO.view_proj[1][1] *= -1;
+
+		CamUBO.view_proj *= View;
+		View_Proj = CPC.view_proj;
+		memcpy(uboCamAlloc[CurFrame]->GetMappedData(), &CamUBO, sizeof(CameraUniformBuffer));
+	}
+
 	void DrawGUI()
 	{
-		ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-		ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 15, WorldEngine::VulkanDriver::HEIGHT / 2 - 15));
-		ImGui::SetNextWindowBgAlpha(0.f);
-		ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-		ImGui::Begin("Example: Simple overlay", 0, window_flags);
-		ImGui::Image(WorldEngine::GUI::UseTextureFile("media/crosshairs/focus1.png"), ImVec2(30, 30), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0));
-		ImGui::PopStyleVar();
-		ImGui::End();
 	}
 };
+
+namespace WorldEngine
+{
+	namespace SceneGraph
+	{
+		//
+		//	Empty namespace to hide variables
+		namespace
+		{
+			Camera* _Camera;
+		}
+
+		Camera* GetCamera() {
+			return _Camera;
+		}
+	}
+}

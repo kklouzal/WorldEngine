@@ -46,12 +46,12 @@ namespace Pipeline {
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			VkPushConstantRange push_constant;
+			/*VkPushConstantRange push_constant;
 			push_constant.offset = 0;
 			push_constant.size = sizeof(CameraPushConstant);
 			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;*/
 			VK_CHECK_RESULT(vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			//
@@ -174,6 +174,36 @@ namespace Pipeline {
 				renderPass[i].clearValueCount = static_cast<uint32_t>(clearValues.size());;
 				renderPass[i].pClearValues = clearValues.data();
 				renderPass[i].framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
+			}
+		}
+
+		void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers)
+		{
+			for (size_t i = 0; i < CommandBuffers.size(); i++)
+			{
+				//
+				//	Secondary CommandBuffer Inheritance Info
+				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
+				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
+				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
+				//
+				//	Secondary CommandBuffer Begin Info
+				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+				commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+				commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+				//
+				//	Begin recording state
+				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
+				vkCmdSetViewport(CommandBuffers[i], 0, 1, &viewport);
+				vkCmdSetScissor(CommandBuffers[i], 0, 1, &scissor);
+				//
+				//	Draw our combined image view over the entire screen
+				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				vkCmdBindDescriptorSets(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &DescriptorSets[i], 0, nullptr);
+				vkCmdDraw(CommandBuffers[i], 3, 1, 0, 0);
+				//
+				//	End recording state
+				VK_CHECK_RESULT(vkEndCommandBuffer(CommandBuffers[i]));
 			}
 		}
 	};

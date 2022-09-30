@@ -3,13 +3,16 @@
 class TriangleMesh {
 
 public:
+	bool bCastsShadows;
+	bool bFirstInstance = true;
 	std::vector<InstanceData> instanceData;
+	std::vector<glm::mat4*> instanceData_Shadow;
 	PipelineObject* Pipe;
 
+	const char* FileName;
 	GLTFInfo* _GLTF;
 	size_t vertexBufferSize;
 	size_t indexBufferSize;
-
 
 	VkBuffer vertexBuffer = VK_NULL_HANDLE;
 	VmaAllocation vertexAllocation = VMA_NULL;
@@ -26,12 +29,16 @@ public:
 
 public:
 	
-	TriangleMesh(PipelineObject* Pipeline, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal)
-		: Pipe(Pipeline), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
+	TriangleMesh(PipelineObject* Pipeline, const char* FileName, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal, bool bCastsShadows)
+		: bCastsShadows(bCastsShadows), Pipe(Pipeline), FileName(FileName), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
 		createVertexBuffer();
 		//
-		//	Start with a single instance, grow as needed.
+		//	Start with zero instances, grow as needed.
 		instanceData.resize(1);
+		if (bCastsShadows)
+		{
+			instanceData_Shadow.resize(1);
+		}
 		size_t SSBOSize = sizeof(InstanceData) * instanceData.size();
 		createStorageBuffer(SSBOSize);
 		Texture_Albedo = Albedo;
@@ -49,6 +56,48 @@ public:
 			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, instanceStorageSpaceBuffers[i], instanceStorageSpaceAllocations[i]);
 		}
 		delete Descriptor;
+	}
+
+	size_t RegisterInstanceIndex()
+	{
+		if (instanceData.size() == 1 && bFirstInstance)
+		{
+			bFirstInstance = false;
+			//
+			//	Invalidate our command buffers
+			WorldEngine::MaterialCache::bRecordBuffers = true;
+			return 0;
+		}
+		instanceData.push_back(InstanceData());
+		ResizeInstanceBuffer();
+		if (bCastsShadows)
+		{
+			instanceData_Shadow.resize(instanceData.size());
+		}
+		//
+		//	Invalidate our command buffers
+		WorldEngine::MaterialCache::bRecordBuffers = true;
+		//
+		return instanceData.size() - 1;
+	}
+
+	//
+	//	TODO: This is bad.. Need to ensure any of the buffers aren't currently in use.
+	void ResizeInstanceBuffer()
+	{
+		//
+		//	Delete
+		for (size_t i = 0; i < instanceStorageSpaceBuffers.size(); i++) {
+			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, instanceStorageSpaceBuffers[i], instanceStorageSpaceAllocations[i]);
+		}
+		//
+		//	Recreate
+		size_t SSBOSize = sizeof(InstanceData) * instanceData.size();
+		createStorageBuffer(SSBOSize);
+		Pipe->updateDescriptor(Descriptor, Texture_Albedo, Texture_Normal, instanceStorageSpaceBuffers);
+		for (size_t i = 0; i < instanceStorageSpaceBuffers.size(); i++) {
+			memcpy(instanceStorageSpaceAllocations[i]->GetMappedData(), instanceData.data(), SSBOSize);
+		}
 	}
 
 	void createStorageBuffer(size_t SSBO_Size)
@@ -135,17 +184,17 @@ public:
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
 	}
 
-	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame)
+	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame, bool bShadow = false)
 	{
-		//	Bind Descriptor Sets
-		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
-
+		if (!bShadow) {
+			//	Bind Descriptor Sets
+			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
+		}
 		//	Draw Vertex Buffer
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);
 		vkCmdBindIndexBuffer(CmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), 1, 0, 0, 0);
+		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), instanceData.size(), 0, 0, 0);
 	}
 
 	//

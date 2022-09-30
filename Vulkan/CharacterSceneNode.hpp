@@ -1,10 +1,7 @@
 #pragma once
 
-class CharacterSceneNode : public SceneNode
-{
-	//
-	//	If Valid is false, this node will be resubmitted for drawing.
-	bool Valid = false;
+class CharacterSceneNode : public SceneNode {
+	size_t instanceIndex;
 public:
 	TriangleMesh* _Mesh = nullptr;
 	std::vector<Item*> Items;
@@ -14,9 +11,8 @@ public:
 
 public:
 	CharacterSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), SceneNode()
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode()
 	{
-		printf("Create CharacterSceneNode\n");
 		Name = "Character";
 		canPhys = false;
 		//
@@ -52,7 +48,26 @@ public:
 
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
-		delete _Mesh;
+	}
+
+	void drawFrame(const uint32_t& CurFrame) {
+		if (bNeedsUpdate[CurFrame])
+		{
+			_Mesh->instanceData[instanceIndex].model = Model;
+			bNeedsUpdate[CurFrame] = false;
+		}
+	}
+
+	void GPUUpdatePosition()
+	{
+		_Mesh->instanceData[instanceIndex].model = Model;
+		if (_Mesh->bCastsShadows)
+		{
+			if (_Mesh->instanceData_Shadow[instanceIndex] != NULL)
+			{
+				*_Mesh->instanceData_Shadow[instanceIndex] = Model;
+			}
+		}
 	}
 
 	Item* GetCurrentItem() const
@@ -211,21 +226,6 @@ public:
 		_RigidBody->setWorldTransform(Trans);
 	}
 
-	void updateUniformBuffer(const uint32_t& currentImage) {
-		if (bNeedsUpdate[currentImage])
-		{
-			_Mesh->instanceData[0].model = Model;
-			_Mesh->updateSSBuffer(currentImage);
-			bNeedsUpdate[currentImage] = false;
-		}
-	}
-
-	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
-		if (!Valid) {
-			_Mesh->draw(CommandBuffer, CurFrame);
-		}
-	}
-
 	void drawGUI()
 	{
 		//
@@ -287,6 +287,7 @@ public:
 	void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
 		_btPos.getOpenGLMatrix(ModelPtr);
+		_SceneNode->GPUUpdatePosition();
 	}
 
 	void setWorldTransform(const btTransform& worldTrans) {
@@ -299,6 +300,8 @@ public:
 		if (_SceneNode->_Camera) {
 			_SceneNode->_Camera->SetPosition(glm::vec3(Pos.x(), Pos.y(), Pos.z()) + _SceneNode->_Camera->getOffset());
 		}
+		_SceneNode->GPUUpdatePosition();
+		//
 		btVector3 Rot;
 		_btPos.getRotation().getEulerZYX(Rot.m_floats[0], Rot.m_floats[1], Rot.m_floats[2]);
 		btVector3 LinearVelocity = _SceneNode->GetLinearVelocity();
