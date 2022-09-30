@@ -77,6 +77,8 @@ namespace WorldEngine
 		VkRect2D scissor_Deferred;										//
 		std::array<VkClearValue, 4> clearValues_Deferred;				//
 
+		std::vector<VkRenderPassBeginInfo> renderPass_Geometry;
+
 		std::vector<VkCommandBuffer> commandBuffers_CMP;				//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_GUI;				//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_CEF;				//	Doesnt Need Cleanup
@@ -615,7 +617,6 @@ namespace WorldEngine
 			{
 				//	TODO: split this out into the 3 separate frames_in_flight
 				MaterialCache::GetPipe_Shadow()->ResetCommandPools(primaryCommandBuffers_Shadow, MaterialCache::GetPipe_Static()->MeshCache);
-				MaterialCache::bRecordBuffers = false;
 			}
 			//==================================================
 
@@ -624,37 +625,35 @@ namespace WorldEngine
 			//		BEGIN SCENE NODE PASS
 			//
 			//
-			VkCommandBufferBeginInfo cmdBufInfo_Node = vks::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Node[currentFrame], &cmdBufInfo_Node));
+			//VkCommandBufferBeginInfo cmdBufInfo_Node = vks::initializers::commandBufferBeginInfo();
+			//VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Node[currentFrame], &cmdBufInfo_Node));
 
-			VkRenderPassBeginInfo renderPassBeginInfo1 = vks::initializers::renderPassBeginInfo();
-			renderPassBeginInfo1.renderPass = frameBuffers.deferred->renderPass;
-			renderPassBeginInfo1.framebuffer = frameBuffers.deferred->framebuffers[currentFrame];
-			renderPassBeginInfo1.renderArea.extent.width = frameBuffers.deferred->width;
-			renderPassBeginInfo1.renderArea.extent.height = frameBuffers.deferred->height;
-			renderPassBeginInfo1.clearValueCount = static_cast<uint32_t>(clearValues_Deferred.size());
-			renderPassBeginInfo1.pClearValues = clearValues_Deferred.data();
-			//
-			//	Begin recording commandbuffer
-			vkCmdBeginRenderPass(primaryCommandBuffers_Node[currentFrame], &renderPassBeginInfo1, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdSetViewport(primaryCommandBuffers_Node[currentFrame], 0, 1, &viewport_Deferred);
-			vkCmdSetScissor(primaryCommandBuffers_Node[currentFrame], 0, 1, &scissor_Deferred);
-			vkCmdBindPipeline(primaryCommandBuffers_Node[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Static()->graphicsPipeline);
-			//
-			//	Update Camera Push Constants
-			//const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
-			//vkCmdPushConstants(primaryCommandBuffers_Node[currentFrame], MaterialCache::GetPipe_Static()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
-			//
-			//	Draw all SceneNodes
+			////
+			////	Begin recording commandbuffer
+			//vkCmdBeginRenderPass(primaryCommandBuffers_Node[currentFrame], &renderPass_Geometry[currentFrame], VK_SUBPASS_CONTENTS_INLINE);
+			//vkCmdSetViewport(primaryCommandBuffers_Node[currentFrame], 0, 1, &viewport_Deferred);
+			//vkCmdSetScissor(primaryCommandBuffers_Node[currentFrame], 0, 1, &scissor_Deferred);
+			//vkCmdBindPipeline(primaryCommandBuffers_Node[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Static()->graphicsPipeline);
+			////
+			////	Draw all SceneNodes
+			//for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
+			//{
+			//	Mesh->updateSSBuffer(currentFrame);
+			//	Mesh->draw(primaryCommandBuffers_Node[currentFrame], currentFrame);
+			//}
+			////
+			////	End scene node pass
+			//vkCmdEndRenderPass(primaryCommandBuffers_Node[currentFrame]);
+			//VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Node[currentFrame]));
+			if (MaterialCache::bRecordBuffers)
+			{
+				MaterialCache::GetPipe_Static()->ResetCommandPools(primaryCommandBuffers_Node, MaterialCache::GetPipe_Static()->MeshCache);
+				MaterialCache::bRecordBuffers = false;
+			}
 			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
 			{
 				Mesh->updateSSBuffer(currentFrame);
-				Mesh->draw(primaryCommandBuffers_Node[currentFrame], currentFrame);
 			}
-			//
-			//	End scene node pass
-			vkCmdEndRenderPass(primaryCommandBuffers_Node[currentFrame]);
-			VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Node[currentFrame]));
 			//==================================================
 
 			//==================================================
@@ -1187,6 +1186,18 @@ namespace WorldEngine
 				
 			// Create default renderpass for the framebuffer
 			VK_CHECK_RESULT(frameBuffers.deferred->createRenderPass(swapChain.imageCount));
+
+			renderPass_Geometry.resize(swapChain.imageCount);
+			for (int i = 0; i < swapChain.imageCount; i++)
+			{
+				renderPass_Geometry[i] = vks::initializers::renderPassBeginInfo();
+				renderPass_Geometry[i].renderPass = frameBuffers.deferred->renderPass;
+				renderPass_Geometry[i].framebuffer = frameBuffers.deferred->framebuffers[i];
+				renderPass_Geometry[i].renderArea.extent.width = frameBuffers.deferred->width;
+				renderPass_Geometry[i].renderArea.extent.height = frameBuffers.deferred->height;
+				renderPass_Geometry[i].clearValueCount = static_cast<uint32_t>(clearValues_Deferred.size());
+				renderPass_Geometry[i].pClearValues = clearValues_Deferred.data();
+			}
 		}
 
 		// Main stuct for btDbvt handling

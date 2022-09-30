@@ -463,5 +463,31 @@ namespace Pipeline {
 			_Textures2.push_back(Tex);
 			return Tex;
 		}
+
+		void ResetCommandPools(std::vector<VkCommandBuffer>& primaryCommandBuffers_Node, std::vector<TriangleMesh*>& MeshCache)
+		{
+			for (int i = 0; i < primaryCommandBuffers_Node.size(); i++)
+			{
+				VkCommandBufferBeginInfo cmdBufInfo_Node = vks::initializers::commandBufferBeginInfo();
+				VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Node[i], &cmdBufInfo_Node));
+
+				//
+				//	Begin recording commandbuffer
+				vkCmdBeginRenderPass(primaryCommandBuffers_Node[i], &WorldEngine::VulkanDriver::renderPass_Geometry[i], VK_SUBPASS_CONTENTS_INLINE);
+				vkCmdSetViewport(primaryCommandBuffers_Node[i], 0, 1, &WorldEngine::VulkanDriver::viewport_Deferred);
+				vkCmdSetScissor(primaryCommandBuffers_Node[i], 0, 1, &WorldEngine::VulkanDriver::scissor_Deferred);
+				vkCmdBindPipeline(primaryCommandBuffers_Node[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				//
+				//	Draw all SceneNodes
+				for (auto& Mesh : MeshCache)
+				{
+					Mesh->draw(primaryCommandBuffers_Node[i], i);
+				}
+				//
+				//	End scene node pass
+				vkCmdEndRenderPass(primaryCommandBuffers_Node[i]);
+				VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Node[i]));
+			}
+		}
 	};
 }
