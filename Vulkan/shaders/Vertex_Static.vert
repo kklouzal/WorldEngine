@@ -1,5 +1,4 @@
 #version 450
-#extension GL_EXT_nonuniform_qualifier : enable
 
 layout(location = 0) in vec4 inPosition;
 //layout(location = 1) in vec3 inColor;
@@ -7,13 +6,13 @@ layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 layout(location = 4) in vec3 inTangent;
 
-layout(std140, push_constant) uniform CameraPushConstant {
-    mat4 view_proj;
-} PushConstants;
-
 layout(std140, binding = 0) readonly buffer InstanceData {
     mat4 model[];
 } ssbo;
+
+layout (binding = 1) uniform UBO {
+    mat4 view_proj;
+} ubo;
 
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
@@ -26,7 +25,7 @@ void main() {
     outUV = inTexCoord;
     //outColor = inColor;
 
-    gl_Position = PushConstants.view_proj * ssbo.model[gl_InstanceIndex] * inPosition;
+    gl_Position = ubo.view_proj * ssbo.model[gl_InstanceIndex] * inPosition;
     
 	mat3 mNormal = transpose(inverse(mat3(ssbo.model[gl_InstanceIndex])));
 	outNormal = mNormal * normalize(inNormal);

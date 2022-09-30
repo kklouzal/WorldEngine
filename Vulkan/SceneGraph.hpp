@@ -2,7 +2,6 @@
 
 #include "ConvexDecomposition.hpp"
 
-#include "Camera.hpp"
 
 //
 //	Forward Declare Individual Scene Nodes
@@ -24,7 +23,6 @@ namespace WorldEngine
 		//	Empty namespace to hide variables
 		namespace
 		{
-			Camera _Camera;
 			CharacterSceneNode* _Character;
 			WorldSceneNode* _World;
 			//
@@ -47,6 +45,7 @@ namespace WorldEngine
 		{
 			tryCleanupWorld = false;
 			isWorld = false;
+			_Camera = new Camera;
 		}
 		//
 		//	Destructor
@@ -54,13 +53,11 @@ namespace WorldEngine
 		{
 			printf("Destroy SceneGraph\n");
 			cleanupWorld(true);
+			delete _Camera;
 		}
 
 		btCollisionShape* LoadDecomp(GLTFInfo* Infos, const char* File);
 
-		Camera& GetCamera() {
-			return _Camera;
-		}
 		CharacterSceneNode* GetCharacter() {
 			return _Character;
 		}
@@ -116,7 +113,7 @@ namespace WorldEngine
 			//
 			//	Load World/Charater/Etc..
 			_Character = createCharacterSceneNode(NodeID, CharacterFile, CharacterPosition);
-			_Character->_Camera = &_Camera;
+			_Character->_Camera = _Camera;
 		}
 
 		void SceneGraph::cleanupWorld(const bool& bForce)

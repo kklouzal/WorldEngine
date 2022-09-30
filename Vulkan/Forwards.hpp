@@ -136,6 +136,9 @@ struct CameraPushConstant {
 	glm::mat4 view_proj{};
 	glm::vec4 pos;
 };
+struct CameraUniformBuffer {
+	glm::mat4 view_proj{};
+};
 //
 //	Model Uniform Buffer Object
 struct UniformBufferObject {

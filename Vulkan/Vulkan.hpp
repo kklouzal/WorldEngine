@@ -185,6 +185,7 @@ namespace WorldEngine
 #include "NetCode.hpp"
 
 #include "CEF.hpp"
+#include "Camera.hpp"
 #include "MaterialCache.hpp"
 #include "GUI.hpp"
 
@@ -641,8 +642,8 @@ namespace WorldEngine
 			vkCmdBindPipeline(primaryCommandBuffers_Node[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS, MaterialCache::GetPipe_Static()->graphicsPipeline);
 			//
 			//	Update Camera Push Constants
-			const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
-			vkCmdPushConstants(primaryCommandBuffers_Node[currentFrame], MaterialCache::GetPipe_Static()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
+			//const CameraPushConstant& CPC = SceneGraph::GetCamera().GetCPC(WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
+			//vkCmdPushConstants(primaryCommandBuffers_Node[currentFrame], MaterialCache::GetPipe_Static()->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(CameraPushConstant), &CPC);
 			//
 			//	Draw all SceneNodes
 			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
@@ -725,7 +726,14 @@ namespace WorldEngine
 				}
 				//	Crosshairs
 				if (!_EventReceiver->IsCursorActive()) {
-					SceneGraph::GetCamera().DrawGUI();
+					ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+					ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 15, WorldEngine::VulkanDriver::HEIGHT / 2 - 15));
+					ImGui::SetNextWindowBgAlpha(0.f);
+					ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+					ImGui::Begin("Example: Simple overlay", 0, window_flags);
+					ImGui::Image(WorldEngine::GUI::UseTextureFile("media/crosshairs/focus1.png"), ImVec2(30, 30), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, 1), ImVec4(0, 0, 0, 0));
+					ImGui::PopStyleVar();
+					ImGui::End();
 				}
 				//
 				GUI::EndDraw(commandBuffers_GUI[currentFrame], currentFrame);
@@ -757,27 +765,27 @@ namespace WorldEngine
 			// White
 			uboComposition.lights[0].position = glm::vec4(50.0f, -70.0f, 50.0f, 0.0f);
 			uboComposition.lights[0].color = glm::vec4(1.5f);
-			uboComposition.lights[0].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[0].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Red
 			uboComposition.lights[1].position = glm::vec4(75.0f, -70.0f, 75.0f, 0.0f);
 			uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-			uboComposition.lights[1].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[1].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Blue
 			uboComposition.lights[2].position = glm::vec4(100.0f, -70.0f, 100.0f, 0.0f);
 			uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
-			uboComposition.lights[2].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[2].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Yellow
 			uboComposition.lights[3].position = glm::vec4(125.0f, -70.0f, 125.0f, 0.0f);
 			uboComposition.lights[3].color = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
-			uboComposition.lights[3].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[3].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Green
 			uboComposition.lights[4].position = glm::vec4(150.0f, -70.0f, 150.0f, 0.0f);
 			uboComposition.lights[4].color = glm::vec4(0.0f, 1.0f, 0.2f, 0.0f);
-			uboComposition.lights[4].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[4].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 			// Yellow
 			uboComposition.lights[5].position = glm::vec4(175.0f, -70.0f, 175.0f, 0.0f);
 			uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
-			uboComposition.lights[5].target = SceneGraph::GetCamera().CPC.pos;
+			uboComposition.lights[5].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
 
 			for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 			{
@@ -790,9 +798,12 @@ namespace WorldEngine
 				WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;
 				uboComposition.lights[i].viewMatrix = WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i];
 			}
-			uboComposition.camPos = glm::vec4(WorldEngine::SceneGraph::GetCamera().Pos, 1.0f);
+			uboComposition.camPos = glm::vec4(WorldEngine::SceneGraph::GetCamera()->Pos, 1.0f);
 			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
 			WorldEngine::MaterialCache::GetPipe_Shadow()->UploadBuffersToGPU(CurFrame);
+
+			SceneGraph::GetCamera()->UpdateCameraUBO(CurFrame, WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
+			
 		}
 
 		void initLua()
@@ -1160,7 +1171,7 @@ namespace WorldEngine
 			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
 			// Attachment 1: (World space) Normals
-			attachmentInfo2.format = VK_FORMAT_R16G16B16A16_SFLOAT;
+			attachmentInfo2.format = VK_FORMAT_A2B10G10R10_UNORM_PACK32;
 			frameBuffers.deferred->addAttachment(attachmentInfo2);
 
 			// Attachment 2: Albedo (color)
