@@ -17,6 +17,7 @@ namespace WorldEngine
 #include "Pipe_Static.hpp"
 #include "Pipe_Animated.hpp"
 #include "Pipe_Composition.hpp"
+#include "Pipe_Transparent.hpp"
 #include "Pipe_GUI.hpp"
 #include "Pipe_CEF.hpp"
 
@@ -25,6 +26,7 @@ enum Pipelines {
 	Static,
 	Animated,
 	Composition,
+	Transparent,
 	GUI,
 	CEF
 };
@@ -74,6 +76,15 @@ namespace WorldEngine
 		}
 
 		//
+		//	Create Transparent Pipe
+		//	Handles final forward subpasspass rendering transparent objects to the screen
+		void CreateTransparent()
+		{
+			printf("Create Transparent Pipe\n");
+			Pipes.emplace_back(new Pipeline::Transparent(pipelineCache));
+		}
+
+		//
 		//	Create GUI Pipe
 		//	Handles drawing imGUI on top of our composition output
 		void CreateGUI() {
@@ -99,6 +110,7 @@ namespace WorldEngine
 			CreateStatic();
 			CreateAnimated();
 			CreateComposition();
+			CreateTransparent();
 			CreateGUI();
 			CreateCEF();
 			VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -131,6 +143,9 @@ namespace WorldEngine
 		}
 		Pipeline::Composition* GetPipe_Composition() {
 			return static_cast<Pipeline::Composition*>(Pipes[Pipelines::Composition]);
+		}
+		Pipeline::Transparent* GetPipe_Transparent() {
+			return static_cast<Pipeline::Transparent*>(Pipes[Pipelines::Transparent]);
 		}
 		Pipeline::GUI* GetPipe_GUI() {
 			return static_cast<Pipeline::GUI*>(Pipes[Pipelines::GUI]);

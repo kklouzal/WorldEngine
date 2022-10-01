@@ -39,7 +39,7 @@ namespace Pipeline {
 				//	Binding 1 : Camera UBO
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1),
 				//	Binding 2 : Color texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_VERTEX_BIT, 2),
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
 				//	Binding 3 : Normal texture target
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3)
 			};
@@ -49,12 +49,6 @@ namespace Pipeline {
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			/*VkPushConstantRange push_constant;
-			push_constant.offset = 0;
-			push_constant.size = sizeof(CameraPushConstant);
-			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;*/
 			VK_CHECK_RESULT(vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			//
@@ -81,12 +75,10 @@ namespace Pipeline {
 			pipelineCI.pDynamicState = &dynamicState;
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
+			pipelineCI.subpass = 0;	//	Subpass
 			//
-			//
-			// 
-			// 
-			//	Offscreen model render pass pipeline
 			rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+			//
 			//	Load shader files
 			VkPipelineShaderStageCreateInfo vertShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 			vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -103,10 +95,9 @@ namespace Pipeline {
 			auto description = Vertex::getAttributeDescriptions_Static();
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
-			//	Separate render pass
-			pipelineCI.renderPass = WorldEngine::VulkanDriver::frameBuffers.deferred->renderPass;
 			//	Blend attachment states required for all color attachments
-			std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
+			std::array<VkPipelineColorBlendAttachmentState, 4> blendAttachmentStates = {
+				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE)
@@ -464,29 +455,37 @@ namespace Pipeline {
 			return Tex;
 		}
 
-		void ResetCommandPools(std::vector<VkCommandBuffer>& primaryCommandBuffers_Node, std::vector<TriangleMesh*>& MeshCache)
+		void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers, std::vector<TriangleMesh*>& MeshCache)
 		{
-			for (int i = 0; i < primaryCommandBuffers_Node.size(); i++)
+			for (size_t i = 0; i < CommandBuffers.size(); i++)
 			{
-				VkCommandBufferBeginInfo cmdBufInfo_Node = vks::initializers::commandBufferBeginInfo();
-				VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Node[i], &cmdBufInfo_Node));
+				//
+				//	Secondary CommandBuffer Inheritance Info
+				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
+				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
+				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
+				inheritanceInfo.subpass = 0;
+				//
+				//	Secondary CommandBuffer Begin Info
+				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+				commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+				commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
 
 				//
-				//	Begin recording commandbuffer
-				vkCmdBeginRenderPass(primaryCommandBuffers_Node[i], &WorldEngine::VulkanDriver::renderPass_Geometry[i], VK_SUBPASS_CONTENTS_INLINE);
-				vkCmdSetViewport(primaryCommandBuffers_Node[i], 0, 1, &WorldEngine::VulkanDriver::viewport_Deferred);
-				vkCmdSetScissor(primaryCommandBuffers_Node[i], 0, 1, &WorldEngine::VulkanDriver::scissor_Deferred);
-				vkCmdBindPipeline(primaryCommandBuffers_Node[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				//	Begin recording commandbuffer				
+				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				vkCmdSetViewport(CommandBuffers[i], 0, 1, &WorldEngine::VulkanDriver::viewport_Deferred);
+				vkCmdSetScissor(CommandBuffers[i], 0, 1, &WorldEngine::VulkanDriver::scissor_Deferred);
 				//
 				//	Draw all SceneNodes
 				for (auto& Mesh : MeshCache)
 				{
-					Mesh->draw(primaryCommandBuffers_Node[i], i);
+					Mesh->draw(CommandBuffers[i], i);
 				}
 				//
 				//	End scene node pass
-				vkCmdEndRenderPass(primaryCommandBuffers_Node[i]);
-				VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Node[i]));
+				VK_CHECK_RESULT(vkEndCommandBuffer(CommandBuffers[i]));
 			}
 		}
 	};

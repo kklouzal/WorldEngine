@@ -4,9 +4,9 @@
 #define SHADOW_FACTOR 0.25
 #define AMBIENT_LIGHT 0.25
 
-layout(binding = 0) uniform sampler2D samplerposition;
-layout(binding = 1) uniform sampler2D samplerNormal;
-layout(binding = 2) uniform sampler2D samplerAlbedo;
+layout (input_attachment_index = 0, binding = 0) uniform subpassInput samplerposition;
+layout (input_attachment_index = 1, binding = 1) uniform subpassInput samplerNormal;
+layout (input_attachment_index = 2, binding = 2) uniform subpassInput samplerAlbedo;
 layout(binding = 4) uniform sampler2DArray samplerShadowMap;
 
 layout(location = 0) in vec2 inUV;
@@ -80,26 +80,29 @@ vec3 shadow(vec3 fragcolor, vec3 fragpos) {
 void main()
 {
 	// Get G-Buffer values
-	vec3 fragPos = texture(samplerposition, inUV).rgb;
-	vec3 normal = texture(samplerNormal, inUV).rgb;
-	vec4 albedo = texture(samplerAlbedo, inUV);
+//	vec3 fragPos = texture(samplerposition, inUV).rgb;
+//	vec3 normal = texture(samplerNormal, inUV).rgb;
+//	vec4 albedo = texture(samplerAlbedo, inUV);
+	vec3 fragPos = subpassLoad(samplerposition).rgb;
+	vec3 normal = subpassLoad(samplerNormal).rgb;
+	vec4 albedo = subpassLoad(samplerAlbedo);
 	
 	// Debug display
 	if (ubo.displayDebugTarget > 0) {
 		switch (ubo.displayDebugTarget) {
-			case 1: 
+			case 1:	//F2
 				outFragcolor.rgb = shadow(vec3(1.0), fragPos).rgb;
 				break;
-			case 2: 
+			case 2: //F3
 				outFragcolor.rgb = fragPos;
 				break;
-			case 3: 
+			case 3: //F4
 				outFragcolor.rgb = normal;
 				break;
-			case 4: 
+			case 4: //F5
 				outFragcolor.rgb = albedo.rgb;
 				break;
-			case 5: 
+			case 5: //F6
 				outFragcolor.rgb = albedo.aaa;
 				break;
 		}		

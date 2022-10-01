@@ -64,7 +64,7 @@ namespace Pipeline {
 
 			std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {};
 
-			VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, WorldEngine::VulkanDriver::renderPass);
+			VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, WorldEngine::VulkanDriver::frameBuffers.shadow->renderPass);
 			pipelineCI.pInputAssemblyState = &inputAssemblyState;
 			pipelineCI.pRasterizationState = &rasterizationState;
 			pipelineCI.pColorBlendState = &colorBlendState;
@@ -72,6 +72,11 @@ namespace Pipeline {
 			pipelineCI.pViewportState = &viewportState;
 			pipelineCI.pDepthStencilState = &depthStencilState;
 			pipelineCI.pDynamicState = &dynamicState;
+			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+			pipelineCI.pStages = shaderStages.data();
+			// Cull front faces
+			rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
+			depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 			//
 			//	Load shader files
 			VkPipelineShaderStageCreateInfo vertShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
@@ -85,15 +90,9 @@ namespace Pipeline {
 			fragShaderStageInfo.pName = "main";
 			shaderStages[1] = fragShaderStageInfo;
 			//
-			pipelineCI.pStages = shaderStages.data();
-			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-			//
 			// Shadow pass doesn't use any color attachments
 			colorBlendState.attachmentCount = 0;
 			colorBlendState.pAttachments = nullptr;
-			// Cull front faces
-			rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
-			depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 			// Enable depth bias
 			rasterizationState.depthBiasEnable = VK_TRUE;
 			// Add depth bias to dynamic state, so we can change it at runtime
@@ -104,8 +103,6 @@ namespace Pipeline {
 			auto description = Vertex::getAttributeDescriptions_Shadow();
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
-			//
-			pipelineCI.renderPass = WorldEngine::VulkanDriver::frameBuffers.shadow->renderPass;
 			//	Create composite graphics pipeline
 			VK_CHECK_RESULT(vkCreateGraphicsPipelines(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, PipelineCache, 1, &pipelineCI, nullptr, &graphicsPipeline));
 			//	Cleanup Shader Modules
@@ -171,22 +168,22 @@ namespace Pipeline {
 			memcpy(uboShadowAlloc[CurFrame]->GetMappedData(), &uboShadow, sizeof(uboShadow));
 		}
 
-		void ResetCommandPools(std::vector <VkCommandBuffer>& primaryCommandBuffers_Shadow, std::vector<TriangleMesh*>& MeshCache)
+		void ResetCommandPools(std::vector <VkCommandBuffer>& CommandBuffers, std::vector<TriangleMesh*>& MeshCache)
 		{
-			for (int i = 0; i < primaryCommandBuffers_Shadow.size(); i++)
+			for (size_t i = 0; i < CommandBuffers.size(); i++)
 			{
-				VkCommandBufferBeginInfo cmdBufInfo_shadow = vks::initializers::commandBufferBeginInfo();
-				VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Shadow[i], &cmdBufInfo_shadow));
+				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
 
-				vkCmdSetViewport(primaryCommandBuffers_Shadow[i], 0, 1, &viewport);
-				vkCmdSetScissor(primaryCommandBuffers_Shadow[i], 0, 1, &scissor);
-				vkCmdSetDepthBias(primaryCommandBuffers_Shadow[i], WorldEngine::VulkanDriver::depthBiasConstant, 0.0f, WorldEngine::VulkanDriver::depthBiasSlope);
-				vkCmdBeginRenderPass(primaryCommandBuffers_Shadow[i], &renderPass[i], VK_SUBPASS_CONTENTS_INLINE);
-				vkCmdBindPipeline(primaryCommandBuffers_Shadow[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				vkCmdSetViewport(CommandBuffers[i], 0, 1, &viewport);
+				vkCmdSetScissor(CommandBuffers[i], 0, 1, &scissor);
+				vkCmdSetDepthBias(CommandBuffers[i], WorldEngine::VulkanDriver::depthBiasConstant, 0.0f, WorldEngine::VulkanDriver::depthBiasSlope);
+				vkCmdBeginRenderPass(CommandBuffers[i], &renderPass[i], VK_SUBPASS_CONTENTS_INLINE);
+				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
 
 				// hacky instancing
-				vkCmdBindDescriptorSets(primaryCommandBuffers_Shadow[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &DescriptorSets[i], 0, nullptr);
+				vkCmdBindDescriptorSets(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &DescriptorSets[i], 0, nullptr);
 
 				size_t indexPos = 0;
 				for (auto& Mesh : MeshCache)
@@ -198,8 +195,8 @@ namespace Pipeline {
 					}
 					//
 					VkDeviceSize offsets[] = { 0 };
-					vkCmdBindVertexBuffers(primaryCommandBuffers_Shadow[i], 0, 1, &Mesh->vertexBuffer, offsets);
-					vkCmdBindIndexBuffer(primaryCommandBuffers_Shadow[i], Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+					vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, &Mesh->vertexBuffer, offsets);
+					vkCmdBindIndexBuffer(CommandBuffers[i], Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 					uint32_t indexSize = indexSize = Mesh->_GLTF->Indices.size();
 					size_t instanceCount = 0;
 					for (auto& Instance : Mesh->instanceData)
@@ -207,15 +204,15 @@ namespace Pipeline {
 						Mesh->instanceData_Shadow[instanceCount] = &uboShadow.instancePos[indexPos + instanceCount];// = &Instance.model;
 						instanceCount++;
 					}
-					vkCmdDrawIndexed(primaryCommandBuffers_Shadow[i], indexSize, instanceCount, 0, 0, indexPos);
+					vkCmdDrawIndexed(CommandBuffers[i], indexSize, instanceCount, 0, 0, indexPos);
 					indexPos += instanceCount;
 				}
 				// end hacky instancing
 
 				//
 				//	End shadow pass
-				vkCmdEndRenderPass(primaryCommandBuffers_Shadow[i]);
-				VK_CHECK_RESULT(vkEndCommandBuffer(primaryCommandBuffers_Shadow[i]));
+				vkCmdEndRenderPass(CommandBuffers[i]);
+				VK_CHECK_RESULT(vkEndCommandBuffer(CommandBuffers[i]));
 			}
 		}
 	};

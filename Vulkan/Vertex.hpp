@@ -78,7 +78,7 @@ struct Vertex {
 		attributeDescriptions[2].location = 2;
 		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;			//	UV
 		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
+		//VK_FORMAT_A2B10G10R10_UNORM_PACK32
 		attributeDescriptions.emplace_back();
 		attributeDescriptions[3].binding = 0;
 		attributeDescriptions[3].location = 3;
