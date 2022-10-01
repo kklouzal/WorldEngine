@@ -67,7 +67,7 @@ namespace Pipeline {
 			pipelineCI.pDynamicState = &dynamicState;
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
-			pipelineCI.subpass = 2;	//	Subpass
+			pipelineCI.subpass = 3;	//	Subpass
 			//
 			rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 			//
@@ -137,7 +137,7 @@ namespace Pipeline {
 				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
 				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
 				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
-				inheritanceInfo.subpass = 2;
+				inheritanceInfo.subpass = 3;
 				//
 				//	Secondary CommandBuffer Begin Info
 				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();

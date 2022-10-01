@@ -6,7 +6,7 @@ namespace Pipeline {
 		std::vector<VkDescriptorSet> DescriptorSets = {};
 		VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
 		//
-		std::array<VkClearValue, 5> clearValues;
+		std::array<VkClearValue, 6> clearValues;
 		VkViewport viewport;
 		VkRect2D scissor;
 		//
@@ -28,6 +28,7 @@ namespace Pipeline {
 			clearValues[2].color = { 0.0f, 0.0f, 0.0f, 0.0f };
 			clearValues[3].color = { 0.0f, 0.0f, 0.0f, 0.0f };
 			clearValues[4].depthStencil = { 1.0f, 0 };
+			clearValues[5].depthStencil = { 1.0f, 0 };
 			//
 			//
 			//	DescriptorSetLayout
@@ -38,10 +39,10 @@ namespace Pipeline {
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
 				//	Binding 2 : Albedo input attachment
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
-				//	Binding 3 : Fragment UBO
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
-				//	Binding 4: Shadow map
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
+				//	Binding 3: Shadow map
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+				//	Binding 4 : Fragment UBO
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -75,7 +76,7 @@ namespace Pipeline {
 			pipelineCI.pDynamicState = &dynamicState;
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
-			pipelineCI.subpass = 1;	//	Subpass
+			pipelineCI.subpass = 2;	//	Subpass
 			//
 			rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 			//
@@ -138,16 +139,16 @@ namespace Pipeline {
 						WorldEngine::VulkanDriver::attachments/*[i]*/.albedo.view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
+				VkDescriptorImageInfo texDescriptorShadowMap =
+					vks::initializers::descriptorImageInfo(
+						ShadowSampler,
+						WorldEngine::VulkanDriver::attachments.shadow.view,
+						VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
+
 				VkDescriptorBufferInfo bufferInfo_composition = {};
 				bufferInfo_composition.buffer = WorldEngine::VulkanDriver::uboCompositionBuff[i];
 				bufferInfo_composition.offset = 0;
 				bufferInfo_composition.range = sizeof(DComposition);
-
-				VkDescriptorImageInfo texDescriptorShadowMap =
-					vks::initializers::descriptorImageInfo(
-						WorldEngine::VulkanDriver::frameBuffers.shadow->sampler,
-						WorldEngine::VulkanDriver::frameBuffers.shadow->attachments[0].view,
-						VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 					// Binding 0 : Position texture target
@@ -156,10 +157,10 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &texDescriptorNormal),
 					// Binding 2 : Albedo texture target
 					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2, &texDescriptorAlbedo),
-					// Binding 3 : Fragment shader uniform buffer
-					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &bufferInfo_composition),
-					// Binding 4: Shadow map
-					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &texDescriptorShadowMap)
+					// Binding 3: Shadow map
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texDescriptorShadowMap),
+					// Binding 4 : Fragment shader uniform buffer
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &bufferInfo_composition)
 				};
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
@@ -184,7 +185,7 @@ namespace Pipeline {
 				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
 				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
 				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
-				inheritanceInfo.subpass = 1;
+				inheritanceInfo.subpass = 2;
 				//
 				//	Secondary CommandBuffer Begin Info
 				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();

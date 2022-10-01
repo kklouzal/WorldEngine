@@ -598,7 +598,7 @@ namespace WorldEngine
             pipelineCreateInfo.pDynamicState = &dynamicState;
             pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
             pipelineCreateInfo.pStages = shaderStages.data();
-            pipelineCreateInfo.subpass = 2;
+            pipelineCreateInfo.subpass = 3;
 
             // Vertex bindings an attributes based on ImGui vertex definition
             std::vector<VkVertexInputBindingDescription> vertexInputBindings = {

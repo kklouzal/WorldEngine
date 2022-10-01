@@ -59,7 +59,7 @@ namespace Pipeline {
 			pipelineCI.pDynamicState = &dynamicState;
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
-			pipelineCI.subpass = 0;	//	Subpass
+			pipelineCI.subpass = 1;	//	Subpass
 			//
 			rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
 			//

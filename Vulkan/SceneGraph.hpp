@@ -294,7 +294,7 @@ namespace WorldEngine
 			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, true);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, false);
 			//
 			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
 			//

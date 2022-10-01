@@ -97,9 +97,9 @@
 #include <ozz/options/options.h>
 
 // Texture properties
-constexpr auto FB_DIM = 2048;
-constexpr auto TEX_DIM = 2048;
-constexpr auto SHADOWMAP_DIM = 2048;
+//constexpr auto FB_DIM = 2048;
+//constexpr auto TEX_DIM = 2048;
+//constexpr auto SHADOWMAP_DIM = 2048;
 constexpr auto SHADOWMAP_FORMAT = VK_FORMAT_D32_SFLOAT_S8_UINT;
 constexpr auto TEX_FILTER = VK_FILTER_LINEAR;
 constexpr auto LIGHT_COUNT = 6;
@@ -128,6 +128,41 @@ struct DComposition {
 struct DShadow {
 	glm::mat4 mvp[LIGHT_COUNT];
 	glm::mat4 instancePos[1024];
+};
+
+// G-Buffer framebuffer attachments
+struct FrameBufferAttachment {
+	VkImage image = VK_NULL_HANDLE;
+	VmaAllocation imageAlloc = VMA_NULL;
+	VkImageView view = VK_NULL_HANDLE;
+	VkFormat format;
+	uint32_t layerCount = 1;
+
+	bool hasDepth()
+	{
+		std::vector<VkFormat> formats =
+		{
+			VK_FORMAT_D16_UNORM,
+			VK_FORMAT_X8_D24_UNORM_PACK32,
+			VK_FORMAT_D32_SFLOAT,
+			VK_FORMAT_D16_UNORM_S8_UINT,
+			VK_FORMAT_D24_UNORM_S8_UINT,
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
+		};
+		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
+	}
+
+	bool hasStencil()
+	{
+		std::vector<VkFormat> formats =
+		{
+			VK_FORMAT_S8_UINT,
+			VK_FORMAT_D16_UNORM_S8_UINT,
+			VK_FORMAT_D24_UNORM_S8_UINT,
+			VK_FORMAT_D32_SFLOAT_S8_UINT,
+		};
+		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
+	}
 };
 
 //

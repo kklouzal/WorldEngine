@@ -13,9 +13,6 @@ namespace Pipeline {
 		//
 		VkViewport viewport;
 		VkRect2D scissor;
-		std::array<VkClearValue, 4> clearValues = {};
-		//
-		std::vector<VkRenderPassBeginInfo> renderPass = {};
 
 		~Shadow()
 		{
@@ -32,9 +29,8 @@ namespace Pipeline {
 			: PipelineObject()
 		{
 			//
-			viewport = vks::initializers::viewport((float)SHADOWMAP_DIM, (float)SHADOWMAP_DIM, 0.0f, 1.0f);
-			scissor = vks::initializers::rect2D(SHADOWMAP_DIM, SHADOWMAP_DIM, 0, 0);
-			clearValues[0].depthStencil = { 1.0f, 0 };
+			viewport = vks::initializers::viewport((float)WorldEngine::VulkanDriver::WIDTH, (float)WorldEngine::VulkanDriver::HEIGHT, 0.0f, 1.0f);
+			scissor = vks::initializers::rect2D(WorldEngine::VulkanDriver::WIDTH, WorldEngine::VulkanDriver::HEIGHT, 0, 0);
 			//
 			//
 			//	DescriptorSetLayout
@@ -64,7 +60,7 @@ namespace Pipeline {
 
 			std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {};
 
-			VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, WorldEngine::VulkanDriver::frameBuffers.shadow->renderPass);
+			VkGraphicsPipelineCreateInfo pipelineCI = vks::initializers::pipelineCreateInfo(pipelineLayout, WorldEngine::VulkanDriver::renderPass);
 			pipelineCI.pInputAssemblyState = &inputAssemblyState;
 			pipelineCI.pRasterizationState = &rasterizationState;
 			pipelineCI.pColorBlendState = &colorBlendState;
@@ -74,6 +70,7 @@ namespace Pipeline {
 			pipelineCI.pDynamicState = &dynamicState;
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
+			pipelineCI.subpass = 0;	//	Subpass
 			// Cull front faces
 			rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 			depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
@@ -124,7 +121,6 @@ namespace Pipeline {
 			DescriptorSets.resize(SwapChainCount);
 			uboShadowBuff.resize(SwapChainCount);
 			uboShadowAlloc.resize(SwapChainCount);
-			renderPass.resize(SwapChainCount);
 			for (size_t i = 0; i < SwapChainCount; i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool, &descriptorSetLayout, 1);
@@ -148,16 +144,6 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo_shadow),
 				};
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
-
-				//
-				//	Render Pass Info
-				renderPass[i] = vks::initializers::renderPassBeginInfo();
-				renderPass[i].renderPass = WorldEngine::VulkanDriver::frameBuffers.shadow->renderPass;
-				renderPass[i].framebuffer = WorldEngine::VulkanDriver::frameBuffers.shadow->framebuffers[i];
-				renderPass[i].renderArea.extent.width = SHADOWMAP_DIM;
-				renderPass[i].renderArea.extent.height = SHADOWMAP_DIM;
-				renderPass[i].clearValueCount = 1;
-				renderPass[i].pClearValues = clearValues.data();
 			}
 		}
 
@@ -172,13 +158,23 @@ namespace Pipeline {
 		{
 			for (size_t i = 0; i < CommandBuffers.size(); i++)
 			{
+				//
+				//	Secondary CommandBuffer Inheritance Info
+				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
+				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
+				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
+				inheritanceInfo.subpass = 0;
+				//
+				//	Secondary CommandBuffer Begin Info
 				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+				commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+				commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
 
 				vkCmdSetViewport(CommandBuffers[i], 0, 1, &viewport);
 				vkCmdSetScissor(CommandBuffers[i], 0, 1, &scissor);
 				vkCmdSetDepthBias(CommandBuffers[i], WorldEngine::VulkanDriver::depthBiasConstant, 0.0f, WorldEngine::VulkanDriver::depthBiasSlope);
-				vkCmdBeginRenderPass(CommandBuffers[i], &renderPass[i], VK_SUBPASS_CONTENTS_INLINE);
+				//vkCmdBeginRenderPass(CommandBuffers[i], &renderPass[i], VK_SUBPASS_CONTENTS_INLINE);
 				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
 
@@ -211,7 +207,7 @@ namespace Pipeline {
 
 				//
 				//	End shadow pass
-				vkCmdEndRenderPass(CommandBuffers[i]);
+				//vkCmdEndRenderPass(CommandBuffers[i]);
 				VK_CHECK_RESULT(vkEndCommandBuffer(CommandBuffers[i]));
 			}
 		}

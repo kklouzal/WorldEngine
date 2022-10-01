@@ -16,29 +16,16 @@ namespace WorldEngine
 		bool VSYNC = false;
 		VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-
 		// G-Buffer framebuffer attachments
-		struct FrameBufferAttachment {
-			VkImage image = VK_NULL_HANDLE;
-			VmaAllocation imageAlloc;
-			VkImageView view = VK_NULL_HANDLE;
-			VkFormat format;
-		};
 		struct Attachments {
-			FrameBufferAttachment position, normal, albedo;
-			int32_t width;
-			int32_t height;
+			FrameBufferAttachment shadow, position, normal, albedo;
+			int32_t width{};
+			int32_t height{};
 		} attachments;
-
-
 
 		//
 		//	Framebuffer Resources
 		std::vector<VkFramebuffer>frameBuffers_Main;					//	Cleaned Up
-		struct {
-			//Framebuffer* deferred;
-			Framebuffer* shadow;
-		} frameBuffers;													//	Cleaned Up
 		//
 		//	DepthStencil Resources
 		struct {
@@ -49,7 +36,6 @@ namespace WorldEngine
 		//
 		//	Per-Frame Synchronization Object Resources
 		struct {
-			VkSemaphore shadowComplete;
 			VkSemaphore presentComplete;
 			VkSemaphore renderComplete;
 			VkSemaphore offscreenSync;
@@ -74,8 +60,7 @@ namespace WorldEngine
 		std::vector<const char*> enabledInstanceExtensions;				//
 		VkQueue graphicsQueue = VK_NULL_HANDLE;							//
 		VkQueue presentQueue = VK_NULL_HANDLE;							//
-		VkSubmitInfo submitInfo1;										//
-		VkSubmitInfo submitInfo2;										//
+		VkSubmitInfo submitInfo;										//
 		//
 		VkFormat depthFormat;											//
 		//
@@ -91,13 +76,13 @@ namespace WorldEngine
 
 		VkViewport viewport_Deferred;									//
 		VkRect2D scissor_Deferred;										//
-		std::array<VkClearValue, 5> clearValues_Deferred;				//
 
-		std::vector<VkCommandBuffer> commandBuffers_NDE;				//	Doesnt Need Cleanup
-		std::vector<VkCommandBuffer> commandBuffers_CMP;				//	Doesnt Need Cleanup
-		std::vector<VkCommandBuffer> commandBuffers_TPT;				//	Doesnt Need Cleanup
-		std::vector<VkCommandBuffer> commandBuffers_GUI;				//	Doesnt Need Cleanup
-		std::vector<VkCommandBuffer> commandBuffers_CEF;				//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_SDW;	//	shadow	//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_NDE;	//	node	//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_CMP;	//	comp	//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_TPT;	//	trans	//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_GUI;	//	gui		//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_CEF;	//	cef		//	Doesnt Need Cleanup
 
 		DComposition uboComposition;									//	Doesnt Need Cleanup
 		std::vector<VkBuffer> uboCompositionBuff = {};					//	Cleaned Up
@@ -142,9 +127,6 @@ namespace WorldEngine
 		void createDepthResources();
 		void createRenderPass();
 		void createFrameBuffers();
-		//
-		//	Deferred Rendering
-		void prepareOffscreenFrameBuffer();
 		//
 		//	Event Handling
 		void setEventReceiver(EventReceiver* _EventRcvr);
@@ -268,16 +250,10 @@ namespace WorldEngine
 			createDepthResources();						//	Depth Stencil setup
 			createRenderPass();
 			createFrameBuffers();
-			prepareOffscreenFrameBuffer();
 			//
 			//	Deferred Rendering Viewport and Clear Value
 			viewport_Deferred = vks::initializers::viewport((float)WIDTH, (float)HEIGHT, 0.0f, 1.0f);
 			scissor_Deferred = vks::initializers::rect2D(WIDTH, HEIGHT, 0, 0);
-			clearValues_Deferred[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-			clearValues_Deferred[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-			clearValues_Deferred[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-			clearValues_Deferred[3].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-			clearValues_Deferred[4].depthStencil = { 1.0f, 0 };
 			//
 			//	Per-Frame Deferred Rendering Uniform Buffer Objects
 			uboCompositionBuff.resize(swapChain.images.size());
@@ -290,6 +266,14 @@ namespace WorldEngine
 				uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 				uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 				vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
+			}
+			//
+			//	Per-Frame Secondary Shadow Command Buffers
+			commandBuffers_SDW.resize(frameBuffers_Main.size());
+			for (int i = 0; i < frameBuffers_Main.size(); i++)
+			{
+				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers_SDW[i]));
 			}
 			//
 			//	Per-Frame Secondary Node Command Buffers
@@ -338,9 +322,6 @@ namespace WorldEngine
 			imagesInFlight.resize(swapChain.imageCount, VK_NULL_HANDLE);
 			for (uint32_t i = 0; i < swapChain.imageCount; i++)
 			{
-				// Create a semaphore used to synchronize image presentation
-				// Ensures that the image is displayed before we start submitting new commands to the queue
-				VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].shadowComplete));
 				// Create a semaphore used to synchronize image presentation
 				// Ensures that the image is displayed before we start submitting new commands to the queue
 				VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].presentComplete));
@@ -464,7 +445,6 @@ namespace WorldEngine
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.offscreenSync, nullptr);
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.renderComplete, nullptr);
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.presentComplete, nullptr);
-				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.shadowComplete, nullptr);
 				vkDestroyFence(_VulkanDevice->logicalDevice, sync.inFlightFence, nullptr);
 			}
 			//
@@ -485,8 +465,6 @@ namespace WorldEngine
 			for (auto& framebuffer : frameBuffers_Main) {
 				vkDestroyFramebuffer(_VulkanDevice->logicalDevice, framebuffer, nullptr);
 			}
-			//delete frameBuffers.deferred;
-			delete frameBuffers.shadow;
 			//	Destroy Swapchain
 			swapChain.cleanup();
 			//	Destroy VMA Allocator
@@ -626,15 +604,22 @@ namespace WorldEngine
 		{
 			//==================================================
 			//
-			//		RENDER PASS 0
-			//
+			//		RENDER PASS 1
+			// 
 			// 
 			//	Wait for this semaphore to signal
-			submitInfo1.pWaitSemaphores = &semaphores[currentFrame].presentComplete;
+			submitInfo.pWaitSemaphores = &semaphores[currentFrame].presentComplete;
 			//	Signal this semaphore when we complete
-			submitInfo1.pSignalSemaphores = &semaphores[currentFrame].offscreenSync;
+			submitInfo.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
 			//	Work to submit to GPU
-			submitInfo1.pCommandBuffers = &primaryCommandBuffers_Shadow[currentFrame];
+			submitInfo.pCommandBuffers = &primaryCommandBuffers_Final[currentFrame];
+			//
+			//	Set target Primary Command Buffer
+			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
+			VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Final[currentFrame], &cmdBufInfo));
+			//
+			//	Begin render pass
+			vkCmdBeginRenderPass(primaryCommandBuffers_Final[currentFrame], &MaterialCache::GetPipe_Composition()->renderPass[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 			//
 
 			//==================================================
@@ -646,30 +631,12 @@ namespace WorldEngine
 			if (MaterialCache::bRecordBuffers)
 			{
 				//	TODO: split this out into the 3 separate frames_in_flight
-				MaterialCache::GetPipe_Shadow()->ResetCommandPools(primaryCommandBuffers_Shadow, MaterialCache::GetPipe_Static()->MeshCache);
+				MaterialCache::GetPipe_Shadow()->ResetCommandPools(commandBuffers_SDW, MaterialCache::GetPipe_Static()->MeshCache);
 				//MaterialCache::bRecordBuffers = false;
 			}
 			//==================================================
-
-			//==================================================
-			//
-			//		RENDER PASS 1
-			// 
-			// 
-			//	Wait for this semaphore to signal
-			submitInfo2.pWaitSemaphores = &semaphores[currentFrame].offscreenSync;
-			//	Signal this semaphore when we complete
-			submitInfo2.pSignalSemaphores = &semaphores[currentFrame].renderComplete;
-			//	Work to submit to GPU
-			submitInfo2.pCommandBuffers = &primaryCommandBuffers_Final[currentFrame];
-			//
-			//	Set target Primary Command Buffer
-			VkCommandBufferBeginInfo cmdBufInfo = vks::initializers::commandBufferBeginInfo();
-			VK_CHECK_RESULT(vkBeginCommandBuffer(primaryCommandBuffers_Final[currentFrame], &cmdBufInfo));
-			//
-			//	Begin render pass
-			vkCmdBeginRenderPass(primaryCommandBuffers_Final[currentFrame], &MaterialCache::GetPipe_Composition()->renderPass[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-			//
+			vkCmdExecuteCommands(primaryCommandBuffers_Final[currentFrame], 1, &commandBuffers_SDW[currentFrame]);
+			vkCmdNextSubpass(primaryCommandBuffers_Final[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 			//==================================================
 			//
@@ -687,17 +654,17 @@ namespace WorldEngine
 			}
 			//==================================================
 			vkCmdExecuteCommands(primaryCommandBuffers_Final[currentFrame], 1, &commandBuffers_NDE[currentFrame]);
+			vkCmdNextSubpass(primaryCommandBuffers_Final[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 			//==================================================
 			// 
 			//		START DRAWING DEFERRED COMPOSITION
 			//		(Pre-Recorded Command Buffers)
 			//
-			vkCmdNextSubpass(primaryCommandBuffers_Final[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-			vkCmdExecuteCommands(primaryCommandBuffers_Final[currentFrame], 1, &commandBuffers_CMP[currentFrame]);
 			//==================================================
-
+			vkCmdExecuteCommands(primaryCommandBuffers_Final[currentFrame], 1, &commandBuffers_CMP[currentFrame]);
 			vkCmdNextSubpass(primaryCommandBuffers_Final[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+
 			//==================================================
 			// 
 			//		START DRAWING TRANSPARENT OBJECTS
@@ -728,7 +695,7 @@ namespace WorldEngine
 			//	Secondary CommandBuffer Inheritance Info
 			VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
 			inheritanceInfo.renderPass = renderPass;
-			inheritanceInfo.subpass = 2;
+			inheritanceInfo.subpass = 3;
 			inheritanceInfo.framebuffer = frameBuffers_Main[currentFrame];
 			//	Secondary CommandBuffer Begin Info
 			VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
@@ -778,8 +745,7 @@ namespace WorldEngine
 			//
 			//	Submit work to GPU
 			vkResetFences(_VulkanDevice->logicalDevice, 1, &semaphores[currentFrame].inFlightFence);
-			std::vector<VkSubmitInfo> submitInfo = { submitInfo1, submitInfo2 };
-			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 2, submitInfo.data(), semaphores[currentFrame].inFlightFence));
+			VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, semaphores[currentFrame].inFlightFence));
 		}
 
 		// Update lights and parameters passed to the composition shaders
@@ -972,20 +938,13 @@ namespace WorldEngine
 			swapChain.connect(instance, physicalDevice, _VulkanDevice->logicalDevice);
 			//
 			//	Submit Information
-			submitInfo1 = vks::initializers::submitInfo();
-			submitInfo1.pWaitDstStageMask = &submitPipelineStages;
-			submitInfo1.waitSemaphoreCount = 1;
-			submitInfo1.pWaitSemaphores = &semaphores[0].presentComplete;
-			submitInfo1.signalSemaphoreCount = 1;
-			submitInfo1.pSignalSemaphores = &semaphores[0].renderComplete;
-			submitInfo1.commandBufferCount = 1;
-			submitInfo2 = vks::initializers::submitInfo();
-			submitInfo2.pWaitDstStageMask = &submitPipelineStages;
-			submitInfo2.waitSemaphoreCount = 1;
-			submitInfo2.pWaitSemaphores = &semaphores[0].presentComplete;
-			submitInfo2.signalSemaphoreCount = 1;
-			submitInfo2.pSignalSemaphores = &semaphores[0].renderComplete;
-			submitInfo2.commandBufferCount = 1;
+			submitInfo = vks::initializers::submitInfo();
+			submitInfo.pWaitDstStageMask = &submitPipelineStages;
+			submitInfo.waitSemaphoreCount = 1;
+			submitInfo.pWaitSemaphores = &semaphores[0].presentComplete;
+			submitInfo.signalSemaphoreCount = 1;
+			submitInfo.pSignalSemaphores = &semaphores[0].renderComplete;
+			submitInfo.commandBufferCount = 1;
 		}
 
 		//
@@ -1039,7 +998,14 @@ namespace WorldEngine
 			}
 			if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
 			{
-				aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+				if (attachment->hasDepth())
+				{
+					aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+				}
+				if (attachment->hasStencil())
+				{
+					aspectMask = aspectMask | VK_IMAGE_ASPECT_STENCIL_BIT;
+				}
 				imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			}
 
@@ -1055,25 +1021,26 @@ namespace WorldEngine
 			image.extent.height = attachments.height;
 			image.extent.depth = 1;
 			image.mipLevels = 1;
-			image.arrayLayers = 1;
+			image.arrayLayers = attachment->layerCount;
 			image.samples = VK_SAMPLE_COUNT_1_BIT;
 			image.tiling = VK_IMAGE_TILING_OPTIMAL;
 			// VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT flag is required for input attachments
-			image.usage = usage | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+			image.usage = usage;
 			image.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 			VmaAllocationInfo imageBufferAllocInfo = {};
 			vmaCreateImage(allocator, &image, &allocInfo, &attachment->image, &attachment->imageAlloc, nullptr);
 
 			VkImageViewCreateInfo imageView = vks::initializers::imageViewCreateInfo();
-			imageView.viewType = VK_IMAGE_VIEW_TYPE_2D;
+			imageView.viewType = (attachment->layerCount == 1) ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 			imageView.format = format;
 			imageView.subresourceRange = {};
-			imageView.subresourceRange.aspectMask = aspectMask;
+			//todo: workaround for depth+stencil attachments
+			imageView.subresourceRange.aspectMask = (attachment->hasDepth()) ? VK_IMAGE_ASPECT_DEPTH_BIT : aspectMask;
 			imageView.subresourceRange.baseMipLevel = 0;
 			imageView.subresourceRange.levelCount = 1;
 			imageView.subresourceRange.baseArrayLayer = 0;
-			imageView.subresourceRange.layerCount = 1;
+			imageView.subresourceRange.layerCount = attachment->layerCount;
 			imageView.image = attachment->image;
 			VK_CHECK_RESULT(vkCreateImageView(_VulkanDevice->logicalDevice, &imageView, nullptr, &attachment->view));
 		}
@@ -1081,18 +1048,20 @@ namespace WorldEngine
 		// Create color attachments for the G-Buffer components
 		void createGBufferAttachments()
 		{
-			createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.position);	// (World space) Positions
-			createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.normal);		// (World space) Normals
-			createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, &attachments.albedo);			// Albedo (color)
+			attachments.shadow.layerCount = LIGHT_COUNT;
+			createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, &attachments.shadow);				// shadows
+			createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, &attachments.position);	// (World space) Positions
+			createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, &attachments.normal);		// (World space) Normals
+			createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, &attachments.albedo);			// Albedo (color)
 		}
 		void createRenderPass()
 		{
-			attachments.width = FB_DIM;
-			attachments.height = FB_DIM;
+			attachments.width = WIDTH;
+			attachments.height = HEIGHT;
 
 			createGBufferAttachments();
 
-			std::array<VkAttachmentDescription, 5> attachments_{};
+			std::array<VkAttachmentDescription, 6> attachments_{};
 			// Color attachment
 			attachments_[0].format = swapChain.colorFormat;
 			attachments_[0].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -1131,20 +1100,38 @@ namespace WorldEngine
 			attachments_[3].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachments_[3].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 			attachments_[3].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			// Depth attachment
-			attachments_[4].format = depthFormat;
+			// shadow
+			attachments_[4].format = attachments.shadow.format;
 			attachments_[4].samples = VK_SAMPLE_COUNT_1_BIT;
 			attachments_[4].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachments_[4].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments_[4].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachments_[4].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachments_[4].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachments_[4].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachments_[4].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			attachments_[4].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			// Depth attachment
+			attachments_[5].format = depthFormat;
+			attachments_[5].samples = VK_SAMPLE_COUNT_1_BIT;
+			attachments_[5].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+			attachments_[5].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments_[5].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments_[5].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments_[5].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments_[5].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-			// Three subpasses
-			std::array<VkSubpassDescription, 3> subpassDescriptions{};
+			// four subpasses
+			std::array<VkSubpassDescription, 4> subpassDescriptions{};
 
-			// First subpass: Fill G-Buffer components
+			// First subpass: Fill shadow maps
+			// ----------------------------------------------------------------------------------------
+
+			//VkAttachmentReference colorReferences_[1];
+			VkAttachmentReference depthReference_ = { 4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL };
+
+			subpassDescriptions[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpassDescriptions[0].pDepthStencilAttachment = &depthReference_;
+
+			// Second subpass: Fill G-Buffer components
 			// ----------------------------------------------------------------------------------------
 
 			VkAttachmentReference colorReferences[4];
@@ -1152,14 +1139,14 @@ namespace WorldEngine
 			colorReferences[1] = { 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 			colorReferences[2] = { 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 			colorReferences[3] = { 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-			VkAttachmentReference depthReference = { 4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+			VkAttachmentReference depthReference = { 5, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
 
-			subpassDescriptions[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpassDescriptions[0].colorAttachmentCount = 4;
-			subpassDescriptions[0].pColorAttachments = colorReferences;
-			subpassDescriptions[0].pDepthStencilAttachment = &depthReference;
+			subpassDescriptions[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpassDescriptions[1].colorAttachmentCount = 4;
+			subpassDescriptions[1].pColorAttachments = colorReferences;
+			subpassDescriptions[1].pDepthStencilAttachment = &depthReference;
 
-			// Second subpass: Final composition (using G-Buffer components)
+			// Third subpass: Final composition (using G-Buffer components)
 			// ----------------------------------------------------------------------------------------
 
 			VkAttachmentReference colorReference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
@@ -1169,30 +1156,30 @@ namespace WorldEngine
 			inputReferences[1] = { 2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 			inputReferences[2] = { 3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 
-			subpassDescriptions[1].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpassDescriptions[1].colorAttachmentCount = 1;
-			subpassDescriptions[1].pColorAttachments = &colorReference;
-			subpassDescriptions[1].pDepthStencilAttachment = &depthReference;
+			subpassDescriptions[2].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpassDescriptions[2].colorAttachmentCount = 1;
+			subpassDescriptions[2].pColorAttachments = &colorReference;
+			subpassDescriptions[2].pDepthStencilAttachment = &depthReference;
 			// Use the color attachments filled in the first pass as input attachments
-			subpassDescriptions[1].inputAttachmentCount = 3;
-			subpassDescriptions[1].pInputAttachments = inputReferences;
+			subpassDescriptions[2].inputAttachmentCount = 3;
+			subpassDescriptions[2].pInputAttachments = inputReferences;
 
-			// Third subpass: Forward transparency
+			// Fourth subpass: Forward transparency
 			// ----------------------------------------------------------------------------------------
 			colorReference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
 			inputReferences[0] = { 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 
-			subpassDescriptions[2].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-			subpassDescriptions[2].colorAttachmentCount = 1;
-			subpassDescriptions[2].pColorAttachments = &colorReference;
-			subpassDescriptions[2].pDepthStencilAttachment = &depthReference;
+			subpassDescriptions[3].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+			subpassDescriptions[3].colorAttachmentCount = 1;
+			subpassDescriptions[3].pColorAttachments = &colorReference;
+			subpassDescriptions[3].pDepthStencilAttachment = &depthReference;
 			// Use the color/depth attachments filled in the first pass as input attachments
-			subpassDescriptions[2].inputAttachmentCount = 1;
-			subpassDescriptions[2].pInputAttachments = inputReferences;
+			subpassDescriptions[3].inputAttachmentCount = 1;
+			subpassDescriptions[3].pInputAttachments = inputReferences;
 
 			// Subpass dependencies for layout transitions
-			std::array<VkSubpassDependency, 4> dependencies;
+			std::array<VkSubpassDependency, 5> dependencies;
 
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[0].dstSubpass = 0;
@@ -1202,7 +1189,6 @@ namespace WorldEngine
 			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
-			// This dependency transitions the input attachment from color attachment to shader read
 			dependencies[1].srcSubpass = 0;
 			dependencies[1].dstSubpass = 1;
 			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1220,12 +1206,20 @@ namespace WorldEngine
 			dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 			dependencies[3].srcSubpass = 2;
-			dependencies[3].dstSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[3].dstSubpass = 3;
 			dependencies[3].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-			dependencies[3].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-			dependencies[3].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			dependencies[3].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[3].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			dependencies[3].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[3].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			dependencies[3].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+			dependencies[4].srcSubpass = 3;
+			dependencies[4].dstSubpass = VK_SUBPASS_EXTERNAL;
+			dependencies[4].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			dependencies[4].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			dependencies[4].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dependencies[4].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			dependencies[4].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
 			VkRenderPassCreateInfo renderPassInfo = {};
 			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -1243,12 +1237,12 @@ namespace WorldEngine
 		//	Vulkan Initialization - Stage 2 - Step 3
 		void createFrameBuffers()
 		{
-			VkImageView attachments_[5];
+			VkImageView attachments_[6];
 
 			VkFramebufferCreateInfo frameBufferCreateInfo = vks::initializers::framebufferCreateInfo();
 			frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			frameBufferCreateInfo.renderPass = renderPass;
-			frameBufferCreateInfo.attachmentCount = 5;
+			frameBufferCreateInfo.attachmentCount = 6;
 			frameBufferCreateInfo.pAttachments = attachments_;
 			frameBufferCreateInfo.width = WIDTH;
 			frameBufferCreateInfo.height = HEIGHT;
@@ -1265,7 +1259,8 @@ namespace WorldEngine
 				attachments_[1] = attachments.position.view;
 				attachments_[2] = attachments.normal.view;
 				attachments_[3] = attachments.albedo.view;
-				attachments_[4] = depthStencil.view;
+				attachments_[4] = attachments.shadow.view;
+				attachments_[5] = depthStencil.view;
 				VK_CHECK_RESULT(vkCreateFramebuffer(_VulkanDevice->logicalDevice, &frameBufferCreateInfo, nullptr, &frameBuffers_Main[i]));
 				//
 				//	CommandPools
@@ -1280,35 +1275,6 @@ namespace WorldEngine
 				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &primaryCommandBuffers_Shadow[i]));
 				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &primaryCommandBuffers_Final[i]));
 			}
-		}
-
-		//
-		//	Vulkan Initialization - Stage 2 - Step 4
-		void prepareOffscreenFrameBuffer()
-		{
-			frameBuffers.shadow = new Framebuffer(_VulkanDevice, allocator);
-
-			frameBuffers.shadow->width = SHADOWMAP_DIM;
-			frameBuffers.shadow->height = SHADOWMAP_DIM;
-
-			// Create a layered depth attachment for rendering the depth maps from the lights' point of view
-			// Each layer corresponds to one of the lights
-			// The actual output to the separate layers is done in the geometry shader using shader instancing
-			// We will pass the matrices of the lights to the GS that selects the layer by the current invocation
-			AttachmentCreateInfo attachmentInfo = {};
-			attachmentInfo.format = depthFormat;
-			attachmentInfo.width = SHADOWMAP_DIM;
-			attachmentInfo.height = SHADOWMAP_DIM;
-			attachmentInfo.layerCount = LIGHT_COUNT;
-			attachmentInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			frameBuffers.shadow->addAttachment(attachmentInfo);
-
-			// Create sampler to sample from to depth attachment
-			// Used to sample in the fragment shader for shadowed rendering
-			VK_CHECK_RESULT(frameBuffers.shadow->createSampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE));
-
-			// Create default renderpass for the framebuffer
-			VK_CHECK_RESULT(frameBuffers.shadow->createRenderPass(swapChain.imageCount));
 		}
 
 		// Main stuct for btDbvt handling

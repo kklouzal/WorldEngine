@@ -6,6 +6,7 @@ struct PipelineObject
 {
 	VkSampler Sampler = VK_NULL_HANDLE;
 	VkSampler DeferredSampler = VK_NULL_HANDLE;
+	VkSampler ShadowSampler = VK_NULL_HANDLE;
 	VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
@@ -23,6 +24,7 @@ struct PipelineObject
 		vkDestroyDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, descriptorSetLayout, nullptr);
 		vkDestroySampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, Sampler, nullptr);
 		vkDestroySampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, DeferredSampler, nullptr);
+		vkDestroySampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, ShadowSampler, nullptr);
 	}
 
 	virtual TextureObject* createTextureImage(const std::string& File) { return nullptr; };
@@ -86,6 +88,24 @@ protected:
 			#ifdef _DEBUG
 			throw std::runtime_error("failed to create texture sampler!");
 			#endif
+		}
+
+		VkSamplerCreateInfo samplerInfo3 = vks::initializers::samplerCreateInfo();
+		samplerInfo3.magFilter = VK_FILTER_LINEAR;
+		samplerInfo3.minFilter = VK_FILTER_LINEAR;
+		samplerInfo3.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo3.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo3.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo3.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		samplerInfo3.mipLodBias = 0.0f;
+		samplerInfo3.maxAnisotropy = 1.0f;
+		samplerInfo3.minLod = 0.0f;
+		samplerInfo3.maxLod = 1.0f;
+		samplerInfo3.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		if (vkCreateSampler(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &samplerInfo2, nullptr, &ShadowSampler) != VK_SUCCESS) {
+#ifdef _DEBUG
+			throw std::runtime_error("failed to create texture sampler!");
+#endif
 		}
 	}
 

@@ -7,7 +7,7 @@
 layout (input_attachment_index = 0, binding = 0) uniform subpassInput samplerposition;
 layout (input_attachment_index = 1, binding = 1) uniform subpassInput samplerNormal;
 layout (input_attachment_index = 2, binding = 2) uniform subpassInput samplerAlbedo;
-layout(binding = 4) uniform sampler2DArray samplerShadowMap;
+layout(binding = 3) uniform sampler2DArray samplerShadowMap;
 
 layout(location = 0) in vec2 inUV;
 
@@ -20,7 +20,7 @@ struct DLight {
 	mat4 viewMatrix;
 };
 
-layout(std140, binding = 3) uniform DComposition
+layout(std140, binding = 4) uniform DComposition
 {
 	DLight lights[6];
 	int displayDebugTarget;
