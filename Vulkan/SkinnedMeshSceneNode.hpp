@@ -9,7 +9,7 @@ class SkinnedMeshSceneNode : public SceneNode
 	//
 	//	If Valid is false, this node will be resubmitted for drawing.
 	bool Valid = false;
-	UniformBufferObject ubo = {};
+	//UniformBufferObject ubo = {};
 
 	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
@@ -107,7 +107,7 @@ public:
 		deltaFrame = std::chrono::duration<float, std::milli>(endFrame - startFrame).count();
 		startFrame = endFrame;
 
-		ubo.model = Model;
+		//ubo.model = Model;
 		controller_.Update(animation_, deltaFrame);
 		//	Samples optimized animation at t = animation_time_
 		ozz::animation::SamplingJob sampling_job;

@@ -275,11 +275,12 @@ public:
 		}
 
 		// Determine the number of images
-		uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 1;
+		uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + DOUBLE_TRIPLE_BUFFER;
 		if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
 		{
 			desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
 		}
+		printf("SWAPCHAIN IMAGE COUNT %ld\n", desiredNumberOfSwapchainImages);
 
 		// Find the transformation of the surface
 		VkSurfaceTransformFlagsKHR preTransform;

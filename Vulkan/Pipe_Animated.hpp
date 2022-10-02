@@ -16,7 +16,7 @@ namespace Pipeline {
 			}
 			//
 			//	Create mesh if not exists
-			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex, bCastsShadows);
+			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex, bCastsShadows, true);
 			MeshCache.push_back(Mesh);
 			return Mesh;
 		}
@@ -118,6 +118,7 @@ namespace Pipeline {
 		//	Create Descriptor
 		//
 		//
+		//	TODO: Pass in StorageBuffers payload instead of vector so we can send in multiple buffer 'pools'.
 		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice);
 			//
@@ -131,25 +132,26 @@ namespace Pipeline {
 			VK_CHECK_RESULT(vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool));
 			//
 			//	Create and Update individual Descriptor sets
-			NewDescriptor->DescriptorSets.resize(WorldEngine::VulkanDriver::swapChain.images.size());
-			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
+			size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
+			NewDescriptor->DescriptorSets.resize(SwapChainSize);
+			for (size_t i = 0; i < SwapChainSize; i++) {
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, &descriptorSetLayout, 1);
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]));
 
-				VkDescriptorBufferInfo bufferInfo = {};
-				bufferInfo.buffer = StorageBuffers[i];
-				bufferInfo.offset = 0;
-				bufferInfo.range = VK_WHOLE_SIZE;
+				VkDescriptorBufferInfo bufferInfo_InstanceData = {};
+				bufferInfo_InstanceData.buffer = StorageBuffers[i];
+				bufferInfo_InstanceData.offset = 0;
+				bufferInfo_InstanceData.range = VK_WHOLE_SIZE;
 				//
 				VkDescriptorBufferInfo bufferInfo_camera = {};
 				bufferInfo_camera.buffer = WorldEngine::SceneGraph::GetCamera()->uboCamBuff[i];
 				bufferInfo_camera.offset = 0;
 				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
 				//
-				VkDescriptorBufferInfo bufferInfo2 = {};
-				bufferInfo2.buffer = StorageBuffers[i];
-				bufferInfo2.offset = 0;
-				//bufferInfo2.range = SSBOSize;
+				VkDescriptorBufferInfo bufferInfo_InstanceData_Animation = {};
+				bufferInfo_InstanceData_Animation.buffer = StorageBuffers[i+SwapChainSize];
+				bufferInfo_InstanceData_Animation.offset = 0;
+				bufferInfo_InstanceData_Animation.range = VK_WHOLE_SIZE;
 
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
@@ -165,11 +167,11 @@ namespace Pipeline {
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 					// Binding 0 : Instancing SSBO
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo),
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo_InstanceData),
 					// Binding 1 : Camera UBO
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
 					// Binding 2 : Joint Matrices Storage Buffer
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &bufferInfo2),
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &bufferInfo_InstanceData_Animation),
 					// Binding 3 : color
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageColor),
 					// Binding 4 : normal
@@ -188,16 +190,22 @@ namespace Pipeline {
 		//
 		void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers)
 		{
-			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
-				VkDescriptorBufferInfo bufferInfo = {};
-				bufferInfo.buffer = StorageBuffers[i];
-				bufferInfo.offset = 0;
-				bufferInfo.range = VK_WHOLE_SIZE;
+			size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
+			for (size_t i = 0; i < SwapChainSize; i++) {
+				VkDescriptorBufferInfo bufferInfo_InstanceData = {};
+				bufferInfo_InstanceData.buffer = StorageBuffers[i];
+				bufferInfo_InstanceData.offset = 0;
+				bufferInfo_InstanceData.range = VK_WHOLE_SIZE;
 				//
 				VkDescriptorBufferInfo bufferInfo_camera = {};
 				bufferInfo_camera.buffer = WorldEngine::SceneGraph::GetCamera()->uboCamBuff[i];
 				bufferInfo_camera.offset = 0;
 				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
+				//
+				VkDescriptorBufferInfo bufferInfo_InstanceData_Animation = {};
+				bufferInfo_InstanceData_Animation.buffer = StorageBuffers[i+SwapChainSize];
+				bufferInfo_InstanceData_Animation.offset = 0;
+				bufferInfo_InstanceData_Animation.range = VK_WHOLE_SIZE;
 
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
@@ -213,13 +221,15 @@ namespace Pipeline {
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 					// Binding 0 : Instancing SSBO
-					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo),
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo_InstanceData),
 					// Binding 1 : Camera UBO
 					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
-					// Binding 2 : Color Texture
-					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageColor),
-					// Binding 3 : Normal Texture
-					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageNormal)
+					// Binding 2 : Joint Matrices Storage Buffer
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &bufferInfo_InstanceData_Animation),
+					// Binding 3 : color
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageColor),
+					// Binding 4 : normal
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textureImageNormal)
 				};
 
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);

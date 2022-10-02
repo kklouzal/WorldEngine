@@ -4,9 +4,11 @@ class TriangleMesh {
 
 public:
 	bool bCastsShadows;
+	bool bAnimated;
 	bool bFirstInstance = true;
-	std::vector<InstanceData> instanceData;
-	std::vector<glm::mat4*> instanceData_Shadow;
+	std::vector<InstanceData> instanceData{};						//TODO: Make these pointers and give one to each owning scene node
+	std::vector<glm::mat4*> instanceData_Shadow{};
+	std::vector<InstanceData_Animation> instanceData_Animation{};	//TODO: Make these pointers and give one to each owning scene node
 	PipelineObject* Pipe;
 
 	const char* FileName;
@@ -20,6 +22,7 @@ public:
 	VkBuffer indexBuffer = VK_NULL_HANDLE;
 	VmaAllocation indexAllocation = VMA_NULL;
 
+	//	TODO: Use single VkBuffer for InstanceData && InstanceData_Animation. Apply offset in descriptor create/update.
 	std::vector <VkBuffer> instanceStorageSpaceBuffers = {};
 	std::vector <VmaAllocation> instanceStorageSpaceAllocations = {};
 
@@ -29,18 +32,26 @@ public:
 
 public:
 	
-	TriangleMesh(PipelineObject* Pipeline, const char* FileName, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal, bool bCastsShadows)
-		: bCastsShadows(bCastsShadows), Pipe(Pipeline), FileName(FileName), _GLTF(GLTF), vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()), indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size()) {
+	TriangleMesh(PipelineObject* Pipeline, const char* FileName, GLTFInfo* GLTF, TextureObject* Albedo, TextureObject* Normal, bool bCastsShadows, bool bAnimated)
+		: bCastsShadows(bCastsShadows), bAnimated(bAnimated),
+		Pipe(Pipeline), FileName(FileName), _GLTF(GLTF),
+		vertexBufferSize(sizeof(Vertex)* GLTF->Vertices.size()),
+		indexBufferSize(sizeof(uint32_t)* GLTF->Indices.size())
+	{
 		createVertexBuffer();
 		//
-		//	Start with zero instances, grow as needed.
+		//	Start with zero instances, grow as needed
+		//	TODO: Make this actually start at 0
 		instanceData.resize(1);
-		if (bCastsShadows)
-		{
+		if (bCastsShadows) {
 			instanceData_Shadow.resize(1);
 		}
-		size_t SSBOSize = sizeof(InstanceData) * instanceData.size();
-		createStorageBuffer(SSBOSize);
+		if (bAnimated) {
+			instanceData_Animation.resize(1);
+		}
+		size_t SSBOSize1 = sizeof(InstanceData) * instanceData.size();
+		size_t SSBOSize2 = sizeof(InstanceData_Animation) * instanceData_Animation.size();
+		createStorageBuffer(SSBOSize1, SSBOSize2);
 		Texture_Albedo = Albedo;
 		Texture_Normal = Normal;
 		Descriptor = Pipe->createDescriptor(Albedo, Normal, instanceStorageSpaceBuffers);
@@ -58,6 +69,7 @@ public:
 		delete Descriptor;
 	}
 
+	//	TODO: This needs fixed to allow allocations to truly start at 0 instead of 1 and faking the 0 index.
 	size_t RegisterInstanceIndex()
 	{
 		if (instanceData.size() == 1 && bFirstInstance)
@@ -69,6 +81,9 @@ public:
 			return 0;
 		}
 		instanceData.push_back(InstanceData());
+		if (bAnimated) {
+			instanceData_Animation.push_back(InstanceData_Animation());
+		}
 		ResizeInstanceBuffer();
 		if (bCastsShadows)
 		{
@@ -92,30 +107,50 @@ public:
 		}
 		//
 		//	Recreate
-		size_t SSBOSize = sizeof(InstanceData) * instanceData.size();
-		createStorageBuffer(SSBOSize);
+		size_t SSBOSize1 = sizeof(InstanceData) * instanceData.size();
+		size_t SSBOSize2 = sizeof(InstanceData_Animation) * instanceData_Animation.size();
+		createStorageBuffer(SSBOSize1, SSBOSize2);
 		Pipe->updateDescriptor(Descriptor, Texture_Albedo, Texture_Normal, instanceStorageSpaceBuffers);
-		for (size_t i = 0; i < instanceStorageSpaceBuffers.size(); i++) {
-			memcpy(instanceStorageSpaceAllocations[i]->GetMappedData(), instanceData.data(), SSBOSize);
+
+		size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
+		for (size_t i = 0; i < SwapChainSize; i++) {
+			memcpy(instanceStorageSpaceAllocations[i]->GetMappedData(), instanceData.data(), SSBOSize1);
+			if (SSBOSize2 > 0) {
+				memcpy(instanceStorageSpaceAllocations[i+SwapChainSize]->GetMappedData(), instanceData.data(), SSBOSize1);
+			}
 		}
 	}
 
-	void createStorageBuffer(size_t SSBO_Size)
+	void createStorageBuffer(size_t SSBO_Size1, size_t SSBO_Size2)
 	{
-		instanceStorageSpaceBuffers.resize(WorldEngine::VulkanDriver::swapChain.images.size());
-		instanceStorageSpaceAllocations.resize(WorldEngine::VulkanDriver::swapChain.images.size());
+		size_t modifier = 1;
+		if (SSBO_Size2 > 0) { modifier = 2; }
 
-		for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
-			VkBufferCreateInfo ssboBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			ssboBufferInfo.size = SSBO_Size;
-			ssboBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-			ssboBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+		size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
+		instanceStorageSpaceBuffers.resize(SwapChainSize * modifier);
+		instanceStorageSpaceAllocations.resize(SwapChainSize * modifier);
+
+		for (size_t i = 0; i < SwapChainSize; i++) {
+			VkBufferCreateInfo ssboBufferInfo1 = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+			ssboBufferInfo1.size = SSBO_Size1;
+			ssboBufferInfo1.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			ssboBufferInfo1.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
 			VmaAllocationCreateInfo ssboAllocInfo = {};
 			ssboAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 			ssboAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo, &ssboAllocInfo, &instanceStorageSpaceBuffers[i], &instanceStorageSpaceAllocations[i], nullptr);
+			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo1, &ssboAllocInfo, &instanceStorageSpaceBuffers[i], &instanceStorageSpaceAllocations[i], nullptr);
+
+			if (SSBO_Size2 > 0)
+			{
+				VkBufferCreateInfo ssboBufferInfo2 = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+				ssboBufferInfo2.size = SSBO_Size2;
+				ssboBufferInfo2.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+				ssboBufferInfo2.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo1, &ssboAllocInfo, &instanceStorageSpaceBuffers[i+SwapChainSize], &instanceStorageSpaceAllocations[i+SwapChainSize], nullptr);
+			}
 		}
 	}
 

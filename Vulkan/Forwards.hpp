@@ -61,6 +61,8 @@
 #include <iostream>
 #include <vector>
 
+constexpr auto DOUBLE_TRIPLE_BUFFER = 1; //	0 == Single, 1 == Double, 2 == Triple. (probably)
+
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
 //#include "VulkanFrameBuffer.hpp"
@@ -179,14 +181,17 @@ struct CameraUniformBuffer {
 };
 //
 //	Model Uniform Buffer Object
-struct UniformBufferObject {
-	glm::mat4 model{};
-	//ozz::math::Float4x4 bones[32]{};
-};
+//struct UniformBufferObject {
+//	glm::mat4 model{};
+//	//ozz::math::Float4x4 bones[32]{};
+//};
 
 //
 struct InstanceData {
 	glm::mat4 model{};
+};
+struct InstanceData_Animation {
+	ozz::math::Float4x4 bones[32]{};
 };
 
 struct DescriptorObject {
