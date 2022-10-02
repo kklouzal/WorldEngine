@@ -10,7 +10,6 @@ namespace WorldEngine
 		float zFar = 128.0f;
 		float lightFOV = 100.0f;
 		//
-		//
 		uint32_t WIDTH = 1280;
 		uint32_t HEIGHT = 1024;
 		bool VSYNC = false;
@@ -21,7 +20,7 @@ namespace WorldEngine
 			FrameBufferAttachment shadow, position, normal, albedo;
 			int32_t width{};
 			int32_t height{};
-		} attachments;
+		} attachments;													//	Cleaned Up
 
 		//
 		//	Framebuffer Resources
@@ -38,7 +37,6 @@ namespace WorldEngine
 		struct {
 			VkSemaphore presentComplete;
 			VkSemaphore renderComplete;
-			VkSemaphore offscreenSync;
 			VkFence inFlightFence;
 		} semaphores[3];												//	Cleaned Up
 		//
@@ -83,10 +81,6 @@ namespace WorldEngine
 		std::vector<VkCommandBuffer> commandBuffers_TPT;	//	trans	//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_GUI;	//	gui		//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_CEF;	//	cef		//	Doesnt Need Cleanup
-
-		DComposition uboComposition;									//	Doesnt Need Cleanup
-		std::vector<VkBuffer> uboCompositionBuff = {};					//	Cleaned Up
-		std::vector<VmaAllocation> uboCompositionAlloc = {};			//	Cleaned Up
 
 		// Core Classes
 		VmaAllocator allocator = VMA_NULL;								//	Cleaned Up
@@ -255,19 +249,6 @@ namespace WorldEngine
 			viewport_Deferred = vks::initializers::viewport((float)WIDTH, (float)HEIGHT, 0.0f, 1.0f);
 			scissor_Deferred = vks::initializers::rect2D(WIDTH, HEIGHT, 0, 0);
 			//
-			//	Per-Frame Deferred Rendering Uniform Buffer Objects
-			uboCompositionBuff.resize(swapChain.images.size());
-			uboCompositionAlloc.resize(swapChain.images.size());
-			for (size_t i = 0; i < swapChain.images.size(); i++)
-			{
-				VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DComposition));
-				uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-				VmaAllocationCreateInfo uniformAllocInfo = {};
-				uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-				uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-				vmaCreateBuffer(allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
-			}
-			//
 			//	Per-Frame Secondary Shadow Command Buffers
 			commandBuffers_SDW.resize(frameBuffers_Main.size());
 			for (int i = 0; i < frameBuffers_Main.size(); i++)
@@ -328,20 +309,13 @@ namespace WorldEngine
 				// Create a semaphore used to synchronize command submission
 				// Ensures that the image is not presented until all commands have been submitted and executed
 				VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].renderComplete));
-				// Create a semaphore used to synchronize deferred rendering
-				// Ensures that drawing happens at the appropriate times
-				VK_CHECK_RESULT(vkCreateSemaphore(_VulkanDevice->logicalDevice, &semaphoreCreateInfo, nullptr, &semaphores[i].offscreenSync));
 				// Create a fence used to synchronize cpu/gpu access per frame
 				// Ensures a frame completely finishes on the gpu before being used again on the cpu
 				VK_CHECK_RESULT(vkCreateFence(_VulkanDevice->logicalDevice, &fenceCreateInfo, nullptr, &semaphores[i].inFlightFence));
 			}
 			//
 			//	Physics Initialization
-			//btSetTaskScheduler(btGetOpenMPTaskScheduler());
-			//btSetTaskScheduler(btGetTBBTaskScheduler());
-			//btSetTaskScheduler(btGetPPLTaskScheduler());
 			btSetTaskScheduler(btCreateDefaultTaskScheduler());
-			//
 			btDefaultCollisionConstructionInfo cci;
 			cci.m_defaultMaxPersistentManifoldPoolSize = 102400;
 			cci.m_defaultMaxCollisionAlgorithmPoolSize = 102400;
@@ -353,8 +327,7 @@ namespace WorldEngine
 			//	Solver Pool
 			btConstraintSolver* solvers[BT_MAX_THREAD_COUNT];
 			int maxThreadCount = BT_MAX_THREAD_COUNT;
-			for (int i = 0; i < maxThreadCount; ++i)
-			{
+			for (int i = 0; i < maxThreadCount; ++i) {
 				solvers[i] = new btSequentialImpulseConstraintSolverMt();
 			}
 			solverPool = new btConstraintSolverPoolMt(solvers, maxThreadCount);
@@ -422,14 +395,10 @@ namespace WorldEngine
 		//	Deinitialize
 		void Deinitialize()
 		{
-			CEF::Deinitialize();
-			//
-			SceneGraph::Deinitialize();
-			//
-			MaterialCache::Deinitialize();
-			//
 			lua_close(state);
-			//
+			CEF::Deinitialize();
+			SceneGraph::Deinitialize();
+			MaterialCache::Deinitialize();
 			NetCode::Deinitialize();
 			//
 			delete dynamicsWorld;
@@ -440,17 +409,10 @@ namespace WorldEngine
 			//
 			_EventReceiver->Cleanup();
 			//	Destroy Synchronization Objects
-			for (auto& sync : semaphores)
-			{
-				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.offscreenSync, nullptr);
+			for (auto& sync : semaphores) {
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.renderComplete, nullptr);
 				vkDestroySemaphore(_VulkanDevice->logicalDevice, sync.presentComplete, nullptr);
 				vkDestroyFence(_VulkanDevice->logicalDevice, sync.inFlightFence, nullptr);
-			}
-			//
-			for (int i = 0; i < uboCompositionBuff.size(); i++)
-			{
-				vmaDestroyBuffer(allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
 			}
 			//
 			for (auto& commandpool : commandPools) {
@@ -465,6 +427,14 @@ namespace WorldEngine
 			for (auto& framebuffer : frameBuffers_Main) {
 				vkDestroyFramebuffer(_VulkanDevice->logicalDevice, framebuffer, nullptr);
 			}
+			vkDestroyImageView(_VulkanDevice->logicalDevice, attachments.albedo.view, nullptr);
+			vmaDestroyImage(allocator, attachments.albedo.image, attachments.albedo.imageAlloc);
+			vkDestroyImageView(_VulkanDevice->logicalDevice, attachments.normal.view, nullptr);
+			vmaDestroyImage(allocator, attachments.normal.image, attachments.normal.imageAlloc);
+			vkDestroyImageView(_VulkanDevice->logicalDevice, attachments.position.view, nullptr);
+			vmaDestroyImage(allocator, attachments.position.image, attachments.position.imageAlloc);
+			vkDestroyImageView(_VulkanDevice->logicalDevice, attachments.shadow.view, nullptr);
+			vmaDestroyImage(allocator, attachments.shadow.image, attachments.shadow.imageAlloc);
 			//	Destroy Swapchain
 			swapChain.cleanup();
 			//	Destroy VMA Allocator
@@ -751,30 +721,32 @@ namespace WorldEngine
 		// Update lights and parameters passed to the composition shaders
 		inline void updateUniformBufferComposition(const size_t& CurFrame)
 		{
+			DComposition& uboComposition = MaterialCache::GetPipe_Composition()->uboComposition;
+			uboComposition.camPos = glm::vec4(WorldEngine::SceneGraph::GetCamera()->Pos, 1.0f);
 			// White
 			uboComposition.lights[0].position = glm::vec4(50.0f, -70.0f, 50.0f, 0.0f);
 			uboComposition.lights[0].color = glm::vec4(1.5f);
-			uboComposition.lights[0].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
+			uboComposition.lights[0].target = uboComposition.camPos;
 			// Red
 			uboComposition.lights[1].position = glm::vec4(75.0f, -70.0f, 75.0f, 0.0f);
 			uboComposition.lights[1].color = glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
-			uboComposition.lights[1].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
+			uboComposition.lights[1].target = uboComposition.camPos;
 			// Blue
 			uboComposition.lights[2].position = glm::vec4(100.0f, -70.0f, 100.0f, 0.0f);
 			uboComposition.lights[2].color = glm::vec4(0.0f, 0.0f, 2.5f, 0.0f);
-			uboComposition.lights[2].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
+			uboComposition.lights[2].target = uboComposition.camPos;
 			// Yellow
 			uboComposition.lights[3].position = glm::vec4(125.0f, -70.0f, 125.0f, 0.0f);
 			uboComposition.lights[3].color = glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
-			uboComposition.lights[3].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
+			uboComposition.lights[3].target = uboComposition.camPos;
 			// Green
 			uboComposition.lights[4].position = glm::vec4(150.0f, -70.0f, 150.0f, 0.0f);
 			uboComposition.lights[4].color = glm::vec4(0.0f, 1.0f, 0.2f, 0.0f);
-			uboComposition.lights[4].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
+			uboComposition.lights[4].target = uboComposition.camPos;
 			// Yellow
 			uboComposition.lights[5].position = glm::vec4(175.0f, -70.0f, 175.0f, 0.0f);
 			uboComposition.lights[5].color = glm::vec4(1.0f, 0.7f, 0.3f, 0.0f);
-			uboComposition.lights[5].target = glm::vec4(SceneGraph::GetCamera()->Pos, 1.0f);
+			uboComposition.lights[5].target = uboComposition.camPos;
 
 			for (uint32_t i = 0; i < LIGHT_COUNT; i++)
 			{
@@ -787,10 +759,10 @@ namespace WorldEngine
 				WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i] = shadowProj * shadowView * shadowModel;
 				uboComposition.lights[i].viewMatrix = WorldEngine::MaterialCache::GetPipe_Shadow()->uboShadow.mvp[i];
 			}
-			uboComposition.camPos = glm::vec4(WorldEngine::SceneGraph::GetCamera()->Pos, 1.0f);
-			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
+			//
+			//	Physically upload buffers to GPU
+			WorldEngine::MaterialCache::GetPipe_Composition()->UploadBuffersToGPU(CurFrame);
 			WorldEngine::MaterialCache::GetPipe_Shadow()->UploadBuffersToGPU(CurFrame);
-
 			SceneGraph::GetCamera()->UpdateCameraUBO(CurFrame, WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
 		}
 
@@ -1179,8 +1151,10 @@ namespace WorldEngine
 			subpassDescriptions[3].pInputAttachments = inputReferences;
 
 			// Subpass dependencies for layout transitions
+			//	TODO: Fix the dependencies, they work, but are not optimal.
 			std::array<VkSubpassDependency, 5> dependencies;
 
+			//	Shadow Pass
 			dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[0].dstSubpass = 0;
 			dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -1189,6 +1163,7 @@ namespace WorldEngine
 			dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
+			//	Fill G Buffers
 			dependencies[1].srcSubpass = 0;
 			dependencies[1].dstSubpass = 1;
 			dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1197,6 +1172,7 @@ namespace WorldEngine
 			dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
+			//	Composition Pass
 			dependencies[2].srcSubpass = 1;
 			dependencies[2].dstSubpass = 2;
 			dependencies[2].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1205,6 +1181,7 @@ namespace WorldEngine
 			dependencies[2].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			dependencies[2].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
+			//	Transparancy Pass
 			dependencies[3].srcSubpass = 2;
 			dependencies[3].dstSubpass = 3;
 			dependencies[3].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1213,6 +1190,7 @@ namespace WorldEngine
 			dependencies[3].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 			dependencies[3].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
+			//	Next external pass
 			dependencies[4].srcSubpass = 3;
 			dependencies[4].dstSubpass = VK_SUBPASS_EXTERNAL;
 			dependencies[4].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;

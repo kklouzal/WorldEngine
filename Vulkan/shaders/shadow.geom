@@ -15,11 +15,11 @@ layout (location = 0) in int inInstanceIndex[];
 
 void main()
 {
-	mat4 instancedPos = ubo.instancePos[inInstanceIndex[0]]; 
+	//mat4 instancedPos = ubo.instancePos[inInstanceIndex[0]]; 
 	for (int i = 0; i < gl_in.length(); i++)
 	{
 		gl_Layer = gl_InvocationID;
-		gl_Position = ubo.mvp[gl_InvocationID] * instancedPos * gl_in[i].gl_Position;
+		gl_Position = ubo.mvp[gl_InvocationID] * ubo.instancePos[inInstanceIndex[0]] * gl_in[i].gl_Position;
 		EmitVertex();
 	}
 	EndPrimitive();

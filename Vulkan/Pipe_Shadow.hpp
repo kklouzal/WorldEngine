@@ -147,8 +147,6 @@ namespace Pipeline {
 			}
 		}
 
-		//
-		//	TODO: Implement staging buffer
 		void UploadBuffersToGPU(const size_t& CurFrame)
 		{
 			memcpy(uboShadowAlloc[CurFrame]->GetMappedData(), &uboShadow, sizeof(uboShadow));

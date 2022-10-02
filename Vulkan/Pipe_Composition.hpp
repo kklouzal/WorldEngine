@@ -6,6 +6,11 @@ namespace Pipeline {
 		std::vector<VkDescriptorSet> DescriptorSets = {};
 		VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
 		//
+		//	Per-Frame Composition Rendering Uniform Buffer Objects
+		DComposition uboComposition;									//	Doesnt Need Cleanup
+		std::vector<VkBuffer> uboCompositionBuff = {};					//	Cleaned Up
+		std::vector<VmaAllocation> uboCompositionAlloc = {};			//	Cleaned Up
+		//
 		std::array<VkClearValue, 6> clearValues;
 		VkViewport viewport;
 		VkRect2D scissor;
@@ -14,6 +19,11 @@ namespace Pipeline {
 
 		~Composition()
 		{
+			//
+			for (int i = 0; i < uboCompositionBuff.size(); i++)
+			{
+				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
+			}
 			//
 			vkDestroyDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, DescriptorPool, nullptr);
 		}
@@ -116,10 +126,22 @@ namespace Pipeline {
 			//	Create and Update individual Descriptor sets and uniform buffers
 			DescriptorSets.resize(SwapChainCount);
 			renderPass.resize(SwapChainCount);
+			uboCompositionBuff.resize(SwapChainCount);
+			uboCompositionAlloc.resize(SwapChainCount);
 			for (size_t i = 0; i < SwapChainCount; i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool, &descriptorSetLayout, 1);
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, &DescriptorSets[i]));
+
+				//
+				//	Uniform Buffer Creation
+				VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DComposition));
+				uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+				VmaAllocationCreateInfo uniformAllocInfo = {};
+				uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+				uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
+
 				// Image descriptors for the offscreen color attachments
 				VkDescriptorImageInfo texDescriptorPosition =
 					vks::initializers::descriptorImageInfo(
@@ -146,7 +168,7 @@ namespace Pipeline {
 						VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
 				VkDescriptorBufferInfo bufferInfo_composition = {};
-				bufferInfo_composition.buffer = WorldEngine::VulkanDriver::uboCompositionBuff[i];
+				bufferInfo_composition.buffer = uboCompositionBuff[i];
 				bufferInfo_composition.offset = 0;
 				bufferInfo_composition.range = sizeof(DComposition);
 
@@ -174,6 +196,11 @@ namespace Pipeline {
 				renderPass[i].pClearValues = clearValues.data();
 				renderPass[i].framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
 			}
+		}
+
+		void UploadBuffersToGPU(const size_t& CurFrame)
+		{
+			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
 		}
 
 		void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers)

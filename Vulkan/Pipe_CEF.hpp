@@ -116,11 +116,6 @@ namespace Pipeline {
 						WorldEngine::CEF::CEFTex->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-				VkDescriptorBufferInfo bufferInfo_composition = {};
-				bufferInfo_composition.buffer = WorldEngine::VulkanDriver::uboCompositionBuff[i];
-				bufferInfo_composition.offset = 0;
-				bufferInfo_composition.range = sizeof(DComposition);
-
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
 					vks::initializers::writeDescriptorSet(DescriptorSets_Composition[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptorCEF),
 				};
