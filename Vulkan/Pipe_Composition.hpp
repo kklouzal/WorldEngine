@@ -6,7 +6,12 @@ namespace Pipeline {
 		std::vector<VkDescriptorSet> DescriptorSets = {};
 		VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
 		//
-		std::array<VkClearValue, 2> clearValues;
+		//	Per-Frame Composition Rendering Uniform Buffer Objects
+		DComposition uboComposition;									//	Doesnt Need Cleanup
+		std::vector<VkBuffer> uboCompositionBuff = {};					//	Cleaned Up
+		std::vector<VmaAllocation> uboCompositionAlloc = {};			//	Cleaned Up
+		//
+		std::array<VkClearValue, 6> clearValues;
 		VkViewport viewport;
 		VkRect2D scissor;
 		//
@@ -14,6 +19,11 @@ namespace Pipeline {
 
 		~Composition()
 		{
+			//
+			for (int i = 0; i < uboCompositionBuff.size(); i++)
+			{
+				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, uboCompositionBuff[i], uboCompositionAlloc[i]);
+			}
 			//
 			vkDestroyDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, DescriptorPool, nullptr);
 		}
@@ -24,21 +34,25 @@ namespace Pipeline {
 			viewport = vks::initializers::viewport((float)WorldEngine::VulkanDriver::WIDTH, (float)WorldEngine::VulkanDriver::HEIGHT, 0.0f, 1.0f);
 			scissor = vks::initializers::rect2D(WorldEngine::VulkanDriver::WIDTH, WorldEngine::VulkanDriver::HEIGHT, 0, 0);
 			clearValues[0].color = { 0.0f, 0.0f, 0.0f, 0.0f };
-			clearValues[1].depthStencil = { 1.0f, 0 };
+			clearValues[1].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+			clearValues[2].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+			clearValues[3].color = { 0.0f, 0.0f, 0.0f, 0.0f };
+			clearValues[4].depthStencil = { 1.0f, 0 };
+			clearValues[5].depthStencil = { 1.0f, 0 };
 			//
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				//	Binding 0 : Position/Color texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
-				//	Binding 1 : Normal texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
-				//	Binding 2 : Albedo texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
-				//	Binding 3 : Fragment UBO
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
-				//	Binding 4: Shadow map
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
+				//	Binding 0 : Position input attachment
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 0),
+				//	Binding 1 : Normal input attachment
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 1),
+				//	Binding 2 : Albedo input attachment
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+				//	Binding 3: Shadow map
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+				//	Binding 4 : Fragment UBO
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -46,12 +60,6 @@ namespace Pipeline {
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			/*VkPushConstantRange push_constant;
-			push_constant.offset = 0;
-			push_constant.size = sizeof(CameraPushConstant);
-			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;*/
 			VK_CHECK_RESULT(vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			//
@@ -76,6 +84,11 @@ namespace Pipeline {
 			pipelineCI.pViewportState = &viewportState;
 			pipelineCI.pDepthStencilState = &depthStencilState;
 			pipelineCI.pDynamicState = &dynamicState;
+			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
+			pipelineCI.pStages = shaderStages.data();
+			pipelineCI.subpass = 2;	//	Subpass
+			//
+			rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 			//
 			//	Load shader files
 			VkPipelineShaderStageCreateInfo vertShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
@@ -88,11 +101,6 @@ namespace Pipeline {
 			fragShaderStageInfo.module = createShaderModule(readFile("shaders/deferred.frag.spv"));
 			fragShaderStageInfo.pName = "main";
 			shaderStages[1] = fragShaderStageInfo;
-			//
-			pipelineCI.pStages = shaderStages.data();
-			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-			//
-			rasterizationState.cullMode = VK_CULL_MODE_FRONT_BIT;
 			//	Empty vertex input state, vertices are generated by the vertex shader
 			VkPipelineVertexInputStateCreateInfo emptyInputState = vks::initializers::pipelineVertexInputStateCreateInfo();
 			pipelineCI.pVertexInputState = &emptyInputState;
@@ -109,7 +117,8 @@ namespace Pipeline {
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 1),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 4)
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 4),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 4)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, (uint32_t)SwapChainCount);
 			VK_CHECK_RESULT(vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &DescriptorPool));
@@ -117,51 +126,63 @@ namespace Pipeline {
 			//	Create and Update individual Descriptor sets and uniform buffers
 			DescriptorSets.resize(SwapChainCount);
 			renderPass.resize(SwapChainCount);
+			uboCompositionBuff.resize(SwapChainCount);
+			uboCompositionAlloc.resize(SwapChainCount);
 			for (size_t i = 0; i < SwapChainCount; i++)
 			{
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(DescriptorPool, &descriptorSetLayout, 1);
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, &DescriptorSets[i]));
+
+				//
+				//	Uniform Buffer Creation
+				VkBufferCreateInfo uniformBufferInfo = vks::initializers::bufferCreateInfo(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(DComposition));
+				uniformBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+				VmaAllocationCreateInfo uniformAllocInfo = {};
+				uniformAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+				uniformAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &uniformBufferInfo, &uniformAllocInfo, &uboCompositionBuff[i], &uboCompositionAlloc[i], nullptr);
+
 				// Image descriptors for the offscreen color attachments
 				VkDescriptorImageInfo texDescriptorPosition =
 					vks::initializers::descriptorImageInfo(
 						DeferredSampler,
-						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[0].view,
+						WorldEngine::VulkanDriver::attachments/*[i]*/.position.view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorNormal =
 					vks::initializers::descriptorImageInfo(
 						DeferredSampler,
-						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[1].view,
+						WorldEngine::VulkanDriver::attachments/*[i]*/.normal.view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo texDescriptorAlbedo =
 					vks::initializers::descriptorImageInfo(
 						DeferredSampler,
-						WorldEngine::VulkanDriver::frameBuffers.deferred->attachments[2].view,
+						WorldEngine::VulkanDriver::attachments/*[i]*/.albedo.view,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-				VkDescriptorBufferInfo bufferInfo_composition = {};
-				bufferInfo_composition.buffer = WorldEngine::VulkanDriver::uboCompositionBuff[i];
-				bufferInfo_composition.offset = 0;
-				bufferInfo_composition.range = sizeof(DComposition);
 
 				VkDescriptorImageInfo texDescriptorShadowMap =
 					vks::initializers::descriptorImageInfo(
-						WorldEngine::VulkanDriver::frameBuffers.shadow->sampler,
-						WorldEngine::VulkanDriver::frameBuffers.shadow->attachments[0].view,
+						ShadowSampler,
+						WorldEngine::VulkanDriver::attachments.shadow.view,
 						VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
 
+				VkDescriptorBufferInfo bufferInfo_composition = {};
+				bufferInfo_composition.buffer = uboCompositionBuff[i];
+				bufferInfo_composition.offset = 0;
+				bufferInfo_composition.range = sizeof(DComposition);
+
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-					// Binding 2 : Position texture target
-					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &texDescriptorPosition),
-					// Binding 3 : Normals texture target
-					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &texDescriptorNormal),
-					// Binding 4 : Albedo texture target
-					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &texDescriptorAlbedo),
-					// Binding 5 : Fragment shader uniform buffer
-					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3, &bufferInfo_composition),
-					// Binding 6: Shadow map
-					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &texDescriptorShadowMap)
+					// Binding 0 : Position texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0, &texDescriptorPosition),
+					// Binding 1 : Normals texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &texDescriptorNormal),
+					// Binding 2 : Albedo texture target
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2, &texDescriptorAlbedo),
+					// Binding 3: Shadow map
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &texDescriptorShadowMap),
+					// Binding 4 : Fragment shader uniform buffer
+					vks::initializers::writeDescriptorSet(DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 4, &bufferInfo_composition)
 				};
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 
@@ -177,6 +198,11 @@ namespace Pipeline {
 			}
 		}
 
+		void UploadBuffersToGPU(const size_t& CurFrame)
+		{
+			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
+		}
+
 		void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers)
 		{
 			for (size_t i = 0; i < CommandBuffers.size(); i++)
@@ -186,19 +212,20 @@ namespace Pipeline {
 				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
 				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
 				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
+				inheritanceInfo.subpass = 2;
 				//
 				//	Secondary CommandBuffer Begin Info
 				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
-				commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 				commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+				commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
 				//
 				//	Begin recording state
 				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
-				vkCmdSetViewport(CommandBuffers[i], 0, 1, &viewport);
-				vkCmdSetScissor(CommandBuffers[i], 0, 1, &scissor);
 				//
 				//	Draw our combined image view over the entire screen
 				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				vkCmdSetViewport(CommandBuffers[i], 0, 1, &WorldEngine::VulkanDriver::viewport_Deferred);
+				vkCmdSetScissor(CommandBuffers[i], 0, 1, &WorldEngine::VulkanDriver::scissor_Deferred);
 				vkCmdBindDescriptorSets(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &DescriptorSets[i], 0, nullptr);
 				vkCmdDraw(CommandBuffers[i], 3, 1, 0, 0);
 				//

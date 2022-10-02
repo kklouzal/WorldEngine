@@ -141,27 +141,27 @@ public:
 				}
 				else if (NewEvent.Key == GLFW_KEY_F1) {
 					printf("Change Debug View\n");
-					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 0;
+					WorldEngine::MaterialCache::GetPipe_Composition()->uboComposition.debugDisplayTarget = 0;
 				}
 				else if (NewEvent.Key == GLFW_KEY_F2) {
 					printf("Change Debug View\n");
-					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 1;
+					WorldEngine::MaterialCache::GetPipe_Composition()->uboComposition.debugDisplayTarget = 1;
 				}
 				else if (NewEvent.Key == GLFW_KEY_F3) {
 					printf("Change Debug View\n");
-					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 2;
+					WorldEngine::MaterialCache::GetPipe_Composition()->uboComposition.debugDisplayTarget = 2;
 				}
 				else if (NewEvent.Key == GLFW_KEY_F4) {
 					printf("Change Debug View\n");
-					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 3;
+					WorldEngine::MaterialCache::GetPipe_Composition()->uboComposition.debugDisplayTarget = 3;
 				}
 				else if (NewEvent.Key == GLFW_KEY_F5) {
 					printf("Change Debug View\n");
-					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 4;
+					WorldEngine::MaterialCache::GetPipe_Composition()->uboComposition.debugDisplayTarget = 4;
 				}
 				else if (NewEvent.Key == GLFW_KEY_F6) {
 					printf("Change Debug View\n");
-					WorldEngine::VulkanDriver::uboComposition.debugDisplayTarget = 5;
+					WorldEngine::MaterialCache::GetPipe_Composition()->uboComposition.debugDisplayTarget = 5;
 				}
 				else if (NewEvent.Key == GLFW_KEY_F7) {
 					printf("Reload GUI->main.html\n");

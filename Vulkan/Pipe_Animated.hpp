@@ -59,12 +59,10 @@ namespace Pipeline {
 			pipelineCI.pDynamicState = &dynamicState;
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
+			pipelineCI.subpass = 1;	//	Subpass
 			//
-			//
-			// 
-			// 
-			//	Offscreen model render pass pipeline
 			rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
+			//
 			//	Load shader files
 			VkPipelineShaderStageCreateInfo vertShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 			vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -81,10 +79,9 @@ namespace Pipeline {
 			auto description = Vertex::getAttributeDescriptions_Animated();
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
-			//	Separate render pass
-			pipelineCI.renderPass = WorldEngine::VulkanDriver::frameBuffers.deferred->renderPass;
 			//	Blend attachment states required for all color attachments
-			std::array<VkPipelineColorBlendAttachmentState, 3> blendAttachmentStates = {
+			std::array<VkPipelineColorBlendAttachmentState, 4> blendAttachmentStates = {
+				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE)

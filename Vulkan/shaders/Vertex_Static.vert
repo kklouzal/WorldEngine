@@ -20,8 +20,13 @@ layout(location = 1) out vec2 outUV;
 layout(location = 3) out vec4 outWorldPos;
 layout(location = 4) out vec3 outTangent;
 
+//out gl_PerVertex
+//{
+//	vec4 gl_Position;
+//};
+
 void main() {
-    outWorldPos = inPosition;
+    outWorldPos = ssbo.model[gl_InstanceIndex] * inPosition;
     outUV = inTexCoord;
     //outColor = inColor;
 

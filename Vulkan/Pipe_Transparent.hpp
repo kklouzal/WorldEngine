@@ -1,7 +1,7 @@
 #pragma once
 
 namespace Pipeline {
-	struct Static : public PipelineObject
+	struct Transparent : public PipelineObject
 	{
 		std::vector<TriangleMesh*> MeshCache;
 
@@ -21,14 +21,14 @@ namespace Pipeline {
 			return Mesh;
 		}
 
-		~Static()
+		~Transparent()
 		{
 			for (auto& Mesh : MeshCache) {
 				delete Mesh;
 			}
 		}
 
-		Static(VkPipelineCache PipelineCache)
+		Transparent(VkPipelineCache PipelineCache)
 			: PipelineObject()
 		{
 			//
@@ -38,10 +38,12 @@ namespace Pipeline {
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 				//	Binding 1 : Camera UBO
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1),
-				//	Binding 2 : Color texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
-				//	Binding 3 : Normal texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3)
+				//	Binding 2 : Depth input attachment
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
+				//	Binding 3 : Color texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+				//	Binding 4 : Normal texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -55,7 +57,17 @@ namespace Pipeline {
 			//	Graphics Pipeline
 			VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = vks::initializers::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0, VK_FALSE);
 			VkPipelineRasterizationStateCreateInfo rasterizationState = vks::initializers::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE, 0);
-			VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE);
+			VkPipelineColorBlendAttachmentState blendAttachmentState = vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_TRUE);
+			// Enable blending
+			blendAttachmentState.blendEnable = VK_TRUE;
+			blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+			blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+			blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+			blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+			blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+			blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+			blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			//
 			VkPipelineColorBlendStateCreateInfo colorBlendState = vks::initializers::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 			VkPipelineDepthStencilStateCreateInfo depthStencilState = vks::initializers::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 			VkPipelineViewportStateCreateInfo viewportState = vks::initializers::pipelineViewportStateCreateInfo(1, 1, 0);
@@ -75,19 +87,22 @@ namespace Pipeline {
 			pipelineCI.pDynamicState = &dynamicState;
 			pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
 			pipelineCI.pStages = shaderStages.data();
-			pipelineCI.subpass = 1;	//	Subpass
+			pipelineCI.subpass = 3;	//	Subpass
 			//
+			//
+			// 
+			// 
+			//	Offscreen model render pass pipeline
 			rasterizationState.cullMode = VK_CULL_MODE_BACK_BIT;
-			//
 			//	Load shader files
 			VkPipelineShaderStageCreateInfo vertShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 			vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-			vertShaderStageInfo.module = createShaderModule(readFile("shaders/Vertex_Static.vert.spv"));
+			vertShaderStageInfo.module = createShaderModule(readFile("shaders/transparent.vert.spv"));
 			vertShaderStageInfo.pName = "main";
 			shaderStages[0] = vertShaderStageInfo;
 			VkPipelineShaderStageCreateInfo fragShaderStageInfo = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
 			fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-			fragShaderStageInfo.module = createShaderModule(readFile("shaders/Fragment_Static.frag.spv"));
+			fragShaderStageInfo.module = createShaderModule(readFile("shaders/transparent.frag.spv"));
 			fragShaderStageInfo.pName = "main";
 			shaderStages[1] = fragShaderStageInfo;
 			//	Bind vertex input
@@ -96,10 +111,7 @@ namespace Pipeline {
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
 			//	Blend attachment states required for all color attachments
-			std::array<VkPipelineColorBlendAttachmentState, 4> blendAttachmentStates = {
-				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
-				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE),
+			std::array<VkPipelineColorBlendAttachmentState, 1> blendAttachmentStates = {
 				vks::initializers::pipelineColorBlendAttachmentState(0xf, VK_FALSE)
 			};
 			colorBlendState.attachmentCount = static_cast<uint32_t>(blendAttachmentStates.size());
@@ -121,7 +133,8 @@ namespace Pipeline {
 			//	Create Descriptor Pool
 			std::vector<VkDescriptorPoolSize> poolSizes = {
 				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 16),
-				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 16)
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 16),
+				vks::initializers::descriptorPoolSize(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size() * 16)
 			};
 			VkDescriptorPoolCreateInfo descriptorPoolInfo = vks::initializers::descriptorPoolCreateInfo(poolSizes, (uint32_t)WorldEngine::VulkanDriver::swapChain.images.size());
 			VK_CHECK_RESULT(vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool));
@@ -142,6 +155,12 @@ namespace Pipeline {
 				bufferInfo_camera.offset = 0;
 				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
 
+				VkDescriptorImageInfo texDescriptorDepth =
+					vks::initializers::descriptorImageInfo(
+						DeferredSampler,
+						WorldEngine::VulkanDriver::depthStencil.view,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
@@ -159,9 +178,11 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo),
 					// Binding 1 : Camera UBO
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
-					// Binding 2 : Color Texture
+					// Binding 2 : Depth input attachment
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1, &texDescriptorDepth),
+					// Binding 3 : Color Texture
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageColor),
-					// Binding 3 : Normal Texture
+					// Binding 4 : Normal Texture
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageNormal)
 				};
 
@@ -184,6 +205,12 @@ namespace Pipeline {
 				bufferInfo_camera.offset = 0;
 				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
 
+				VkDescriptorImageInfo texDescriptorDepth =
+					vks::initializers::descriptorImageInfo(
+						DeferredSampler,
+						WorldEngine::VulkanDriver::depthStencil.view,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
@@ -201,10 +228,12 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo),
 					// Binding 1 : Camera UBO
 					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
-					// Binding 2 : Color Texture
-					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageColor),
-					// Binding 3 : Normal Texture
-					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageNormal)
+					// Binding 2 : Depth input attachment
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2, &texDescriptorDepth),
+					// Binding 3 : Color Texture
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageColor),
+					// Binding 4 : Normal Texture
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textureImageNormal)
 				};
 
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
@@ -464,7 +493,7 @@ namespace Pipeline {
 				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
 				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
 				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
-				inheritanceInfo.subpass = 1;
+				inheritanceInfo.subpass = 3;
 				//
 				//	Secondary CommandBuffer Begin Info
 				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
@@ -473,7 +502,7 @@ namespace Pipeline {
 				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
 
 				//
-				//	Begin recording commandbuffer				
+				//	Begin recording commandbuffer
 				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 				vkCmdSetViewport(CommandBuffers[i], 0, 1, &WorldEngine::VulkanDriver::viewport_Deferred);
 				vkCmdSetScissor(CommandBuffers[i], 0, 1, &WorldEngine::VulkanDriver::scissor_Deferred);
@@ -481,7 +510,7 @@ namespace Pipeline {
 				//	Draw all SceneNodes
 				for (auto& Mesh : MeshCache)
 				{
-					Mesh->draw(CommandBuffers[i], i);
+					//Mesh->draw(primaryCommandBuffers_Node[i], i);
 				}
 				//
 				//	End scene node pass
