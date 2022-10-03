@@ -17,6 +17,7 @@ namespace Pipeline {
 			//
 			//	Create mesh if not exists
 			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex, bCastsShadows, false);
+			Mesh->Name = "Static";
 			MeshCache.push_back(Mesh);
 			return Mesh;
 		}

@@ -16,16 +16,14 @@ public:
 		printf("Destroy WorldSceneNode\n");
 	}
 
-	void drawFrame(const uint32_t& CurFrame) {
-		if (bNeedsUpdate[CurFrame])
-		{
-			_Mesh->instanceData[instanceIndex].model = Model;
-			bNeedsUpdate[CurFrame] = false;
-		}
+	void onTick() {
+
 	}
 
-	void GPUUpdatePosition()
+	void GPUUpdatePosition(/*const uint32_t& CurFrame*/)
 	{
+		//if (bNeedsUpdate[CurFrame])
+		//{
 		_Mesh->instanceData[instanceIndex].model = Model;
 		if (_Mesh->bCastsShadows)
 		{
@@ -34,5 +32,7 @@ public:
 				*_Mesh->instanceData_Shadow[instanceIndex] = Model;
 			}
 		}
+		//bNeedsUpdate[CurFrame] = false;
+	//}
 	}
 };

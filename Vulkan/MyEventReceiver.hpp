@@ -175,14 +175,14 @@ public:
 					//
 					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
 					if (!IsCursorActive() && IsWorldInitialized()) {
-						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0.0f, 15.0f, 0.0f));
+						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0.0f, -80.0f, 0.0f));
 					}
 				}
 				else if (NewEvent.Key == GLFW_KEY_Z) {
 					//
 					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
 					if (!IsCursorActive() && IsWorldInitialized()) {
-						//WorldEngine::SceneGraph::createSkinnedMeshSceneNode("media/models/cesium_man.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+						WorldEngine::SceneGraph::createSkinnedMeshSceneNode(250, "media/models/cesium_man.gltf", 10.f, btVector3(50.0f, -80.0f, 50.0f));
 					}
 				}
 			}

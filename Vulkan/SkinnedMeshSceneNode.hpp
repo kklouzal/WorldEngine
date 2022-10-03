@@ -1,15 +1,13 @@
 #pragma once
 
-
-
 #include "PlaybackController.hpp"
 
 class SkinnedMeshSceneNode : public SceneNode
 {
-	//
-	//	If Valid is false, this node will be resubmitted for drawing.
-	bool Valid = false;
-	//UniformBufferObject ubo = {};
+	size_t instanceIndex;
+public:
+	TriangleMesh* _Mesh = nullptr;
+
 
 	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
@@ -33,11 +31,8 @@ class SkinnedMeshSceneNode : public SceneNode
 	std::map<std::string, uint16_t> _OZZJointMap;
 
 public:
-	TriangleMesh* _Mesh = nullptr;
-public:
 	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<glm::mat4> Inverse, std::map<std::string, uint16_t> Joints)
-		: _Mesh(Mesh), InverseBindMatrices_(Inverse), _JointMap(Joints), SceneNode() {
-		printf("Create SkinnedMeshSceneNode\n");
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), InverseBindMatrices_(Inverse), _JointMap(Joints), SceneNode() {
 		Name = "SkinnedMeshSceneNode";
 		printf("Loading Skeleton\n");
 		ozz::io::File file_skel("media/models/cesium_man_skeleton.ozz", "rb");
@@ -97,17 +92,13 @@ public:
 
 	~SkinnedMeshSceneNode() {
 		printf("Destroy SkinnedMeshSceneNode\n");
-		delete _Mesh;
 	}
 
-	//
-	//	TODO: Check for bNeedsUpdate
-	void updateUniformBuffer(const uint32_t &currentImage) {
+	void onTick() {
 		endFrame = std::chrono::high_resolution_clock::now();
 		deltaFrame = std::chrono::duration<float, std::milli>(endFrame - startFrame).count();
 		startFrame = endFrame;
 
-		//ubo.model = Model;
 		controller_.Update(animation_, deltaFrame);
 		//	Samples optimized animation at t = animation_time_
 		ozz::animation::SamplingJob sampling_job;
@@ -145,22 +136,27 @@ public:
 
 			Jnts.push_back(OZZ_Matrix * GLFW_Matrix);
 			//Jnts.push_back(to_mat4(models_[i]) * InverseBindMatrices_[i]);
+			if (_Mesh->bAnimated && i < 32)
+			{
+				_Mesh->instanceData_Animation[instanceIndex].bones[i] = OZZ_Matrix * GLFW_Matrix;
+			}
 		}
-		//
-		//	Send updated uniform buffer to GPU
-		//_Mesh->updateUniformBuffer(currentImage, ubo);
-		////
-		////	Send updated bone matrices to GPU
-		//if (Jnts.size() > 0)
-		//{
-		//	_Mesh->updateSSBuffer(currentImage, Jnts.data(), Jnts.size() * sizeof(glm::mat4));
-		//}
 	}
 
-	void drawFrame(const VkCommandBuffer& CommandBuffer, const uint32_t& CurFrame) {
-		if (!Valid) {
-			_Mesh->draw(CommandBuffer, CurFrame);
+	void GPUUpdatePosition(/*const uint32_t& CurFrame*/)
+	{
+		//if (bNeedsUpdate[CurFrame])
+		//{
+		_Mesh->instanceData[instanceIndex].model = Model;
+		if (_Mesh->bCastsShadows)
+		{
+			if (_Mesh->instanceData_Shadow[instanceIndex] != NULL)
+			{
+				*_Mesh->instanceData_Shadow[instanceIndex] = Model;
+			}
 		}
+		//bNeedsUpdate[CurFrame] = false;
+	//}
 	}
 };
 
@@ -177,6 +173,7 @@ public:
 	virtual void getWorldTransform(btTransform& worldTrans) const {
 		worldTrans = _btPos;
 		_btPos.getOpenGLMatrix(ModelPtr);
+		_SceneNode->GPUUpdatePosition();
 	}
 
 	virtual void setWorldTransform(const btTransform& worldTrans) {
@@ -186,9 +183,12 @@ public:
 		_SceneNode->bNeedsUpdate[1] = true;
 		_SceneNode->bNeedsUpdate[2] = true;
 		const btVector3 Pos = _btPos.getOrigin();
+		_SceneNode->Pos = glm::vec3(Pos.x(), Pos.y(), Pos.z());
 		if (_SceneNode->_Camera) {
-			_SceneNode->_Camera->SetPosition(glm::vec3(Pos.x(), Pos.y(), Pos.z()) + _SceneNode->_Camera->getOffset());
+			_SceneNode->_Camera->SetPosition(_SceneNode->Pos + _SceneNode->_Camera->getOffset());
 		}
+		//
+		_SceneNode->GPUUpdatePosition();
 		//
 		//	Update server with our new values
 		// 

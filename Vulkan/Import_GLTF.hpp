@@ -210,7 +210,7 @@ public:
                     if (model.materials.size() <= 0)
                     {
                         Infos->DiffuseTex = Pipe->createTextureImage("NA");
-                        Infos->NormalTex = Pipe->createTextureImage("NA");
+                        Infos->NormalTex = Pipe->createTextureImage("media/missingnormal.png");
                     }
                     else
                     {
@@ -230,7 +230,7 @@ public:
                         }
                         else {
                             printf("MODEL.IMAGES !!HAS NO NORMAL!!\n");
-                            Infos->NormalTex = Pipe->createTextureImage("NA");
+                            Infos->NormalTex = Pipe->createTextureImage("media/missingnormal.png");
                         }
                     }
                 }

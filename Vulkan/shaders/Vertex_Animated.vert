@@ -1,47 +1,50 @@
 #version 450
 
 layout(location = 0) in vec4 inPosition;
-layout(location = 1) in vec3 inColor;
+//layout(location = 1) in vec3 inColor;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 layout(location = 4) in vec3 inTangent;
 layout(location = 5) in vec4 inBones;
 layout(location = 6) in vec4 inWeights;
 
-layout(std140, push_constant) uniform CameraPushConstant {
-    mat4 view_proj;
-} PushConstants;
+layout(std140, binding = 0) readonly buffer InstanceData {
+    mat4 model[];
+} ssbo;
 
-layout(std140, binding = 0) uniform UniformBufferObject {
-    mat4 model;
-    bool animated;
+layout (binding = 1) uniform UBO {
+    mat4 view_proj;
 } ubo;
 
-layout(std140, binding = 1) readonly buffer JointMatrices {
-    mat4 jointMatrices[];
+struct JointMatrices {
+    mat4 Matrices[32];
 };
+layout(std140, binding = 2) readonly buffer InstanceData_Animated {
+    mat4 Matrices[32];
+} Joint[];
 
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
-layout(location = 2) out vec3 outColor;
+//layout(location = 2) out vec3 outColor;
 layout(location = 3) out vec4 outWorldPos;
 layout(location = 4) out vec3 outTangent;
 
 void main() {
-    outWorldPos = inPosition;
+    outWorldPos = ssbo.model[gl_InstanceIndex] * inPosition;
     outUV = inTexCoord;
-    outColor = inColor;
+    //outColor = inColor;
 
     mat4 skinMat =
-        inWeights.x * jointMatrices[int(inBones.x)] +
-        inWeights.y * jointMatrices[int(inBones.y)] +
-        inWeights.z * jointMatrices[int(inBones.z)] +
-        inWeights.w * jointMatrices[int(inBones.w)];
+        inWeights.x * Joint[0].Matrices[int(inBones.x)] +
+        inWeights.y * Joint[0].Matrices[int(inBones.y)] +
+        inWeights.z * Joint[0].Matrices[int(inBones.z)] +
+        inWeights.w * Joint[0].Matrices[int(inBones.w)];
 
-    gl_Position = PushConstants.view_proj * ubo.model * skinMat * inPosition;
+    //gl_Position = ubo.view_proj * ssbo.model[gl_InstanceIndex] * inPosition;
+    gl_Position = ubo.view_proj * ssbo.model[gl_InstanceIndex] * skinMat * inPosition;
     
     
-    mat3 mNormal = transpose(inverse(mat3(ubo.model)));
+    mat3 mNormal = transpose(inverse(mat3(ssbo.model[gl_InstanceIndex])));
     outNormal = mNormal * normalize(inNormal);
     outTangent = mNormal * normalize(inTangent);
 

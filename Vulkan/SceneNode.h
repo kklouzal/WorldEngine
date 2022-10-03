@@ -32,7 +32,8 @@ public:
 		delete _RigidBody;
 		printf("Destroy Base SceneNode (%ju)\n", NodeID);
 	}
-	virtual void drawFrame(const uint32_t &CurFrame) = 0;
+	virtual void onTick() = 0;
+	virtual void GPUUpdatePosition(/*const uint32_t& CurFrame*/) = 0;
 	virtual void drawGUI() {}
 
 	void SetNodeID(const uintmax_t ID)
@@ -87,8 +88,6 @@ public:
 		bNeedsUpdate[1] = true;
 		bNeedsUpdate[2] = true;
 	}
-
-	virtual void GPUUpdatePosition() {}
 
 	btVector3 GetLinearVelocity()
 	{

@@ -191,7 +191,14 @@ struct InstanceData {
 	glm::mat4 model{};
 };
 struct InstanceData_Animation {
-	ozz::math::Float4x4 bones[32]{};
+	glm::mat4 bones[32]{};
+	InstanceData_Animation()
+	{
+		for (int i = 0; i < 32; i++)
+		{
+			bones[i] = glm::identity<glm::mat4>();
+		}
+	}
 };
 
 struct DescriptorObject {

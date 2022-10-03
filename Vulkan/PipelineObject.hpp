@@ -158,18 +158,18 @@ public:
 	//
 	//
 	TextureObject* createTextureImage(const std::string & File) {
-		//printf("[Pipe][Default]: CreateTextureImage (%s)\n", File.c_str());
+		printf("[Pipe]: CreateTextureImage (%s)\n", File.c_str());
 		if (_Textures.count(File) == 1) {
-			//printf("\tReusing Existing Texture\n");
+			printf("\tReusing Existing Texture\n");
 			return _Textures[File];
 		}
 		else {
 			auto Tex = _Textures.emplace(File, new TextureObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, WorldEngine::VulkanDriver::allocator)).first->second;
-			//printf("\tLoad New Texture: %s\n", File.c_str());
+			printf("\tLoad New Texture\n", File.c_str());
 			const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
 			if (error) {
-				//printf("\t\tPNG Decode Error: (%i) %s\n\t\tUsing Default (missingimage.png)\n", error, lodepng_error_text(error));
+				printf("\t\tPNG Decode Error: (%i) %s\n\t\tUsing Default (missingimage.png)\n", error, lodepng_error_text(error));
 				const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
 				if (error2) {
 					_Textures.erase(File);

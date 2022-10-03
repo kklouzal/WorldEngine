@@ -77,6 +77,7 @@ namespace WorldEngine
 
 		std::vector<VkCommandBuffer> commandBuffers_SDW;	//	shadow	//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_NDE;	//	node	//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_ANI;	//	animated//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_CMP;	//	comp	//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_TPT;	//	trans	//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_GUI;	//	gui		//	Doesnt Need Cleanup
@@ -263,6 +264,14 @@ namespace WorldEngine
 			{
 				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers_NDE[i]));
+			}
+			//
+			//	Per-Frame Secondary Animated Node Command Buffers
+			commandBuffers_ANI.resize(frameBuffers_Main.size());
+			for (int i = 0; i < frameBuffers_Main.size(); i++)
+			{
+				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers_ANI[i]));
 			}
 			//
 			//	Per-Frame Secondary Composition Command Buffers
@@ -487,9 +496,10 @@ namespace WorldEngine
 				//printf("Delta Frame %f\n", deltaFrame);
 				if (deltaFrame > 0.0f)
 				{
-					//if (isWorld) {
-						dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
-					//}
+					dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
+					//
+					//	Tick Scene Nodes
+					SceneGraph::OnTick();
 					updateUniformBufferComposition(currentFrame);
 					//
 					//	Frustum Culling
@@ -616,14 +626,20 @@ namespace WorldEngine
 			if (MaterialCache::bRecordBuffers)
 			{
 				MaterialCache::GetPipe_Static()->ResetCommandPools(commandBuffers_NDE, MaterialCache::GetPipe_Static()->MeshCache);
+				MaterialCache::GetPipe_Animated()->ResetCommandPools(commandBuffers_ANI, MaterialCache::GetPipe_Animated()->MeshCache);
 				//MaterialCache::bRecordBuffers = false;
 			}
 			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
 			{
 				Mesh->updateSSBuffer(currentFrame);
 			}
+			for (auto& Mesh : MaterialCache::GetPipe_Animated()->MeshCache)
+			{
+				Mesh->updateSSBuffer(currentFrame);
+			}
 			//==================================================
 			vkCmdExecuteCommands(primaryCommandBuffers_Final[currentFrame], 1, &commandBuffers_NDE[currentFrame]);
+			vkCmdExecuteCommands(primaryCommandBuffers_Final[currentFrame], 1, &commandBuffers_ANI[currentFrame]);
 			vkCmdNextSubpass(primaryCommandBuffers_Final[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 			//==================================================
@@ -643,7 +659,7 @@ namespace WorldEngine
 			std::vector<VkCommandBuffer> secondaryCommandBuffers_Final;
 			if (MaterialCache::bRecordBuffers)
 			{
-				MaterialCache::GetPipe_Transparent()->ResetCommandPools(commandBuffers_TPT, MaterialCache::GetPipe_Static()->MeshCache);
+				MaterialCache::GetPipe_Transparent()->ResetCommandPools(commandBuffers_TPT, MaterialCache::GetPipe_Transparent()->MeshCache);
 				MaterialCache::bRecordBuffers = false;
 			}
 			secondaryCommandBuffers_Final.push_back(commandBuffers_TPT[currentFrame]);

@@ -11,6 +11,8 @@ public:
 	std::vector<InstanceData_Animation> instanceData_Animation{};	//TODO: Make these pointers and give one to each owning scene node
 	PipelineObject* Pipe;
 
+	std::string Name{};
+
 	const char* FileName;
 	GLTFInfo* _GLTF;
 	size_t vertexBufferSize;
@@ -58,7 +60,7 @@ public:
 	}
 
 	~TriangleMesh() {
-		printf("Destroy TriangleMesh\n");
+		printf("Destroy TriangleMesh %s\n\tSSBO Count %zu\n", Name.c_str(), instanceStorageSpaceBuffers.size());
 		//	Destroy VMA Buffers
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, vertexBuffer, vertexAllocation);
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, indexBuffer, indexAllocation);
@@ -115,8 +117,8 @@ public:
 		size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
 		for (size_t i = 0; i < SwapChainSize; i++) {
 			memcpy(instanceStorageSpaceAllocations[i]->GetMappedData(), instanceData.data(), SSBOSize1);
-			if (SSBOSize2 > 0) {
-				memcpy(instanceStorageSpaceAllocations[i+SwapChainSize]->GetMappedData(), instanceData.data(), SSBOSize1);
+			if (bAnimated) {
+				memcpy(instanceStorageSpaceAllocations[i+SwapChainSize]->GetMappedData(), instanceData_Animation.data(), SSBOSize2);
 			}
 		}
 	}
@@ -124,11 +126,13 @@ public:
 	void createStorageBuffer(size_t SSBO_Size1, size_t SSBO_Size2)
 	{
 		size_t modifier = 1;
-		if (SSBO_Size2 > 0) { modifier = 2; }
+		if (bAnimated) { modifier = 2; }
 
 		size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
 		instanceStorageSpaceBuffers.resize(SwapChainSize * modifier);
 		instanceStorageSpaceAllocations.resize(SwapChainSize * modifier);
+
+		printf("SSBO Count %zu\n", SwapChainSize * modifier);
 
 		for (size_t i = 0; i < SwapChainSize; i++) {
 			VkBufferCreateInfo ssboBufferInfo1 = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -142,14 +146,15 @@ public:
 
 			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo1, &ssboAllocInfo, &instanceStorageSpaceBuffers[i], &instanceStorageSpaceAllocations[i], nullptr);
 
-			if (SSBO_Size2 > 0)
+			if (bAnimated)
 			{
+				printf("SSBO 2 size %zu\n", SSBO_Size2);
 				VkBufferCreateInfo ssboBufferInfo2 = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 				ssboBufferInfo2.size = SSBO_Size2;
 				ssboBufferInfo2.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 				ssboBufferInfo2.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo1, &ssboAllocInfo, &instanceStorageSpaceBuffers[i+SwapChainSize], &instanceStorageSpaceAllocations[i+SwapChainSize], nullptr);
+				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo2, &ssboAllocInfo, &instanceStorageSpaceBuffers[i+SwapChainSize], &instanceStorageSpaceAllocations[i+SwapChainSize], nullptr);
 			}
 		}
 	}
@@ -233,9 +238,13 @@ public:
 	}
 
 	//
-	//	TODO: Do away with this? memcpy only changed regions of the buffer when editing instanceData vector.
+	//	TODO: Do away with this. Give each scene node their pointer to the data. Update directly.
 	void updateSSBuffer(const uint32_t& currentImage)
 	{
 		memcpy(instanceStorageSpaceAllocations[currentImage]->GetMappedData(), instanceData.data(), sizeof(InstanceData) * instanceData.size());
+		if (bAnimated) {
+			const size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
+			memcpy(instanceStorageSpaceAllocations[currentImage+SwapChainSize]->GetMappedData(), instanceData_Animation.data(), sizeof(InstanceData_Animation) * instanceData_Animation.size());
+		}
 	}
 };

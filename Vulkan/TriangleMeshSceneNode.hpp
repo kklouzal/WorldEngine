@@ -14,24 +14,24 @@ public:
 		printf("Destroy TriangleMeshSceneNode\n");
 	}
 
-	void drawFrame(const uint32_t& CurFrame) {
-		if (bNeedsUpdate[CurFrame])
-		{
-			_Mesh->instanceData[instanceIndex].model = Model;
-			bNeedsUpdate[CurFrame] = false;
-		}
+	void onTick() {
+
 	}
 
-	void GPUUpdatePosition()
+	void GPUUpdatePosition(/*const uint32_t& CurFrame*/)
 	{
-		_Mesh->instanceData[instanceIndex].model = Model;
-		if (_Mesh->bCastsShadows)
-		{
-			if (_Mesh->instanceData_Shadow[instanceIndex] != NULL)
+		//if (bNeedsUpdate[CurFrame])
+		//{
+			_Mesh->instanceData[instanceIndex].model = Model;
+			if (_Mesh->bCastsShadows)
 			{
-				*_Mesh->instanceData_Shadow[instanceIndex] = Model;
+				if (_Mesh->instanceData_Shadow[instanceIndex] != NULL)
+				{
+					*_Mesh->instanceData_Shadow[instanceIndex] = Model;
+				}
 			}
-		}
+			//bNeedsUpdate[CurFrame] = false;
+		//}
 	}
 };
 
