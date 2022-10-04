@@ -20,7 +20,7 @@ public:
 
 	}
 
-	void GPUUpdatePosition(/*const uint32_t& CurFrame*/)
+	inline void GPUUpdatePosition(/*const uint32_t& CurFrame*/) final
 	{
 		//if (bNeedsUpdate[CurFrame])
 		//{

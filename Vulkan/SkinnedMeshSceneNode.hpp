@@ -167,7 +167,7 @@ public:
 		}
 	}
 
-	void GPUUpdatePosition(/*const uint32_t& CurFrame*/)
+	inline void GPUUpdatePosition(/*const uint32_t& CurFrame*/) final
 	{
 		//if (bNeedsUpdate[CurFrame])
 		//{
@@ -194,13 +194,13 @@ class SkinnedMeshSceneNodeMotionState : public btMotionState {
 public:
 	SkinnedMeshSceneNodeMotionState(SkinnedMeshSceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos), ModelPtr(glm::value_ptr(_SceneNode->Model)) {}
 
-	virtual void getWorldTransform(btTransform& worldTrans) const {
+	inline virtual void getWorldTransform(btTransform& worldTrans) const final {
 		worldTrans = _btPos;
 		_btPos.getOpenGLMatrix(ModelPtr);
 		_SceneNode->GPUUpdatePosition();
 	}
 
-	virtual void setWorldTransform(const btTransform& worldTrans) {
+	inline virtual void setWorldTransform(const btTransform& worldTrans) final {
 		_btPos = worldTrans;
 		_btPos.getOpenGLMatrix(ModelPtr);
 		_SceneNode->bNeedsUpdate[0] = true;

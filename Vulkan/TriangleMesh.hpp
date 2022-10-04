@@ -72,7 +72,7 @@ public:
 	}
 
 	//	TODO: This needs fixed to allow allocations to truly start at 0 instead of 1 and faking the 0 index.
-	size_t RegisterInstanceIndex()
+	inline size_t RegisterInstanceIndex()
 	{
 		if (instanceData.size() == 1 && bFirstInstance)
 		{
@@ -100,7 +100,7 @@ public:
 
 	//
 	//	TODO: This is bad.. Need to ensure any of the buffers aren't currently in use.
-	void ResizeInstanceBuffer()
+	inline void ResizeInstanceBuffer()
 	{
 		//
 		//	Delete
@@ -123,7 +123,7 @@ public:
 		}
 	}
 
-	void createStorageBuffer(size_t SSBO_Size1, size_t SSBO_Size2)
+	inline void createStorageBuffer(const size_t& SSBO_Size1, const size_t& SSBO_Size2)
 	{
 		size_t modifier = 1;
 		if (bAnimated) { modifier = 2; }
@@ -224,12 +224,10 @@ public:
 		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingIndexBuffer, stagingIndexBufferAlloc);
 	}
 
-	void draw(const VkCommandBuffer& CmdBuffer, uint32_t CurFrame, bool bShadow = false)
+	inline void draw(const VkCommandBuffer& CmdBuffer, const uint32_t& CurFrame)
 	{
-		if (!bShadow) {
-			//	Bind Descriptor Sets
-			vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
-		}
+		//	Bind Descriptor Sets
+		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
 		//	Draw Vertex Buffer
 		VkDeviceSize offsets[] = { 0 };
 		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);
@@ -239,7 +237,7 @@ public:
 
 	//
 	//	TODO: Do away with this. Give each scene node their pointer to the data. Update directly.
-	void updateSSBuffer(const uint32_t& currentImage)
+	inline void updateSSBuffer(const uint32_t& currentImage)
 	{
 		memcpy(instanceStorageSpaceAllocations[currentImage]->GetMappedData(), instanceData.data(), sizeof(InstanceData) * instanceData.size());
 		if (bAnimated) {

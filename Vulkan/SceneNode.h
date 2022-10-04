@@ -33,7 +33,7 @@ public:
 		printf("Destroy Base SceneNode (%ju)\n", NodeID);
 	}
 	virtual void onTick() = 0;
-	virtual void GPUUpdatePosition(/*const uint32_t& CurFrame*/) = 0;
+	inline virtual void GPUUpdatePosition(/*const uint32_t& CurFrame*/) = 0;
 	virtual void drawGUI() {}
 
 	void SetNodeID(const uintmax_t ID)
@@ -122,7 +122,7 @@ public:
 
 	//
 	//	Sets our initial spawn position
-	void getWorldTransform(btTransform& worldTrans) const {
+	inline void getWorldTransform(btTransform& worldTrans) const final {
 		worldTrans = _btPos;
 		worldTrans.getOpenGLMatrix(ModelPtr);
 		_SceneNode->GPUUpdatePosition();
@@ -130,7 +130,7 @@ public:
 
 	//
 	//	Called whenever the physics representation of this SceneNode is finished moving
-	void setWorldTransform(const btTransform& worldTrans) {
+	inline void setWorldTransform(const btTransform& worldTrans) final {
 		worldTrans.getOpenGLMatrix(ModelPtr);
 		_SceneNode->bNeedsUpdate[0] = true;
 		_SceneNode->bNeedsUpdate[1] = true;

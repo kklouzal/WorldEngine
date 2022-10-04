@@ -198,12 +198,12 @@ namespace Pipeline {
 			}
 		}
 
-		void UploadBuffersToGPU(const size_t& CurFrame)
+		inline void UploadBuffersToGPU(const size_t& CurFrame)
 		{
 			memcpy(uboCompositionAlloc[CurFrame]->GetMappedData(), &uboComposition, sizeof(uboComposition));
 		}
 
-		void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers)
+		inline void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers)
 		{
 			for (size_t i = 0; i < CommandBuffers.size(); i++)
 			{

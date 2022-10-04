@@ -473,7 +473,7 @@ namespace WorldEngine
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
 				//
 				//	Push previous delta to rolling average
-				auto Now = std::chrono::steady_clock::now();
+				const auto Now = std::chrono::steady_clock::now();
 				deltaFrame = std::chrono::duration<float, std::milli>(Now - startFrame).count() / 1000.f;
 				startFrame = Now;
 				PushFrameDelta(deltaFrame);

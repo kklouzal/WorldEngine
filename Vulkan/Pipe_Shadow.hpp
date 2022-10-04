@@ -7,7 +7,7 @@ namespace Pipeline {
 		VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
 		//
 		//	Per-Frame Shadow Rendering Uniform Buffer Objects
-		DShadow uboShadow;										//	Doesnt Need Cleanup
+		DShadow uboShadow{};									//	Doesnt Need Cleanup
 		std::vector<VkBuffer> uboShadowBuff = {};				//	Cleaned Up
 		std::vector<VmaAllocation> uboShadowAlloc = {};			//	Cleaned Up
 		//
@@ -147,12 +147,12 @@ namespace Pipeline {
 			}
 		}
 
-		void UploadBuffersToGPU(const size_t& CurFrame)
+		inline void UploadBuffersToGPU(const size_t& CurFrame)
 		{
 			memcpy(uboShadowAlloc[CurFrame]->GetMappedData(), &uboShadow, sizeof(uboShadow));
 		}
 
-		void ResetCommandPools(std::vector <VkCommandBuffer>& CommandBuffers, std::vector<TriangleMesh*>& MeshCache)
+		inline void ResetCommandPools(std::vector <VkCommandBuffer>& CommandBuffers, std::vector<TriangleMesh*>& MeshCache)
 		{
 			for (size_t i = 0; i < CommandBuffers.size(); i++)
 			{

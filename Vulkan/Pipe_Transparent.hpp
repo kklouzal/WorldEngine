@@ -196,7 +196,7 @@ namespace Pipeline {
 		//	Update Descriptor
 		//
 		//
-		void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers)
+		inline void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers) final
 		{
 			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
 				VkDescriptorBufferInfo bufferInfo = {};
@@ -248,7 +248,7 @@ namespace Pipeline {
 		//	Reset Command Pools
 		//
 		//
-		void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers, std::vector<TriangleMesh*>& MeshCache)
+		inline void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers, std::vector<TriangleMesh*>& MeshCache)
 		{
 			for (size_t i = 0; i < CommandBuffers.size(); i++)
 			{
