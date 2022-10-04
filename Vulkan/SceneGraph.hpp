@@ -268,7 +268,7 @@ namespace WorldEngine
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, false);
 			//
-			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, Infos->InverseBindMatrices, Infos->JointMap);
+			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, Infos->InverseBindMatrices, Infos->JointMap_, Infos->JointMap_OZZ);
 			//
 			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			MeshNode->_CollisionShape = ColShape;

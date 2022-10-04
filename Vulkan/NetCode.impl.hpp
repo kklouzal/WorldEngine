@@ -232,8 +232,10 @@ namespace WorldEngine
 							//	NodeID doesn't exist, request it from the server
 							else {
 								auto Out_Packet = _Server->GetFreePacket((uint8_t)NetCode::OPID::Request_SceneNode);
-								Out_Packet->write<uintmax_t>(NodeID);
-								LocalPoint->SendPacket(Out_Packet);
+								if (Out_Packet) {
+									Out_Packet->write<uintmax_t>(NodeID);
+									LocalPoint->SendPacket(Out_Packet);
+								}
 							}
 						}
 						break;

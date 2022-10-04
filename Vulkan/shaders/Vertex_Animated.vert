@@ -16,9 +16,6 @@ layout (binding = 1) uniform UBO {
     mat4 view_proj;
 } ubo;
 
-struct JointMatrices {
-    mat4 Matrices[32];
-};
 layout(std140, binding = 2) readonly buffer InstanceData_Animated {
     mat4 Matrices[32];
 } Joint[];

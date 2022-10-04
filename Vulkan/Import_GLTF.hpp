@@ -10,13 +10,26 @@ struct GLTFInfo
     const char* TexDiffuse = "";
     TextureObject* DiffuseTex = nullptr;
     TextureObject* NormalTex = nullptr;
-    std::map<std::string, uint16_t> JointMap = {};
+    //  Joint Name --> GLTF Index
+    std::map<std::string, uint16_t> JointMap_ = {};
+    std::map<uint16_t, uint16_t> JointMap_OZZ = {};
+    //  uint16_t (gltf id) --> uint16_t (ozz id)
 };
 
 class ImportGLTF
 {
     std::unordered_map<const char*, GLTFInfo*> Model_Cache;
 public:
+
+    void getChildren(tinygltf::Model model, int indexNode, std::map<uint16_t, uint16_t>& Joints, int& accumulator)
+    {
+        Joints.emplace(indexNode-3, accumulator++);
+        //printf("GLTF->OZZ MAP %u -> %u\n", indexNode-3, model.nodes[indexNode].name.c_str());
+        for (int child : model.nodes[indexNode].children)
+        {
+            getChildren(model, child, Joints, accumulator);
+        }
+    };
 
     GLTFInfo* loadModel(const char* filename, PipelineObject* Pipe)
     {
@@ -246,39 +259,23 @@ public:
             {
                 tinygltf::Skin _Skin = model.skins[i];
 
+                int accumulator = 0;
+                getChildren(model, _Skin.skeleton, Infos->JointMap_OZZ, accumulator);
+                
+                for (auto& JointID : _Skin.joints)
+                {
+                    std::string NodeName = model.nodes[JointID].name;
+                    Infos->JointMap_[NodeName] = JointID - _Skin.skeleton;
+                }
+
                 if (_Skin.inverseBindMatrices > -1)
                 {
-                    for (size_t i = 0; i < model.nodes.size(); i++)
-                    {
-                        const tinygltf::Node& node = model.nodes[i];
-                        Infos->JointMap[node.name] = i;
-                        //printf("%i -> NODE NAME: %s\n", i, node.name.c_str());
-                    }
-
                     const tinygltf::Accessor& acc = model.accessors[_Skin.inverseBindMatrices];
                     const tinygltf::BufferView& bufview = model.bufferViews[acc.bufferView];
                     const tinygltf::Buffer& buf = model.buffers[bufview.buffer];
                     Infos->InverseBindMatrices.resize(acc.count);
-                    for (auto J : _Skin.joints)
-                    {
-                        printf("GLTF JOINTS %i\n", J);
-                    }
                     memcpy(Infos->InverseBindMatrices.data(), &buf.data[acc.byteOffset + bufview.byteOffset], acc.count * sizeof(glm::mat4));
 
-                    /*for (size_t i = 0; i < model.scenes[0].nodes.size(); i++)
-                    {
-                        const tinygltf::Node node = model.nodes[i];
-                        LoadNode(node, model, nullptr, model.scenes[0].nodes[i]);
-                    }
-                    std::vector<size_t> DepthOrder;
-                    for (size_t i = 0; i < nodes.size(); i++)
-                    {
-                        DepthOrder.push_back(nodes[i]->index);
-                    }
-                    for (size_t i = 0; i < DepthOrder.size(); i++)
-                    {
-                        printf("DEPTH: %i\n", DepthOrder[i]);
-                    }*/
                     break;
                 }
             }

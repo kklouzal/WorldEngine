@@ -93,7 +93,7 @@ struct Vertex {
 
 		return attributeDescriptions;
 	}
-
+	//VK_FORMAT_A2B10G10R10_UNORM_PACK32
 	static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions_Animated() {
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
 

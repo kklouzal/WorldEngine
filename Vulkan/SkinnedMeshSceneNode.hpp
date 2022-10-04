@@ -27,12 +27,12 @@ public:
 
 
 	std::vector<glm::mat4> InverseBindMatrices_;
-	std::map<std::string, uint16_t> _JointMap;
-	std::map<std::string, uint16_t> _OZZJointMap;
+	std::map<std::string, uint16_t> _GLTFJointMap;
+	std::map<uint16_t, uint16_t> _OZZJointMap;
 
 public:
-	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<glm::mat4> Inverse, std::map<std::string, uint16_t> Joints)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), InverseBindMatrices_(Inverse), _JointMap(Joints), SceneNode() {
+	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<glm::mat4> Inverse, std::map<std::string, uint16_t> Joints1, std::map<uint16_t, uint16_t> Joints2)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), InverseBindMatrices_(Inverse), _GLTFJointMap(Joints1), _OZZJointMap(Joints2), SceneNode() {
 		Name = "SkinnedMeshSceneNode";
 		printf("Loading Skeleton\n");
 		ozz::io::File file_skel("media/models/cesium_man_skeleton.ozz", "rb");
@@ -77,16 +77,11 @@ public:
 
 		controller_.set_playback_speed(0.001f);
 
-		printf("%i Joints - %i Joints\n", num_soa_joints, num_joints);
-
 		for (size_t i = 0; i < skeleton_.joint_names().size(); i++)
 		{
 			const char* const JointName = skeleton_.joint_names()[i];
-			_OZZJointMap[JointName] = i;
-		}
-		for (auto& jm : _OZZJointMap)
-		{
-			printf("OZZ JOINT MAPPED %s -> %u\n", jm.first.c_str(), jm.second);
+			uint16_t GLFW_JointIndex = _GLTFJointMap[JointName];
+			printf("OZZ JOINT %u (gltf %u) -> %s\n", i, GLFW_JointIndex, JointName);
 		}
 	}
 
@@ -124,21 +119,50 @@ public:
 		//
 		//	Iterate through OZZ LocalToModel job
 		//	and build a vector of joint matrices
+
+		/*for (auto Jnt : _GLTFJointMap)
+		{
+			size_t GLTF_ID = Jnt.second;
+			std::string Joint_Name = Jnt.first;
+		}*/
+
+		//uint16_t because = 0;
+		//for (auto& Jnt : _GLTFJointMap)
+		//{
+		//	std::string JointName = Jnt.first;
+		//	uint16_t JointID_GLTF = Jnt.second;
+		//	uint16_t JointID_OZZ = _OZZJointMap[because];
+
+		//	glm::mat4 GLFW_Matrix = InverseBindMatrices_[because];
+		//	glm::mat4 OZZ_Matrix = to_mat4(models_[JointID_OZZ]);
+		//	if (_Mesh->bAnimated)
+		//	{
+		//		_Mesh->instanceData_Animation[instanceIndex].bones[because++] = OZZ_Matrix * GLFW_Matrix;
+		//	}
+		//}
+
+		/*for (int i = 0; i < joints; i++)
+		{
+			uint16_t OZZ_ID = _OZZJointMap[i];
+			glm::mat4 OZZ_Matrix = to_mat4(models_[OZZ_ID]);
+			glm::mat4 GLFW_Matrix = InverseBindMatrices_[i];\
+
+			_Mesh->instanceData_Animation[instanceIndex].bones[i] = OZZ_Matrix * GLFW_Matrix;
+		}*/
+
+
 		auto joints = skeleton_.num_joints();
-		std::vector<glm::mat4> Jnts;
 		for (int i = 0; i < joints; i++)
 		{
-			std::string OZZ_JointName = skeleton_.joint_names()[i];
-			uint16_t GLFW_JointIndex = _OZZJointMap[OZZ_JointName];
+			const char* OZZ_JointName = skeleton_.joint_names()[i];
+			uint16_t GLFW_JointIndex = _GLTFJointMap[OZZ_JointName];
 
 			glm::mat4 OZZ_Matrix = to_mat4(models_[i]);
 			glm::mat4 GLFW_Matrix = InverseBindMatrices_[GLFW_JointIndex];
 
-			Jnts.push_back(OZZ_Matrix * GLFW_Matrix);
-			//Jnts.push_back(to_mat4(models_[i]) * InverseBindMatrices_[i]);
 			if (_Mesh->bAnimated && i < 32)
 			{
-				_Mesh->instanceData_Animation[instanceIndex].bones[i] = OZZ_Matrix * GLFW_Matrix;
+				_Mesh->instanceData_Animation[instanceIndex].bones[GLFW_JointIndex] = OZZ_Matrix * GLFW_Matrix;
 			}
 		}
 	}
