@@ -157,12 +157,22 @@ void EventReceiver::OnGUI(const char* EventID)
 //	CEF Callbacks
 bool EventReceiver::OnCEF(CefRefPtr<CefProcessMessage> message)
 {
-	if (message->GetName() == "My_Message")
+	if (message->GetName() == "ServerConnect")
 	{
 		std::string RemoteIP = message->GetArgumentList()->GetString(0).ToString();
 		unsigned int RemotePort = message->GetArgumentList()->GetInt(1);
-		printf("My_Message %s %u\n", RemoteIP.c_str(), RemotePort);
+		printf("ServerConnect %s %u\n", RemoteIP.c_str(), RemotePort);
 		WorldEngine::NetCode::ConnectToServer(RemoteIP.c_str(), RemotePort);
+		return true;
+	}
+	else if (message->GetName() == "NetListen")
+	{
+		std::string LocalIP = message->GetArgumentList()->GetString(0).ToString();
+		unsigned int LocalPort = message->GetArgumentList()->GetInt(1);
+		printf("NetListen %s %u\n", LocalIP.c_str(), LocalPort);
+		//
+		//	KNet Initialization
+		WorldEngine::NetCode::Initialize(LocalIP.c_str(), LocalPort, LocalPort+1);
 		return true;
 	}
 	return false;

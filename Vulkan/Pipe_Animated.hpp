@@ -41,10 +41,12 @@ namespace Pipeline {
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1),
 				//	Binding 2 : Joint Matrices
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 2),
-				//	Binding 3 : Color texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
-				//	Binding 4 : Normal texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
+				//	Binding 3 : Joint Matrices
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 3),
+				//	Binding 4 : Color texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4),
+				//	Binding 5 : Normal texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 5)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -120,7 +122,7 @@ namespace Pipeline {
 		//
 		//
 		//	TODO: Pass in StorageBuffers payload instead of vector so we can send in multiple buffer 'pools'.
-		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers) {
+		DescriptorObject*const createDescriptor(const TriangleMesh*const Mesh) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice);
 			//
 			//	Create Descriptor Pool
@@ -140,7 +142,7 @@ namespace Pipeline {
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]));
 
 				VkDescriptorBufferInfo bufferInfo_InstanceData = {};
-				bufferInfo_InstanceData.buffer = StorageBuffers[i];
+				bufferInfo_InstanceData.buffer = Mesh->instanceStorageSpaceBuffers[i];
 				bufferInfo_InstanceData.offset = 0;
 				bufferInfo_InstanceData.range = VK_WHOLE_SIZE;
 				//
@@ -150,20 +152,25 @@ namespace Pipeline {
 				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
 				//
 				VkDescriptorBufferInfo bufferInfo_InstanceData_Animation = {};
-				bufferInfo_InstanceData_Animation.buffer = StorageBuffers[i+SwapChainSize];
+				bufferInfo_InstanceData_Animation.buffer = Mesh->instanceStorageSpaceBuffers[i+SwapChainSize];
 				bufferInfo_InstanceData_Animation.offset = 0;
 				bufferInfo_InstanceData_Animation.range = VK_WHOLE_SIZE;
+				//
+				VkDescriptorBufferInfo bufferInfo_IBP = {};
+				bufferInfo_IBP.buffer = Mesh->IBP_Buffer;
+				bufferInfo_IBP.offset = 0;
+				bufferInfo_IBP.range = VK_WHOLE_SIZE;
 
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureColor->ImageView,
+						Mesh->Texture_Albedo->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo textureImageNormal =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureNormal->ImageView,
+						Mesh->Texture_Normal->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -173,10 +180,12 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
 					// Binding 2 : Joint Matrices Storage Buffer
 					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &bufferInfo_InstanceData_Animation),
-					// Binding 3 : color
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageColor),
-					// Binding 4 : normal
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textureImageNormal)
+					// Binding 3 : Joint Inverse Bind Poses Buffer
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &bufferInfo_IBP),
+					// Binding 4 : color
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textureImageColor),
+					// Binding 5 : normal
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, &textureImageNormal)
 				};
 
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
@@ -189,12 +198,12 @@ namespace Pipeline {
 		//	Update Descriptor
 		//
 		//
-		inline void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers) final
+		inline void updateDescriptor(DescriptorObject*const Descriptor, const TriangleMesh*const Mesh) final
 		{
 			size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
 			for (size_t i = 0; i < SwapChainSize; i++) {
 				VkDescriptorBufferInfo bufferInfo_InstanceData = {};
-				bufferInfo_InstanceData.buffer = StorageBuffers[i];
+				bufferInfo_InstanceData.buffer = Mesh->instanceStorageSpaceBuffers[i];
 				bufferInfo_InstanceData.offset = 0;
 				bufferInfo_InstanceData.range = VK_WHOLE_SIZE;
 				//
@@ -204,20 +213,25 @@ namespace Pipeline {
 				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
 				//
 				VkDescriptorBufferInfo bufferInfo_InstanceData_Animation = {};
-				bufferInfo_InstanceData_Animation.buffer = StorageBuffers[i+SwapChainSize];
+				bufferInfo_InstanceData_Animation.buffer = Mesh->instanceStorageSpaceBuffers[i+SwapChainSize];
 				bufferInfo_InstanceData_Animation.offset = 0;
 				bufferInfo_InstanceData_Animation.range = VK_WHOLE_SIZE;
+				//
+				VkDescriptorBufferInfo bufferInfo_IBP = {};
+				bufferInfo_IBP.buffer = Mesh->IBP_Buffer;
+				bufferInfo_IBP.offset = 0;
+				bufferInfo_IBP.range = VK_WHOLE_SIZE;
 
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureColor->ImageView,
+						Mesh->Texture_Albedo->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo textureImageNormal =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureNormal->ImageView,
+						Mesh->Texture_Normal->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -227,10 +241,12 @@ namespace Pipeline {
 					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
 					// Binding 2 : Joint Matrices Storage Buffer
 					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &bufferInfo_InstanceData_Animation),
-					// Binding 3 : color
-					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageColor),
-					// Binding 4 : normal
-					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textureImageNormal)
+					// Binding 3 : Joint Inverse Bind Poses Buffer
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &bufferInfo_IBP),
+					// Binding 4 : color
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textureImageColor),
+					// Binding 5 : normal
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, &textureImageNormal)
 				};
 
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);

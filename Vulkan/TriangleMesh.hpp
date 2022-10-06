@@ -24,9 +24,16 @@ public:
 	VkBuffer indexBuffer = VK_NULL_HANDLE;
 	VmaAllocation indexAllocation = VMA_NULL;
 
-	//	TODO: Use single VkBuffer for InstanceData && InstanceData_Animation. Apply offset in descriptor create/update.
+	//	TODO: Use single VkBuffer. Apply offsets in descriptor create/update.
 	std::vector <VkBuffer> instanceStorageSpaceBuffers = {};
 	std::vector <VmaAllocation> instanceStorageSpaceAllocations = {};
+	//
+	//std::vector <VkBuffer> instanceStorageSpaceBuffers = {};
+	//std::vector <VmaAllocation> instanceStorageSpaceAllocations = {};
+	//
+	//	Inverse Bind Poses (global to entire triangle mesh)
+	VkBuffer IBP_Buffer = VK_NULL_HANDLE;
+	VmaAllocation IBP_Alloc = VMA_NULL;
 
 	TextureObject* Texture_Albedo;
 	TextureObject* Texture_Normal;
@@ -49,6 +56,9 @@ public:
 			instanceData_Shadow.resize(1);
 		}
 		if (bAnimated) {
+			//
+			//	Staged Inverse Bind Poses
+			createBuffer_IBP();
 			instanceData_Animation.resize(1);
 		}
 		size_t SSBOSize1 = sizeof(InstanceData) * instanceData.size();
@@ -56,7 +66,7 @@ public:
 		createStorageBuffer(SSBOSize1, SSBOSize2);
 		Texture_Albedo = Albedo;
 		Texture_Normal = Normal;
-		Descriptor = Pipe->createDescriptor(Albedo, Normal, instanceStorageSpaceBuffers);
+		Descriptor = Pipe->createDescriptor(this);
 	}
 
 	~TriangleMesh() {
@@ -67,6 +77,10 @@ public:
 		//	Destroy VMA Buffers
 		for (size_t i = 0; i < instanceStorageSpaceBuffers.size(); i++) {
 			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, instanceStorageSpaceBuffers[i], instanceStorageSpaceAllocations[i]);
+		}
+		if (bAnimated)
+		{
+			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, IBP_Buffer, IBP_Alloc);
 		}
 		delete Descriptor;
 	}
@@ -112,7 +126,7 @@ public:
 		size_t SSBOSize1 = sizeof(InstanceData) * instanceData.size();
 		size_t SSBOSize2 = sizeof(InstanceData_Animation) * instanceData_Animation.size();
 		createStorageBuffer(SSBOSize1, SSBOSize2);
-		Pipe->updateDescriptor(Descriptor, Texture_Albedo, Texture_Normal, instanceStorageSpaceBuffers);
+		Pipe->updateDescriptor(Descriptor, this);
 
 		size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
 		for (size_t i = 0; i < SwapChainSize; i++) {
@@ -157,6 +171,44 @@ public:
 				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &ssboBufferInfo2, &ssboAllocInfo, &instanceStorageSpaceBuffers[i+SwapChainSize], &instanceStorageSpaceAllocations[i+SwapChainSize], nullptr);
 			}
 		}
+	}
+	
+	void createBuffer_IBP() {
+		//
+		//	Vertex Buffer
+		VkBufferCreateInfo BufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+		BufferInfo.size = _GLTF->InverseBindMatrices.size() * sizeof(glm::mat4);
+		BufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		BufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		VmaAllocationCreateInfo AllocInfo = {};
+		AllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+		AllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+		VkBuffer stagingBuffer = VK_NULL_HANDLE;
+		VmaAllocation stagingBufferAlloc = VK_NULL_HANDLE;
+		vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &BufferInfo, &AllocInfo, &stagingBuffer, &stagingBufferAlloc, nullptr);
+
+		memcpy(stagingBufferAlloc->GetMappedData(), _GLTF->InverseBindMatrices.data(), _GLTF->InverseBindMatrices.size() * sizeof(glm::mat4));
+
+		BufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		AllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		AllocInfo.flags = 0;
+		vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &BufferInfo, &AllocInfo, &IBP_Buffer, &IBP_Alloc, nullptr);
+
+		//
+		//	CPU->GPU Copy
+		VkCommandBuffer commandBuffer = WorldEngine::VulkanDriver::beginSingleTimeCommands();
+
+		VkBufferCopy vertexCopyRegion = {};
+		vertexCopyRegion.size = vertexBufferSize;
+		vkCmdCopyBuffer(commandBuffer, stagingBuffer, IBP_Buffer, 1, &vertexCopyRegion);
+
+		WorldEngine::VulkanDriver::endSingleTimeCommands(commandBuffer);
+
+		//
+		//	Destroy Staging Buffer
+		vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingBuffer, stagingBufferAlloc);
 	}
 
 	void createVertexBuffer() {

@@ -185,6 +185,10 @@ public:
 						WorldEngine::SceneGraph::createSkinnedMeshSceneNode(250, "media/models/cesium_man.gltf", 10.f, btVector3(50.0f, -80.0f, 50.0f));
 					}
 				}
+				else if (NewEvent.Key == GLFW_KEY_J) {
+					std::string JS("WorldEngine.PrepareFrame('MainMenu.html');");
+					WorldEngine::CEF::ExecuteJS(JS.c_str());
+				}
 			}
 			//
 			//	Keyboard Key Release

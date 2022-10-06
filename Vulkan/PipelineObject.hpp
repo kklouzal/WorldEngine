@@ -143,12 +143,12 @@ protected:
 
 public:
 
-	virtual DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers)
+	virtual DescriptorObject*const createDescriptor(const TriangleMesh*const Mesh)
 	{
 		return nullptr;
 	}
 
-	inline virtual void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers)
+	inline virtual void updateDescriptor(DescriptorObject*const Descriptor, const TriangleMesh*const Mesh)
 	{
 	}
 

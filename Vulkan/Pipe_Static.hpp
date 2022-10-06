@@ -116,7 +116,7 @@ namespace Pipeline {
 		//	Create Descriptor
 		//
 		//
-		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers) {
+		DescriptorObject* const createDescriptor(const TriangleMesh*const Mesh) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice);
 			//
 			//	Create Descriptor Pool
@@ -134,7 +134,7 @@ namespace Pipeline {
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]));
 
 				VkDescriptorBufferInfo bufferInfo = {};
-				bufferInfo.buffer = StorageBuffers[i];
+				bufferInfo.buffer = Mesh->instanceStorageSpaceBuffers[i];
 				bufferInfo.offset = 0;
 				bufferInfo.range = VK_WHOLE_SIZE;
 				//
@@ -146,13 +146,13 @@ namespace Pipeline {
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureColor->ImageView,
+						Mesh->Texture_Albedo->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo textureImageNormal =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureNormal->ImageView,
+						Mesh->Texture_Normal->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
@@ -176,11 +176,11 @@ namespace Pipeline {
 		//	Update Descriptor
 		//
 		//
-		inline void updateDescriptor(DescriptorObject* Descriptor, const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& StorageBuffers) final
+		inline void updateDescriptor(DescriptorObject*const Descriptor, const TriangleMesh* const Mesh) final
 		{
 			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
 				VkDescriptorBufferInfo bufferInfo = {};
-				bufferInfo.buffer = StorageBuffers[i];
+				bufferInfo.buffer = Mesh->instanceStorageSpaceBuffers[i];
 				bufferInfo.offset = 0;
 				bufferInfo.range = VK_WHOLE_SIZE;
 				//
@@ -192,13 +192,13 @@ namespace Pipeline {
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureColor->ImageView,
+						Mesh->Texture_Albedo->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo textureImageNormal =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureNormal->ImageView,
+						Mesh->Texture_Normal->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {

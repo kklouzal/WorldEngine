@@ -387,9 +387,6 @@ namespace WorldEngine
 			//	CEF Post Initialization
 			CEF::PostInitialize();
 			//
-			//	KNet Initialization
-			NetCode::Initialize("192.168.1.98", 8002, 8003);
-			//
 			//	LUA Initialization
 			initLua();
 			//

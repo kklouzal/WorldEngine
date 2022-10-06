@@ -8,7 +8,6 @@ class SkinnedMeshSceneNode : public SceneNode
 public:
 	TriangleMesh* _Mesh = nullptr;
 
-
 	std::chrono::time_point<std::chrono::steady_clock> startFrame = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::steady_clock> endFrame = std::chrono::high_resolution_clock::now();
 	float deltaFrame = 0;
@@ -154,15 +153,15 @@ public:
 		auto joints = skeleton_.num_joints();
 		for (int i = 0; i < joints; i++)
 		{
-			const char* OZZ_JointName = skeleton_.joint_names()[i];
-			uint16_t GLFW_JointIndex = _GLTFJointMap[OZZ_JointName];
+			uint16_t OZZ_JointIndex = _OZZJointMap[i];
+			//const char* OZZ_JointName = skeleton_.joint_names()[OZZ_JointIndex];
+			//uint16_t GLFW_JointIndex = _GLTFJointMap[OZZ_JointName];
 
-			glm::mat4 OZZ_Matrix = to_mat4(models_[i]);
-			glm::mat4 GLFW_Matrix = InverseBindMatrices_[GLFW_JointIndex];
+			glm::mat4 OZZ_Matrix = to_mat4(models_[OZZ_JointIndex]);
 
 			if (_Mesh->bAnimated && i < 32)
 			{
-				_Mesh->instanceData_Animation[instanceIndex].bones[GLFW_JointIndex] = OZZ_Matrix * GLFW_Matrix;
+				_Mesh->instanceData_Animation[instanceIndex].bones[i] = OZZ_Matrix;
 			}
 		}
 	}

@@ -6,26 +6,34 @@ namespace WorldEngine
 	{
 		void Initialize(const char* LocalIP, const unsigned int LocalSendPort, const unsigned int LocalRecvPort)
 		{
-			KNet::Initialize();
-			LocalSendAddr = KNet::AddressPool->GetFreeObject();
-			LocalRecvAddr = KNet::AddressPool->GetFreeObject();
-			LocalSendAddr->Resolve(LocalIP, LocalSendPort);
-			LocalRecvAddr->Resolve(LocalIP, LocalRecvPort);
-			//
-			//	Start Listening
-			LocalPoint = new KNet::NetPoint(LocalSendAddr, LocalRecvAddr);
-			//
-			RemoteAddr = KNet::AddressPool->GetFreeObject();
+			if (!bInitialized)
+			{
+				KNet::Initialize();
+				LocalSendAddr = KNet::AddressPool->GetFreeObject();
+				LocalRecvAddr = KNet::AddressPool->GetFreeObject();
+				LocalSendAddr->Resolve(LocalIP, LocalSendPort);
+				LocalRecvAddr->Resolve(LocalIP, LocalRecvPort);
+				//
+				//	Start Listening
+				LocalPoint = new KNet::NetPoint(LocalSendAddr, LocalRecvAddr);
+				//
+				RemoteAddr = KNet::AddressPool->GetFreeObject();
+				bInitialized = true;
+			}
 		}
 
 		void Deinitialize()
 		{
-			delete LocalPoint;
-			KNet::Deinitialize();
+			if (bInitialized)
+			{
+				delete LocalPoint;
+				KNet::Deinitialize();
+			}
 		}
 
 		void ConnectToServer(const char* RemoteIP, const unsigned int RemotePort)
 		{
+			if (!bInitialized) { return; }
 			printf("[NET] ConnectToServer %s %u\n", RemoteIP, RemotePort);
 			RemoteAddr->Resolve(RemoteIP, RemotePort);
 			//
@@ -42,6 +50,7 @@ namespace WorldEngine
 
 		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, btVector3 Position)
 		{
+			if (!bInitialized) { return; }
 			KNet::NetPacket_Send* Pkt = _Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
 			if (Pkt)
 			{
@@ -56,6 +65,7 @@ namespace WorldEngine
 
 		void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime)
 		{
+			if (!bInitialized) { return; }
 			//
 			//  Check for timeouts every 1 second
 			if (LastTimeoutCheck + std::chrono::seconds(1) <= CurTime)

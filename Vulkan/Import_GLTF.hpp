@@ -265,7 +265,7 @@ public:
                 for (auto& JointID : _Skin.joints)
                 {
                     std::string NodeName = model.nodes[JointID].name;
-                    Infos->JointMap_[NodeName] = JointID - _Skin.skeleton;
+                    Infos->JointMap_[NodeName] = JointID;// -_Skin.skeleton;
                 }
 
                 if (_Skin.inverseBindMatrices > -1)

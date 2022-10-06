@@ -6,18 +6,20 @@ namespace WorldEngine
 	{
 		namespace
 		{
-			KNet::NetAddress* LocalSendAddr;
-			KNet::NetAddress* LocalRecvAddr;
-			KNet::NetPoint* LocalPoint;
+			KNet::NetAddress* LocalSendAddr = nullptr;
+			KNet::NetAddress* LocalRecvAddr = nullptr;
+			KNet::NetPoint* LocalPoint = nullptr;
 			//
-			KNet::NetAddress* RemoteAddr;
+			KNet::NetAddress* RemoteAddr = nullptr;
 			//
 			//	Clients Connected To Us
-			std::chrono::time_point<std::chrono::steady_clock> LastTimeoutCheck;
-			std::deque<KNet::NetClient*> ConnectedClients;
+			std::chrono::time_point<std::chrono::steady_clock> LastTimeoutCheck{};
+			std::deque<KNet::NetClient*> ConnectedClients{};
 			//
 			//	Server-side Client
-			KNet::NetClient* _Server;
+			KNet::NetClient* _Server = nullptr;
+			//
+			bool bInitialized = false;
 			
 		}
 

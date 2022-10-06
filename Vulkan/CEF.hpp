@@ -249,8 +249,7 @@ namespace WorldEngine
 		void Initialize()
 		{
 			CefMainArgs args(::GetModuleHandle(NULL));
-			
-
+		
 			CefSettings settings;
 			settings.windowless_rendering_enabled = 1;
 			settings.multi_threaded_message_loop = 0;
@@ -288,6 +287,12 @@ namespace WorldEngine
 			browser->GetMainFrame()->LoadURL("file:///./html/main.html");
 
 			//CefRunMessageLoop();
+		}
+
+		void ExecuteJS(const char* JS)
+		{
+			CefRefPtr<CefFrame> frame = browser->GetMainFrame();
+			frame->ExecuteJavaScript(JS, frame->GetURL(), 0);
 		}
 
 		void MouseEvent(const int x, const int y)

@@ -20,6 +20,10 @@ layout(std140, binding = 2) readonly buffer InstanceData_Animated {
     mat4 Matrices[32];
 } Joint[];
 
+layout(std140, binding = 3) readonly buffer InverseBindPoses {
+    mat4 joint[];
+} ibp;
+
 layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
 //layout(location = 2) out vec3 outColor;
@@ -32,10 +36,10 @@ void main() {
     //outColor = inColor;
 
     mat4 skinMat =
-        inWeights.x * Joint[0].Matrices[int(inBones.x)] +
-        inWeights.y * Joint[0].Matrices[int(inBones.y)] +
-        inWeights.z * Joint[0].Matrices[int(inBones.z)] +
-        inWeights.w * Joint[0].Matrices[int(inBones.w)];
+        inWeights.x * Joint[0].Matrices[int(inBones.x)] * ibp.joint[int(inBones.x)] +
+        inWeights.y * Joint[0].Matrices[int(inBones.y)] * ibp.joint[int(inBones.y)] +
+        inWeights.z * Joint[0].Matrices[int(inBones.z)] * ibp.joint[int(inBones.z)] +
+        inWeights.w * Joint[0].Matrices[int(inBones.w)] * ibp.joint[int(inBones.w)];
 
     //gl_Position = ubo.view_proj * ssbo.model[gl_InstanceIndex] * inPosition;
     gl_Position = ubo.view_proj * ssbo.model[gl_InstanceIndex] * skinMat * inPosition;
