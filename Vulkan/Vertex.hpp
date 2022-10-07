@@ -21,6 +21,11 @@ struct Vertex {
 		bindingDescription[0].stride = sizeof(Vertex);
 		bindingDescription[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
+		bindingDescription.emplace_back();
+		bindingDescription[1].binding = 1;
+		bindingDescription[1].stride = sizeof(glm::mat4);
+		bindingDescription[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+
 		return bindingDescription;
 	}
 
@@ -32,6 +37,30 @@ struct Vertex {
 		attributeDescriptions[0].location = 0;
 		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;		//	Position
 		attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+		attributeDescriptions.emplace_back();
+		attributeDescriptions[1].binding = 1;
+		attributeDescriptions[1].location = 1;
+		attributeDescriptions[1].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Instance Model Matrix X
+		attributeDescriptions[1].offset = sizeof(glm::vec4) * 0;
+
+		attributeDescriptions.emplace_back();
+		attributeDescriptions[2].binding = 1;
+		attributeDescriptions[2].location = 2;
+		attributeDescriptions[2].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Instance Model Matrix Y
+		attributeDescriptions[2].offset = sizeof(glm::vec4) * 1;
+
+		attributeDescriptions.emplace_back();
+		attributeDescriptions[3].binding = 1;
+		attributeDescriptions[3].location = 3;
+		attributeDescriptions[3].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Instance Model Matrix Z
+		attributeDescriptions[3].offset = sizeof(glm::vec4) * 2;
+
+		attributeDescriptions.emplace_back();
+		attributeDescriptions[4].binding = 1;
+		attributeDescriptions[4].location = 4;
+		attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;	//	Instance Model Matrix W
+		attributeDescriptions[4].offset = sizeof(glm::vec4) * 3;
 
 		return attributeDescriptions;
 	}

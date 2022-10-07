@@ -189,13 +189,14 @@ namespace Pipeline {
 					}
 					//
 					VkDeviceSize offsets[] = { 0 };
-					vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, &Mesh->vertexBuffer, offsets);
+					vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, &Mesh->vertexBuffer, offsets);	//	Model
+					vkCmdBindVertexBuffers(CommandBuffers[i], 1, 1, &Mesh->instanceStorageSpaceBuffers[i], offsets);	//	Instance
 					vkCmdBindIndexBuffer(CommandBuffers[i], Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 					uint32_t indexSize = indexSize = Mesh->_GLTF->Indices.size();
 					size_t instanceCount = 0;
 					for (auto& Instance : Mesh->instanceData)
 					{
-						Mesh->instanceData_Shadow[instanceCount] = &uboShadow.instancePos[indexPos + instanceCount];// = &Instance.model;
+						//Mesh->instanceData_Shadow[instanceCount] = &uboShadow.instancePos[indexPos + instanceCount];// = &Instance.model;
 						instanceCount++;
 					}
 					vkCmdDrawIndexed(CommandBuffers[i], indexSize, instanceCount, 0, 0, indexPos);

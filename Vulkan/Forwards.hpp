@@ -129,7 +129,6 @@ struct DComposition {
 };
 struct DShadow {
 	glm::mat4 mvp[LIGHT_COUNT];
-	glm::mat4 instancePos[1024];
 };
 //struct DAnimated {
 //	glm::mat4 

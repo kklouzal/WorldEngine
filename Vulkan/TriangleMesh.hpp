@@ -7,7 +7,7 @@ public:
 	bool bAnimated;
 	bool bFirstInstance = true;
 	std::vector<InstanceData> instanceData{};						//TODO: Make these pointers and give one to each owning scene node
-	std::vector<glm::mat4*> instanceData_Shadow{};
+	//std::vector<glm::mat4*> instanceData_Shadow{};
 	std::vector<InstanceData_Animation> instanceData_Animation{};	//TODO: Make these pointers and give one to each owning scene node
 	PipelineObject* Pipe;
 
@@ -53,7 +53,7 @@ public:
 		//	TODO: Make this actually start at 0
 		instanceData.resize(1);
 		if (bCastsShadows) {
-			instanceData_Shadow.resize(1);
+			//instanceData_Shadow.resize(1);
 		}
 		if (bAnimated) {
 			//
@@ -103,7 +103,7 @@ public:
 		ResizeInstanceBuffer();
 		if (bCastsShadows)
 		{
-			instanceData_Shadow.resize(instanceData.size());
+			//instanceData_Shadow.resize(instanceData.size());
 		}
 		//
 		//	Invalidate our command buffers
