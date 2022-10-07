@@ -282,7 +282,8 @@ public:
 		vkCmdBindDescriptorSets(CmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, Pipe->pipelineLayout, 0, 1, &Descriptor->DescriptorSets[CurFrame], 0, nullptr);
 		//	Draw Vertex Buffer
 		VkDeviceSize offsets[] = { 0 };
-		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);
+		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);	//	Model
+		vkCmdBindVertexBuffers(CmdBuffer, 1, 1, &instanceStorageSpaceBuffers[CurFrame], offsets);	//	Instance
 		vkCmdBindIndexBuffer(CmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), instanceData.size(), 0, 0, 0);
 	}

@@ -96,7 +96,7 @@ namespace Pipeline {
 			dynamicStateEnables.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
 			dynamicState = vks::initializers::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 			//	Bind vertex input
-			auto binding = Vertex::getBindingDescription();
+			auto binding = Vertex::getBindingDescription_Shadow();
 			auto description = Vertex::getAttributeDescriptions_Shadow();
 			VkPipelineVertexInputStateCreateInfo vertexInputInfo = vks::initializers::pipelineVertexInputStateCreateInfo(binding, description);
 			pipelineCI.pVertexInputState = &vertexInputInfo;
