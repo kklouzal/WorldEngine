@@ -41,7 +41,7 @@ public:
 	void DrawGUI()
 	{
 		ImGui::SetNextWindowSize(ImVec2(200, 70));
-		ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 100, WorldEngine::VulkanDriver::HEIGHT - 150));
+		ImGui::SetNextWindowPos(ImVec2(static_cast<float>(WorldEngine::VulkanDriver::WIDTH / 2 - 100), static_cast<float>(WorldEngine::VulkanDriver::HEIGHT - 150)));
 		ImGui::Begin("NPC Settings", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 		ImGui::TextDisabled("NPC Tool");
 		// TODO: MORE STUFF HERE...

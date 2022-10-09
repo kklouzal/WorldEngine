@@ -43,8 +43,6 @@
 #include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
 #include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
 
-#include "LuaScripting.hpp"
-
 #include "imgui.h"
 
 #include <functional>

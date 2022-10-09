@@ -344,8 +344,8 @@ void EventReceiver::cursor_position_callback(GLFWwindow* window, double xpos, do
 	if (Rcvr->isCursorActive)
 	{
 		ImGuiIO& io = ImGui::GetIO();
-		io.MousePos = ImVec2(xpos, ypos);
-		WorldEngine::CEF::MouseEvent(xpos, ypos);
+		io.MousePos = ImVec2(static_cast<float>(xpos), static_cast<float>(ypos));
+		WorldEngine::CEF::MouseEvent(static_cast<int>(xpos), static_cast<int>(ypos));
 	}
 
 	if (Rcvr->m_Pos_First)

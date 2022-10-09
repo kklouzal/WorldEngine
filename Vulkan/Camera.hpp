@@ -85,7 +85,7 @@ public:
 	float pitch = 0.f;
 	float sensitivity = 0.15f;
 
-	void DoLook(const double& deltaX, const double& deltaY)
+	void DoLook(const float& deltaX, const float& deltaY)
 	{
 
 		yaw += deltaX * sensitivity;

@@ -39,7 +39,7 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 		points[(i * 3) + 1] = Infos->Vertices[i].pos.y;
 		points[(i * 3) + 2] = Infos->Vertices[i].pos.z;
 	}
-	const bool res = interfaceVHACD->Compute(points, Infos->Vertices.size(), Infos->Indices.data(), Infos->Indices.size() / 3, params);
+	const bool res = interfaceVHACD->Compute(points, static_cast<uint32_t>(Infos->Vertices.size()), Infos->Indices.data(), static_cast<uint32_t>(Infos->Indices.size() / 3), params);
 
 	VHACD::IVHACD::ConvexHull Hull;
 	//
@@ -79,9 +79,9 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 			VHACD::Triangle T = Hull.m_triangles[i];
 			//
 			//	Calculate vertices
-			const btVector3 vertex0(Hull.m_points[T.mI0].mX, Hull.m_points[T.mI0].mY, Hull.m_points[T.mI0].mZ);
-			const btVector3 vertex1(Hull.m_points[T.mI1].mX, Hull.m_points[T.mI1].mY, Hull.m_points[T.mI1].mZ);
-			const btVector3 vertex2(Hull.m_points[T.mI2].mX, Hull.m_points[T.mI2].mY, Hull.m_points[T.mI2].mZ);
+			const btVector3 vertex0(static_cast<btScalar>(Hull.m_points[T.mI0].mX), static_cast<btScalar>(Hull.m_points[T.mI0].mY), static_cast<btScalar>(Hull.m_points[T.mI0].mZ));
+			const btVector3 vertex1(static_cast<btScalar>(Hull.m_points[T.mI1].mX), static_cast<btScalar>(Hull.m_points[T.mI1].mY), static_cast<btScalar>(Hull.m_points[T.mI1].mZ));
+			const btVector3 vertex2(static_cast<btScalar>(Hull.m_points[T.mI2].mX), static_cast<btScalar>(Hull.m_points[T.mI2].mY), static_cast<btScalar>(Hull.m_points[T.mI2].mZ));
 			//
 			//	Add this triangle into our Triangle Mesh
 			convexShape->addPoint(vertex0);
@@ -93,7 +93,7 @@ DecompResults* Decomp(GLTFInfo* Infos) {
 		//	Grab the hulls center position
 		btTransform trans;
 		trans.setIdentity();
-		trans.setOrigin(btVector3(Hull.m_center[0], Hull.m_center[1], Hull.m_center[2]));
+		trans.setOrigin(btVector3(static_cast<btScalar>(Hull.m_center[0]), static_cast<btScalar>(Hull.m_center[1]), static_cast<btScalar>(Hull.m_center[2])));
 		//
 		//	Add this ConvexShape to our CompoundShape
 		Results->CompoundShape->addChildShape(trans, convexShape);

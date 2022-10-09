@@ -333,14 +333,14 @@ public:
 					{
 						if (Character->GetCurrentItem())
 						{
-							Character->GetCurrentItem()->ReceiveMouseMovement(m_PosX_Delta, m_PosY_Delta, btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
+							Character->GetCurrentItem()->ReceiveMouseMovement(static_cast<float>(m_PosX_Delta), static_cast<float>(m_PosY_Delta), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
 						}
 					}
 					else
 					{
 						//
 						//	Rotate the camera via mouse movement
-						Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
+						Cam->DoLook(static_cast<float>(m_PosX_Delta), static_cast<float>(m_PosY_Delta));
 						//
 						//	Rotate the character via camera movement
 						

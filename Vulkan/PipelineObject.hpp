@@ -165,7 +165,7 @@ public:
 		}
 		else {
 			auto Tex = _Textures.emplace(File, new TextureObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, WorldEngine::VulkanDriver::allocator)).first->second;
-			printf("\tLoad New Texture\n", File.c_str());
+			printf("\tLoad New Texture\n");
 			const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
 
 			if (error) {

@@ -1,8 +1,9 @@
-#pragma once
+﻿#pragma once
 #include <stdexcept>
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <filesystem>
 
 /**
  * C++ exception class wrapper for Lua error.
@@ -45,4 +46,75 @@ public:
 };
 
 
+class ScriptedEntityFactory {
+	//LuaTableObject* LTable;
 
+public:
+	ScriptedEntityFactory(std::string ClassName)
+	{
+		//	Create new table entry in lua global entities table
+		//	This table will be used as a metamethod attached to objects created of this type
+	}
+
+	void Create()
+	{
+		//	Called from within lua?
+		//	Returns a new scripted entity object of this type
+		//	With the appropriate metamethod table attached
+	}
+};
+
+namespace ScriptedEntityManager {
+	namespace {
+		std::unordered_map<std::string, ScriptedEntityFactory*> Entities;
+	}
+
+	void ScanForEntities(std::string Path)
+	{
+		//	Loop through all subfolders inside of Path
+		//	If a subfolder contains a init.lua file
+		//	Create a new ScriptedEntityFactory
+		//	Use functions defined inside this init.lua file as the basis for a metamethod table
+	}
+
+	void Register(std::string ClassName)
+	{
+		Entities[ClassName] = new ScriptedEntityFactory(ClassName);
+	}
+
+	//
+	//	Called from Lua, [ local NewEnt = entities.create("SomeClassName") ]
+	void CreateEntity(std::string ClassName)
+	{
+		Entities[ClassName]->Create();
+	}
+}
+
+namespace WorldEngine
+{
+	namespace LUA
+	{
+		namespace
+		{
+			lua_State* state;
+			std::filesystem::path TopLevel = std::filesystem::current_path() /= "Lua";
+			std::filesystem::path MainLevel = TopLevel / "main";
+			std::filesystem::path SEntLevel = TopLevel / "s_ent";
+			std::filesystem::path SWepLevel = TopLevel / "s_wep";
+		}
+
+		void LoadFile(const char* File)
+		{
+			try {
+				int res = luaL_loadfile(state, File);
+				if (res != LUA_OK) throw LuaError(state);
+
+				res = lua_pcall(state, 0, LUA_MULTRET, 0);
+				if (res != LUA_OK) throw LuaError(state);
+			}
+			catch (std::exception& e) {
+				printf("Lua Error: %s\n", e.what());
+			}
+		}
+	}
+}

@@ -231,7 +231,7 @@ public:
 		//
 		//	Item Hot Bar
 		ImGui::SetNextWindowSize(ImVec2(550, 80));
-		ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 272, WorldEngine::VulkanDriver::HEIGHT - 80));
+		ImGui::SetNextWindowPos(ImVec2(static_cast<float>(WorldEngine::VulkanDriver::WIDTH / 2 - 272), static_cast<float>(WorldEngine::VulkanDriver::HEIGHT - 80)));
 		ImGui::Begin("Hotbar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
 
 		ImVec2 uv_min = ImVec2(0.0f, 0.0f);                 // Top-left

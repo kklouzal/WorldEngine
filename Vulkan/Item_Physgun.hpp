@@ -166,14 +166,14 @@ public:
 	float VectorLength(btVector3 vector)
 	{
 
-		return sqrt(pow(vector.x(), 2) + pow(vector.y(), 2) + pow(vector.z(), 2));
+		return static_cast<float>(sqrt(pow(vector.x(), 2) + pow(vector.y(), 2) + pow(vector.z(), 2)));
 
 	}
 
 	float MultiVectorLength(btVector3 start, btVector3 end = {})
 	{
 
-		return sqrt(pow(start.x() - end.x(), 2) + pow(start.y() - end.y(), 2) + pow(start.z() - end.z(), 2));
+		return static_cast<float>(sqrt(pow(start.x() - end.x(), 2) + pow(start.y() - end.y(), 2) + pow(start.z() - end.z(), 2)));
 
 	}
 
@@ -304,7 +304,7 @@ public:
 		if (bShowGUI)
 		{
 			ImGui::SetNextWindowSize(ImVec2(200, 120));
-			ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 100, WorldEngine::VulkanDriver::HEIGHT - 200));
+			ImGui::SetNextWindowPos(ImVec2(static_cast<float>(WorldEngine::VulkanDriver::WIDTH / 2 - 100), static_cast<float>(WorldEngine::VulkanDriver::HEIGHT - 200)));
 			ImGui::Begin("Physgun Settings", 0, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 			ImGui::TextDisabled("Physgun Force");
 			ImGui::SliderFloat("Force", &ForceMult, 1.0f, 100.0f, "%.1f");

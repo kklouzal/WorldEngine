@@ -231,7 +231,7 @@ namespace Pipeline {
 				//	Draw all SceneNodes
 				for (auto& Mesh : MeshCache)
 				{
-					Mesh->draw(CommandBuffers[i], i);
+					Mesh->draw(CommandBuffers[i], static_cast<uint32_t>(i));
 				}
 				//
 				//	End scene node pass

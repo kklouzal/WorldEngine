@@ -104,10 +104,6 @@ namespace WorldEngine
 		void Initialize();
 		void Deinitialize();
 		//
-		//	Lua
-		lua_State* state;
-		void initLua();
-		//
 		//	Main Loop
 		inline void mainLoop();
 		inline void Render();
@@ -176,19 +172,22 @@ namespace WorldEngine
 	}
 }
 
+#include "LuaScripting.hpp"
+//
 #include "EventReceiver.hpp"
 #include "NetCode.hpp"
-
+//
 #include "CEF.hpp"
 #include "Camera.hpp"
 #include "MaterialCache.hpp"
 #include "GUI.hpp"
 
-
 #include "SceneGraph.hpp"
-
+//
 #include "NetCode.impl.hpp"
 #include "EventReceiver.impl.hpp"
+//
+#include "LuaScripting.impl.hpp"
 
 namespace WorldEngine
 {
@@ -388,7 +387,7 @@ namespace WorldEngine
 			CEF::PostInitialize();
 			//
 			//	LUA Initialization
-			initLua();
+			LUA::Initialize();
 			//
 			//	Core Classes
 			SceneGraph::Initialize();
@@ -401,7 +400,7 @@ namespace WorldEngine
 		//	Deinitialize
 		void Deinitialize()
 		{
-			lua_close(state);
+			LUA::Deinitialize();
 			CEF::Deinitialize();
 			SceneGraph::Deinitialize();
 			MaterialCache::Deinitialize();
@@ -700,7 +699,7 @@ namespace WorldEngine
 				//	Crosshairs
 				if (!_EventReceiver->IsCursorActive()) {
 					ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-					ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 15, WorldEngine::VulkanDriver::HEIGHT / 2 - 15));
+					ImGui::SetNextWindowPos(ImVec2(static_cast<float>(WorldEngine::VulkanDriver::WIDTH / 2 - 15), static_cast<float>(WorldEngine::VulkanDriver::HEIGHT / 2 - 15)));
 					ImGui::SetNextWindowBgAlpha(0.f);
 					ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 					ImGui::Begin("Example: Simple overlay", 0, window_flags);
@@ -776,23 +775,7 @@ namespace WorldEngine
 			//	Physically upload buffers to GPU
 			WorldEngine::MaterialCache::GetPipe_Composition()->UploadBuffersToGPU(CurFrame);
 			WorldEngine::MaterialCache::GetPipe_Shadow()->UploadBuffersToGPU(CurFrame);
-			SceneGraph::GetCamera()->UpdateCameraUBO(CurFrame, WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
-		}
-
-		void initLua()
-		{
-			state = luaL_newstate();
-			luaL_openlibs(state);
-			try {
-				int res = luaL_loadfile(state, "lua/main/main.lua");
-				if (res != LUA_OK) throw LuaError(state);
-
-				res = lua_pcall(state, 0, LUA_MULTRET, 0);
-				if (res != LUA_OK) throw LuaError(state);
-			}
-			catch (std::exception& e) {
-				printf("Lua Error: %s\n", e.what());
-			}
+			SceneGraph::GetCamera()->UpdateCameraUBO(CurFrame, static_cast<float>(WIDTH), static_cast<float>(HEIGHT), 0.1f, 1024.f, 90.f);
 		}
 
 		void setEventReceiver(EventReceiver* _EventRcvr)

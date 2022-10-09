@@ -80,7 +80,7 @@ public:
 		{
 			const char* const JointName = skeleton_.joint_names()[i];
 			uint16_t GLFW_JointIndex = _GLTFJointMap[JointName];
-			printf("OZZ JOINT %u (gltf %u) -> %s\n", i, GLFW_JointIndex, JointName);
+			printf("OZZ JOINT %zu (gltf %u) -> %s\n", i, GLFW_JointIndex, JointName);
 		}
 	}
 

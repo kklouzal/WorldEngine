@@ -285,7 +285,7 @@ public:
 		vkCmdBindVertexBuffers(CmdBuffer, 0, 1, &vertexBuffer, offsets);	//	Model
 		vkCmdBindVertexBuffers(CmdBuffer, 1, 1, &instanceStorageSpaceBuffers[CurFrame], offsets);	//	Instance
 		vkCmdBindIndexBuffer(CmdBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), instanceData.size(), 0, 0, 0);
+		vkCmdDrawIndexed(CmdBuffer, static_cast<uint32_t>(_GLTF->Indices.size()), static_cast<uint32_t>(instanceData.size()), 0, 0, 0);
 	}
 
 	//

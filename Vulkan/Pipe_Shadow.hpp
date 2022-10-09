@@ -175,11 +175,8 @@ namespace Pipeline {
 				//vkCmdBeginRenderPass(CommandBuffers[i], &renderPass[i], VK_SUBPASS_CONTENTS_INLINE);
 				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-
-				// hacky instancing
 				vkCmdBindDescriptorSets(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &DescriptorSets[i], 0, nullptr);
 
-				size_t indexPos = 0;
 				for (auto& Mesh : MeshCache)
 				{
 					//
@@ -192,17 +189,8 @@ namespace Pipeline {
 					vkCmdBindVertexBuffers(CommandBuffers[i], 0, 1, &Mesh->vertexBuffer, offsets);	//	Model
 					vkCmdBindVertexBuffers(CommandBuffers[i], 1, 1, &Mesh->instanceStorageSpaceBuffers[i], offsets);	//	Instance
 					vkCmdBindIndexBuffer(CommandBuffers[i], Mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-					uint32_t indexSize = indexSize = Mesh->_GLTF->Indices.size();
-					size_t instanceCount = 0;
-					for (auto& Instance : Mesh->instanceData)
-					{
-						//Mesh->instanceData_Shadow[instanceCount] = &uboShadow.instancePos[indexPos + instanceCount];// = &Instance.model;
-						instanceCount++;
-					}
-					vkCmdDrawIndexed(CommandBuffers[i], indexSize, instanceCount, 0, 0, indexPos);
-					indexPos += instanceCount;
+					vkCmdDrawIndexed(CommandBuffers[i], static_cast<uint32_t>(Mesh->_GLTF->Indices.size()), static_cast<uint32_t>(Mesh->instanceData.size()), 0, 0, 0);
 				}
-				// end hacky instancing
 
 				//
 				//	End shadow pass

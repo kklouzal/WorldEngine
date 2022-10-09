@@ -2,7 +2,7 @@
 
 struct GLTFInfo
 {
-    size_t vertexCount = 0;
+    uint32_t vertexCount = 0;
 
     std::vector<Vertex> Vertices = {};
     std::vector<uint32_t> Indices = {};

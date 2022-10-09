@@ -278,7 +278,7 @@ namespace WorldEngine
 
             // Dimensions
             ImGuiIO& io = ImGui::GetIO();
-            io.DisplaySize = ImVec2(VulkanDriver::WIDTH, VulkanDriver::HEIGHT);
+            io.DisplaySize = ImVec2(static_cast<float>(VulkanDriver::WIDTH), static_cast<float>(VulkanDriver::HEIGHT));
             io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
 
             // Create font texture
