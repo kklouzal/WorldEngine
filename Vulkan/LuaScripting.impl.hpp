@@ -1,3 +1,4 @@
+#include "Lua_GameMode.hpp"
 #include "Lua_Ent.hpp"
 
 namespace WorldEngine
@@ -19,9 +20,11 @@ namespace WorldEngine
 
 			//
 			//	Initialize bindings
+			GM::Initialize();
 			Ent::Initialize();
 			//
 			//	Load core scripted objects
+			GM::Load("test_gamemode");
 			Ent::Load();
 
 			//

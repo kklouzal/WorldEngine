@@ -1,5 +1,3 @@
-print("Hello From Lua Base")
-
 local BASE = {}
 
 function BASE:Test()

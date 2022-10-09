@@ -187,6 +187,7 @@
     <ClInclude Include="Item_Toolgun.hpp" />
     <ClInclude Include="LuaScripting.impl.hpp" />
     <ClInclude Include="Lua_Ent.hpp" />
+    <ClInclude Include="Lua_GameMode.hpp" />
     <ClInclude Include="Menu.hpp" />
     <ClInclude Include="NetCode.hpp" />
     <ClInclude Include="NetCode.impl.hpp" />

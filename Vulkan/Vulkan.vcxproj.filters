@@ -271,6 +271,9 @@
     <ClInclude Include="LuaScripting.impl.hpp">
       <Filter>Header Files\Lua</Filter>
     </ClInclude>
+    <ClInclude Include="Lua_GameMode.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_GUI.frag">

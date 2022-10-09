@@ -99,6 +99,8 @@ namespace WorldEngine
 			lua_State* state;
 			std::filesystem::path TopLevel = std::filesystem::current_path() /= "Lua";
 			std::filesystem::path MainLevel = TopLevel / "main";
+			std::filesystem::path BaseLevel = TopLevel / "base";
+			std::filesystem::path SGmLevel = TopLevel / "s_gm";
 			std::filesystem::path SEntLevel = TopLevel / "s_ent";
 			std::filesystem::path SWepLevel = TopLevel / "s_wep";
 		}

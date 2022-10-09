@@ -1,5 +1,3 @@
-print("Hello From Lua Test")
-
 local ENT = {}
 
 function ENT:Test2()

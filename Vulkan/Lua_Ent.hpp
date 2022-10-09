@@ -15,7 +15,7 @@ namespace WorldEngine
 			//	And adds all cFunctions to the metatable from c++
 			int RegisterBase(lua_State* L)
 			{
-				printf("Called From Lua (RegisterBase)\n");
+				printf("[Lua:Register Base] Entity\n");
 				if (lua_istable(L, -1))
 				{
 					//	-1 (1)	| in_table
@@ -81,7 +81,7 @@ namespace WorldEngine
 			//	Registers scripted object and applies base class metatable
 			int Register(lua_State* L)
 			{
-				printf("Called From Lua (Register)\n");
+				printf("[Lua:Register] Entity\n");
 				if (lua_isstring(L, -2))
 				{
 					if (lua_istable(L, -1))
@@ -150,13 +150,25 @@ namespace WorldEngine
 			//	Creates object into world
 			int Create(lua_State* L)
 			{
-				printf("Called From Lua (Create)\n");
+				printf("[Lua:Create] Entity\n");
 				return 1;
 			}
 
 			void Load()
 			{
-				printf("Lua Load Entities\n");
+				printf("[Lua:Load] Entity Base\n");
+				std::filesystem::path BasePath = BaseLevel / "base_ent";
+				if (std::filesystem::exists(BasePath) && std::filesystem::is_directory(BasePath))
+				{
+					std::filesystem::path InitLua = BasePath / "init.lua";
+					if (std::filesystem::exists(InitLua))
+					{
+						printf("\tinit.lua\n");
+						LoadFile(InitLua.generic_string().c_str());
+					}
+
+				}
+				printf("[Lua:Load] Entities\n");
 				for (auto const& sub_dir : std::filesystem::directory_iterator{ SEntLevel })
 				{
 					if (sub_dir.is_directory())
