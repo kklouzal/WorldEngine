@@ -23,6 +23,7 @@ namespace WorldEngine
         std::string CurrentMap;
         std::string DefaultPlayerModel;
         std::chrono::seconds ClientTimeout;
+        std::string CurrentGamemode;
         long TickRate = 66;
     }
 
@@ -35,12 +36,15 @@ namespace WorldEngine
 //
 //  Forward Declarations
 class Player;
-
+#include "LuaScripting.hpp"
+//
 #include "NetCode.hpp"
 #include "Import_GLTF.hpp"
 #include "SceneGraph.hpp"
 
 #include "NetCode.impl.hpp"
+//
+#include "LuaScripting.impl.hpp"
 
 // Define a new application type, each program should derive a class from wxApp
 class MyApp : public wxApp
@@ -139,7 +143,6 @@ public:
 
         m_log = new wxTextCtrl( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
         wxLog::SetActiveTarget(new wxLogTextCtrl(m_log));
-
         conf = new wxFileConfig(wxEmptyString, wxEmptyString, wxGetCwd() + "/settings.ini");
         conf->SetPath("/net");
         std::string ini_IP(conf->Read("ip", "127.0.0.1").c_str());
@@ -157,6 +160,7 @@ public:
         wxLogMessage("\t\tClient Timeout: %ld\n", WorldEngine::ClientTimeout.count());
         wxLogMessage("\t[GAME]");
         conf->SetPath("/game");
+        WorldEngine::CurrentGamemode = conf->Read("gamemode", "test_gamemode").ToStdString();
         WorldEngine::CurrentMap = conf->Read("map", "./media/models/newMap.gltf").ToStdString();
         WorldEngine::DefaultPlayerModel = conf->Read("player", "./media/models/brickFrank.gltf").ToStdString();
         wxLogMessage("\t\tMap File: %s", WorldEngine::CurrentMap.c_str());
@@ -209,6 +213,10 @@ public:
         wxLogMessage("Physics Initialized");
 
         //
+        //  LUA Initialization
+        WorldEngine::LUA::Initialize();
+
+        //
         //  SceneGraph Initialization
         WorldEngine::SceneGraph::Initialize();
 
@@ -228,6 +236,14 @@ public:
     ~MyFrame()
     {
         wxLogMessage("[Shutting Down]");
+
+        //
+        //  Deinitialize LUA
+        WorldEngine::LUA::Deinitialize();
+
+        //
+        //  Deinitialize SceneGraph
+        WorldEngine::SceneGraph::Deinitiaize();
 
         //
         //  Deinitialize NetCode

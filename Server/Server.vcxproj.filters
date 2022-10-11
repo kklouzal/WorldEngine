@@ -18,6 +18,9 @@
     <Filter Include="Header Files\Libraries">
       <UniqueIdentifier>{f73c7032-43d6-439a-86b0-dbc6b6da7489}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Lua">
+      <UniqueIdentifier>{2939469a-c19b-4551-8cbf-b5c244303dea}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -66,6 +69,21 @@
     </ClInclude>
     <ClInclude Include="VHACD.h">
       <Filter>Header Files\Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_Ent.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_GameMode.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaScripting.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaScripting.impl.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_Player.hpp">
+      <Filter>Header Files\Lua</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -72,6 +72,11 @@ namespace WorldEngine
                 Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_PlayerNode);
                 Player* NewPlayer = new Player(Client, Point);
                 ConnectedClients[Client] = NewPlayer;
+
+                //
+                //  LUA
+                WorldEngine::LUA::Ply::Create(NewPlayer, "ply_default");
+                WorldEngine::LUA::GM::Call_OnPlayerSpawn(NewPlayer->GetNodeID()); //  TODO: Probably NOT where i want to call this from.
             }
             //
             //  Handle Disconnected Clients
