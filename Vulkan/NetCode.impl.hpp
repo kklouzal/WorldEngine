@@ -99,6 +99,7 @@ namespace WorldEngine
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_SceneNode);
 				Client->RegisterChannel<KNet::ChannelID::Unreliable_Any>((uint8_t)NetCode::OPID::Update_PlayerNode);
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_PlayerNode);
+				Client->RegisterChannel<KNet::ChannelID::Reliable_Ordered>((uint8_t)NetCode::OPID::Item_Update);
 				ConnectedClients.push_back(Client);
 			}
 			//
@@ -333,6 +334,17 @@ namespace WorldEngine
 								//	TODO: This needs to be a character scene node..? NonLocalCharacterSceneNode..? Ugh.. :D
 								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
 							}
+						}
+						break;
+						//
+						//	Item Update
+						case WorldEngine::NetCode::OPID::Item_Update:
+						{
+							uintmax_t NodeID;
+							_Packet->read<uintmax_t>(NodeID);
+							char Classname[255] = "";
+							_Packet->read<char>(*Classname);
+							printf("Received Item_Update Classname (%s) NodeID (%ud)\n", Classname, NodeID);
 						}
 						break;
 					}

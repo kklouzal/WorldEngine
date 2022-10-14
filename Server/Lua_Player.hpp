@@ -1,3 +1,5 @@
+#pragma once
+
 namespace WorldEngine
 {
 	namespace LUA
@@ -20,58 +22,58 @@ namespace WorldEngine
 				{
 					//	-1 (1)	| in_table
 					//
-					lua_getglobal(state, "Ply");
+					lua_getglobal(L, "Ply");
 					//	-2 (1)	| in_table
 					//	-1 (2)	| Ply table
 					//
-					lua_pushstring(state, "BaseMetatable");
+					lua_pushstring(L, "BaseMetatable");
 					//	-3 (1)	| in_table
 					//	-2 (2)	| Ply table
 					//	-1 (3)	| 'BaseMetatable'
 					//
-					lua_insert(state, 1);
+					lua_insert(L, 1);
 					//	-3 (1)	| 'BaseMetatable'
 					//	-2 (2)	| table_in
 					//	-1 (3)	| Ply table
 					//
-					lua_insert(state, 1);
+					lua_insert(L, 1);
 					//	-3 (1)	| Ply table
 					//	-2 (2)	| 'BaseMetatable'
 					//	-1 (3)	| table_in
 					//
-					lua_settable(state, -3);
+					lua_settable(L, -3);
 					//	-1 (1)	| Ply table
 					//
-					lua_pushstring(state, "BaseMetatable");
+					lua_pushstring(L, "BaseMetatable");
 					//	-2 (1)	| Ply table
 					//	-1 (2)	| 'BaseMetatable'
 					//
-					lua_gettable(state, -2);
+					lua_gettable(L, -2);
 					//	-2 (1)	| Ply table
 					//	-1 (2)	| BaseMetatable table
 					//
-					lua_pushstring(state, "__index");
+					lua_pushstring(L, "__index");
 					//	-3 (1)	| Ply table
 					//	-2 (2)	| BaseMetatable table
 					//	-1 (3)	| "__index"
 					//
-					lua_pushstring(state, "BaseMetatable");
+					lua_pushstring(L, "BaseMetatable");
 					//	-4 (1)	| Ply table
 					//	-3 (2)	| BaseMetatable table
 					//	-2 (3)	| "__index"
 					//	-1 (4)	| "BaseMetatable"
 					//
-					lua_gettable(state, -4);
+					lua_gettable(L, -4);
 					//	-4 (1)	| Ply table
 					//	-3 (2)	| BaseMetatable table
 					//	-2 (3)	| "__index"
 					//	-1 (4)	| BaseMetatable table
 					//
-					lua_settable(state, -3);
+					lua_settable(L, -3);
 					//	-2 (1)	| Ply table
 					//	-1 (2)	| BaseMetatable table
 					//
-					lua_settop(state, 0);
+					lua_settop(L, 0);
 					//	Stack Empty
 				}
 				return 1;
@@ -89,93 +91,232 @@ namespace WorldEngine
 						//	-2 (1)	| in_string
 						//	-1 (2)	| in_table
 						//
-						lua_pushstring(state, "__index");
-						//	-3 (1)	| in_string
-						//	-2 (2)	| in_table
-						//	-1 (3)	| '__index'
-						//
-						lua_pushvalue(state, -2);
-						//	-4 (1)	| in_string
-						//	-3 (2)	| in_table
-						//	-2 (3)	| '__index'
-						//	-1 (4)	| in_table
-						//
-						lua_settable(state, -3);
-						//	-2 (1)	| in_string
-						//	-1 (2)	| in_table
-						//
-						lua_getglobal(state, "Ply");
+						lua_getglobal(L, "Ply");
 						//	-3 (1)	| in_string
 						//	-2 (2)	| in_table
 						//	-1 (3)	| Ply table
 						//
-						lua_pushstring(state, "BaseMetatable");
+						lua_pushstring(L, "BaseMetatable");
 						//	-4 (1)	| in_string
 						//	-3 (2)	| in_table
 						//	-2 (3)	| Ply table
 						//	-1 (4)	| 'BaseMetatable'
 						//
-						lua_gettable(state, -2);
+						lua_gettable(L, -2);
 						//	-4 (1)	| in_string
 						//	-3 (2)	| in_table
 						//	-2 (3)	| Ply table
 						//	-1 (4)	| BaseMetatable table
 						//
-						lua_setmetatable(state, -3);
+						lua_setmetatable(L, -3);
 						//	-3 (1)	| in_string
 						//	-2 (2)	| in_table
 						//	-1 (3)	| Ply table
 						//
-						lua_pushstring(state, "ObjectMetatables");
+						lua_pushstring(L, "ObjectMetatables");
 						//	-4 (1)	| in_string
 						//	-3 (2)	| in_table
 						//	-2 (3)	| Ply table
 						//	-1 (4)	| 'ObjectMetatables'
 						//
-						lua_gettable(state, -2);
+						lua_gettable(L, -2);
 						//	-4 (1)	| in_string
 						//	-3 (2)	| in_table
 						//	-2 (3)	| Ply table
 						//	-1 (4)	| ObjectMetatables table
 						//
-						lua_insert(state, 1);
+						lua_insert(L, 1);
 						//	-4 (1)	| ObjectMetatables table
 						//	-3 (2)	| in_string
 						//	-2 (3)	| in_table
 						//	-1 (4)	| Ply table
 						//
-						lua_insert(state, 1);
+						lua_insert(L, 1);
 						//	-4 (1)	| Ply table
 						//	-3 (2)	| ObjectMetatables table
 						//	-2 (3)	| in_string
 						//	-1 (4)	| in_table
 						//
-						lua_settable(state, -3);
+						lua_settable(L, -3);
 						//	-2 (1)	| Ply table
 						//	-1 (2)	| ObjectMetatables table
 						//
-						lua_settop(state, 0);
+						lua_settop(L, 0);
 						//	Stack Empty
 					}
 				}
 				return 1;
 			}
 
+			//
+			//	Returns a Player* from a player table index on the stack
+			//	returns nullptr if the function fails in any way
+			Player* GetPlayer(lua_State* L, const int index)
+			{
+				//	?		|	?
+				//	index	|	player object table
+				//	?		|	?
+				if (lua_istable(L, index)) {
+					if (lua_getfield(L, index, "__name") == LUA_TSTRING) {
+						//	?		|	?
+						//	index	|	player object table
+						//	?		|	?
+						//	-1		|	__name string
+						//
+						if (strcmp(lua_tostring(L, -1), "Player") == 0) {
+							lua_remove(L, -1);
+							//	?		|	?
+							//	index	|	player object table
+							//	?		|	?
+							//
+							if (lua_getfield(L, index, "__pointer") == LUA_TLIGHTUSERDATA) {
+								//	?		|	?
+								//	index	|	player object table
+								//	?		|	?
+								//	-1		|	__pointer lightuserdata
+								//
+								Player* Player_ = reinterpret_cast<Player*>(lua_touserdata(L, -1));
+								lua_remove(L, lua_gettop(L));
+								//	?		|	?
+								//	index	|	player object table
+								//	?		|	?
+								//
+								return Player_;
+							}
+							else {
+								wxLogMessage("[LUA:Cerr] GetPlayer (code 4)");
+							}
+						}
+						else {
+							wxLogMessage("[LUA:Cerr] GetPlayer (code 3)");
+						}
+					}
+					else {
+						wxLogMessage("[LUA:Cerr] GetPlayer (code 2)");
+					}
+				}
+				else {
+					wxLogMessage("[LUA:Cerr] GetPlayer (code 1)");
+				}
+				return nullptr;
+				//if (lua_istable(L, -2)) {
+				//	//	-2	(1)	|	player object table
+				//	//	-1	(2)	|	item_class string
+				//	//
+				//	if (lua_getfield(L, -2, "__name") == LUA_TSTRING) {
+				//		//	-3	(1)	|	player object table
+				//		//	-2	(2)	|	item_class string
+				//		//	-1	(3)	|	__name string
+				//		//
+				//		if (strcmp(lua_tostring(L, -1), "Player") == 0) {
+				//			lua_remove(L, -1);
+				//			//	-2	(1)	|	player object table
+				//			//	-1	(2)	|	item_class string
+				//			//
+				//			if (lua_getfield(L, -2, "__pointer") == LUA_TLIGHTUSERDATA) {
+				//				//	-3	(1)	|	player object table
+				//				//	-2	(2)	|	item_class string
+				//				//	-1	(3)	|	__pointer lightuserdata
+				//				//
+				//				Player* Player_ = reinterpret_cast<Player*>(lua_touserdata(L, -1));
+				//				lua_remove(L, lua_gettop(L));
+				//				//	-2	(1)	|	player object table
+				//				//	-1	(2)	|	item_class string
+				//				//
+				//				wxLogMessage("Player Object Name %s", Player_->Name.c_str());
+				//			}
+				//			else {
+				//				wxLogMessage("Player:Give() must be called on a valid player object (code 4)");
+				//				lua_settop(L, 0);	//	Empty Stack
+				//			}
+				//		}
+				//		else {
+				//			wxLogMessage("Player:Give() must be called on a valid player object (code 3) %s");
+				//			lua_settop(L, 0);	//	Empty Stack
+				//		}
+				//	} else {
+				//		wxLogMessage("Player:Give() must be called on a valid player object (code 2)");
+				//		lua_settop(L, 0);	//	Empty Stack
+				//	}
+				//}
+				//else {	//	This branch should be impossible to reach?
+				//	wxLogMessage("Player:Give() must be called on a valid player object (code 1)");
+				//	lua_settop(L, 0);	//	Empty Stack
+				//}
+			}
+
+			//
+			//	Player:Give(item_class (string))
+			//	-2	(1)	|	player object table
+			//	-1	(2)	|	item_class string
+			int Player_Give(lua_State* L)
+			{
+				const int args = lua_gettop(L);
+				if (args == 2) {
+					if (lua_isstring(L, -1)) {
+						Player* Ply_ = GetPlayer(L, -2);
+						Item* NewItm_ = Itm::Create(lua_tostring(L, -1));
+						Ply_->GiveItem(NewItm_);
+						wxLogMessage("Gave player (%u) item (%u)", Ply_->GetNodeID(), NewItm_->GetNodeID());
+					}
+					else {
+						wxLogMessage("Player:Give() argument 1 must be a valid item type string");
+						lua_settop(L, 0);	//	Empty Stack
+					}
+				}
+				else {
+					wxLogMessage("Player:Give() invalid argument count");
+					lua_settop(L, 0);	//	Empty Stack
+				}
+				return 0;
+			}
+
+			void PushNewPlayer(lua_State* L, Player* NewPlayer)
+			{
+				lua_newtable(L);
+				//	-1	| Player table
+				//
+				lua_pushstring(L, "__pointer");
+				//	-2	| Player table
+				//	-1	| '__object'
+				//
+				lua_pushlightuserdata(L, NewPlayer);
+				//	-3	| Player table
+				//	-2	| '__object'
+				//	-1	| NewPlayer lightuserdata
+				//
+				lua_settable(L, -3);
+				//	-1	| Player table
+				//
+				lua_pushstring(L, "__name");
+				//	-2	| Player table
+				//	-1	| '__name'
+				//
+				lua_pushstring(L, "Player");
+				//	-3	| Player table
+				//	-2	| '__name'
+				//	-1	| 'Player'
+				//
+				lua_settable(L, -3);
+				//	-1	| Player table
+				//
+				lua_pushstring(L, "Give");
+				//	-2	| Player table
+				//	-1	| 'Give'
+				//
+				lua_pushcfunction(L, Player_Give);
+				//	-3	| Player table
+				//	-2	| 'Give'
+				//	-1	| Player_Give function
+				//
+				lua_settable(L, -3);
+				//	-1	| Player table
+				//
+			}
+
 			void Create(Player* NewPlayer, const char* Classname)
 			{
-				lua_newtable(state);
-				//	-1	(1)	| Player table
-				//
-				lua_pushstring(state, "__pointer");
-				//	-2	(1)	| Player table
-				//	-1	(2)	| '__object'
-				//
-				lua_pushlightuserdata(state, NewPlayer);
-				//	-3	(1)	| Player table
-				//	-2	(2)	| '__object'
-				//	-1	(3)	| NewPlayer lightuserdata
-				//
-				lua_settable(state, -3);
+				PushNewPlayer(state, NewPlayer);
 				//	-1	(1)	| Player table
 				//
 				lua_getglobal(state, "Ply");

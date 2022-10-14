@@ -33,7 +33,8 @@ namespace WorldEngine
 			Update_SceneNode,
 			Request_SceneNode,
 			Update_PlayerNode,
-			Request_PlayerNode
+			Request_PlayerNode,
+			Item_Update
 		};
 
 		void Initialize(const char* LocalIP, const unsigned int LocalSendPort, const unsigned int LocalRecvPort);

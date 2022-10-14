@@ -20,9 +20,12 @@ public:
 
 	virtual ~SceneNode()
 	{
-		WorldEngine::dynamicsWorld->removeRigidBody(_RigidBody);
-		delete _RigidBody->getMotionState();
-		delete _RigidBody;
+		if (_RigidBody)
+		{
+			WorldEngine::dynamicsWorld->removeRigidBody(_RigidBody);
+			delete _RigidBody->getMotionState();
+			delete _RigidBody;
+		}
 		wxLogMessage("[SceneNode] Destroy");
 	}
 

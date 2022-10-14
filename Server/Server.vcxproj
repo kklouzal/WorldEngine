@@ -155,11 +155,13 @@
   <ItemGroup>
     <ClInclude Include="ConvexDecomposition.hpp" />
     <ClInclude Include="Import_GLTF.hpp" />
+    <ClInclude Include="Item.hpp" />
     <ClInclude Include="json.hpp" />
     <ClInclude Include="LuaScripting.hpp" />
     <ClInclude Include="LuaScripting.impl.hpp" />
     <ClInclude Include="Lua_Ent.hpp" />
     <ClInclude Include="Lua_GameMode.hpp" />
+    <ClInclude Include="Lua_Item.hpp" />
     <ClInclude Include="Lua_Player.hpp" />
     <ClInclude Include="MeshSceneNode.hpp" />
     <ClInclude Include="NetCode.hpp" />

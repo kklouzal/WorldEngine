@@ -70,6 +70,7 @@ namespace WorldEngine
                 Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_SceneNode);
                 Client->RegisterChannel<KNet::ChannelID::Unreliable_Any>((uint8_t)NetCode::OPID::Update_PlayerNode);
                 Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_PlayerNode);
+                Client->RegisterChannel<KNet::ChannelID::Reliable_Ordered>((uint8_t)NetCode::OPID::Item_Update);
                 Player* NewPlayer = new Player(Client, Point);
                 ConnectedClients[Client] = NewPlayer;
 

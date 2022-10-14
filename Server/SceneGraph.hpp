@@ -96,7 +96,6 @@ namespace WorldEngine
 			//
 			//	Cleanup SceneNodes
 			for (size_t i = 0; i < SceneNodes.size(); i++) {
-				//_Driver->_ndWorld->RemoveBody(SceneNodes[i]);
 				delete SceneNodes[i];
 			}
 			for (auto Shape : _CollisionShapes) {
@@ -108,9 +107,6 @@ namespace WorldEngine
 			}
 			_ConvexShapes.clear();
 			_ConvexShapes.shrink_to_fit();
-			//
-			//	Cleanup WorldSceneNode
-			delete _World;
 			//
 			//	Cleanup GLTF Importer
 			delete _ImportGLTF;
@@ -161,6 +157,7 @@ namespace WorldEngine
 	}
 }
 
+#include "Item.hpp"
 #include "WorldSceneNode.hpp"
 #include "MeshSceneNode.hpp"
 #include "Player.hpp"

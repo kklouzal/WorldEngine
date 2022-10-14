@@ -1,6 +1,9 @@
+#pragma once
+
 #include "Lua_GameMode.hpp"
 #include "Lua_Player.hpp"
 #include "Lua_Ent.hpp"
+#include "Lua_Item.hpp"
 #include <string>
 
 namespace WorldEngine
@@ -47,10 +50,13 @@ namespace WorldEngine
 			//
 			//	Paths
 
-			printf("TopLevel Path: %s\n", TopLevel.generic_string().c_str());
-			printf("MainLevel Path: %s\n", MainLevel.generic_string().c_str());
-			printf("SEntLevel Path: %s\n", SEntLevel.generic_string().c_str());
-			printf("SWepLevel Path: %s\n", SWepLevel.generic_string().c_str());
+			wxLogMessage("TopLevel Path: %s", TopLevel.generic_string().c_str());
+			wxLogMessage("MainLevel Path: %s", MainLevel.generic_string().c_str());
+			wxLogMessage("BaseLevel Path: %s", BaseLevel.generic_string().c_str());
+			wxLogMessage("SGmLevel  Path: %s", SGmLevel.generic_string().c_str());
+			wxLogMessage("SPlyLevel Path: %s", SPlyLevel.generic_string().c_str());
+			wxLogMessage("SEntLevel Path: %s", SEntLevel.generic_string().c_str());
+			wxLogMessage("SItmLevel Path: %s", SItmLevel.generic_string().c_str());
 
 			state = luaL_newstate();
 			luaL_openlibs(state);
@@ -64,11 +70,13 @@ namespace WorldEngine
 			GM::Initialize();
 			Ply::Initialize();
 			Ent::Initialize();
+			Itm::Initialize();
 			//
 			//	Load core scripted objects
 			GM::Load(WorldEngine::CurrentGamemode.c_str());
 			Ply::Load();
 			Ent::Load();
+			Itm::Load();
 
 			//
 			//	Load main lua file

@@ -24,7 +24,8 @@ namespace WorldEngine
             Update_SceneNode,
             Request_SceneNode,
             Update_PlayerNode,
-            Request_PlayerNode
+            Request_PlayerNode,
+            Item_Update
         };
 
         void Initialize(const char* BindIP, const unsigned int SendPort, const unsigned int RecvPort);

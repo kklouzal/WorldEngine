@@ -1,4 +1,5 @@
 ﻿#pragma once
+
 #include <stdexcept>
 #include <lua.h>
 #include <lualib.h>
@@ -68,65 +69,22 @@ public:
 	}
 };
 
-
-class ScriptedEntityFactory {
-	//LuaTableObject* LTable;
-
-public:
-	ScriptedEntityFactory(std::string ClassName)
-	{
-		//	Create new table entry in lua global entities table
-		//	This table will be used as a metamethod attached to objects created of this type
-	}
-
-	void Create()
-	{
-		//	Called from within lua?
-		//	Returns a new scripted entity object of this type
-		//	With the appropriate metamethod table attached
-	}
-};
-
-namespace ScriptedEntityManager {
-	namespace {
-		std::unordered_map<std::string, ScriptedEntityFactory*> Entities;
-	}
-
-	void ScanForEntities(std::string Path)
-	{
-		//	Loop through all subfolders inside of Path
-		//	If a subfolder contains a init.lua file
-		//	Create a new ScriptedEntityFactory
-		//	Use functions defined inside this init.lua file as the basis for a metamethod table
-	}
-
-	void Register(std::string ClassName)
-	{
-		Entities[ClassName] = new ScriptedEntityFactory(ClassName);
-	}
-
-	//
-	//	Called from Lua, [ local NewEnt = entities.create("SomeClassName") ]
-	void CreateEntity(std::string ClassName)
-	{
-		Entities[ClassName]->Create();
-	}
-}
-
 namespace WorldEngine
 {
+	class Item;
+
 	namespace LUA
 	{
 		namespace
 		{
 			lua_State* state;
-			std::filesystem::path TopLevel = std::filesystem::current_path() /= "Lua";
+			std::filesystem::path TopLevel  = std::filesystem::current_path() /= "Lua";
 			std::filesystem::path MainLevel = TopLevel / "main";
 			std::filesystem::path BaseLevel = TopLevel / "base";
-			std::filesystem::path SGmLevel = TopLevel / "s_gm";
+			std::filesystem::path SGmLevel  = TopLevel / "s_gm";
 			std::filesystem::path SPlyLevel = TopLevel / "s_ply";
 			std::filesystem::path SEntLevel = TopLevel / "s_ent";
-			std::filesystem::path SWepLevel = TopLevel / "s_wep";
+			std::filesystem::path SItmLevel = TopLevel / "s_itm";
 		}
 
 		void LoadFile(const char* File)
@@ -139,7 +97,7 @@ namespace WorldEngine
 				if (res != LUA_OK) throw LuaError(state);
 			}
 			catch (std::exception& e) {
-				wxLogMessage("Lua Error: %s\n", e.what());
+				wxLogMessage("Lua Error(%s): %s\n", File, e.what());
 			}
 		}
 
@@ -153,6 +111,10 @@ namespace WorldEngine
 		{
 			void Create(Player* NewPlayer, const char* Classname);
 			void PushPlayer(uintmax_t ObjectID);
+		}
+		namespace Itm
+		{
+			WorldEngine::Item* Create(const char* Classname);
 		}
 	}
 }

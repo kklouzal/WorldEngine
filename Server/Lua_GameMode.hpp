@@ -1,3 +1,5 @@
+#pragma once
+
 namespace WorldEngine
 {
 	namespace LUA
@@ -20,58 +22,58 @@ namespace WorldEngine
 				{
 					//	-1 (1)	| in_table
 					//
-					lua_getglobal(state, "GM");
+					lua_getglobal(L, "GM");
 					//	-2 (1)	| in_table
 					//	-1 (2)	| GM table
 					//
-					lua_pushstring(state, "BaseMetatable");
+					lua_pushstring(L, "BaseMetatable");
 					//	-3 (1)	| in_table
 					//	-2 (2)	| GM table
 					//	-1 (3)	| 'BaseMetatable'
 					//
-					lua_insert(state, 1);
+					lua_insert(L, 1);
 					//	-3 (1)	| 'BaseMetatable'
 					//	-2 (2)	| table_in
 					//	-1 (3)	| GM table
 					//
-					lua_insert(state, 1);
+					lua_insert(L, 1);
 					//	-3 (1)	| GM table
 					//	-2 (2)	| 'BaseMetatable'
 					//	-1 (3)	| table_in
 					//
-					lua_settable(state, -3);
+					lua_settable(L, -3);
 					//	-1 (1)	| GM table
 					//
-					lua_pushstring(state, "BaseMetatable");
+					lua_pushstring(L, "BaseMetatable");
 					//	-2 (1)	| GM table
 					//	-1 (2)	| 'BaseMetatable'
 					//
-					lua_gettable(state, -2);
+					lua_gettable(L, -2);
 					//	-2 (1)	| GM table
 					//	-1 (2)	| BaseMetatable table
 					//
-					lua_pushstring(state, "__index");
+					lua_pushstring(L, "__index");
 					//	-3 (1)	| GM table
 					//	-2 (2)	| BaseMetatable table
 					//	-1 (3)	| "__index"
 					//
-					lua_pushstring(state, "BaseMetatable");
+					lua_pushstring(L, "BaseMetatable");
 					//	-4 (1)	| GM table
 					//	-3 (2)	| BaseMetatable table
 					//	-2 (3)	| "__index"
 					//	-1 (4)	| "BaseMetatable"
 					//
-					lua_gettable(state, -4);
+					lua_gettable(L, -4);
 					//	-4 (1)	| GM table
 					//	-3 (2)	| BaseMetatable table
 					//	-2 (3)	| "__index"
 					//	-1 (4)	| BaseMetatable table
 					//
-					lua_settable(state, -3);
+					lua_settable(L, -3);
 					//	-2 (1)	| GM table
 					//	-1 (2)	| BaseMetatable table
 					//
-					lua_settop(state, 0);
+					lua_settop(L, 0);
 					//	Stack Empty
 				}
 				return 1;
@@ -86,43 +88,43 @@ namespace WorldEngine
 				{
 					//	-1 (1)	| in_table
 					//
-					lua_getglobal(state, "GM");
+					lua_getglobal(L, "GM");
 					//	-2 (1)	| in_table
 					//	-1 (2)	| GM table
 					//
-					lua_pushstring(state, "BaseMetatable");
+					lua_pushstring(L, "BaseMetatable");
 					//	-3 (1)	| in_table
 					//	-2 (2)	| GM table
 					//	-1 (3)	| 'BaseMetatable'
 					//
-					lua_gettable(state, -2);
+					lua_gettable(L, -2);
 					//	-3 (1)	| in_table
 					//	-2 (2)	| GM table
 					//	-1 (3)	| BaseMetatable table
 					//
-					lua_setmetatable(state, -3);
+					lua_setmetatable(L, -3);
 					//	-2 (1)	| in_table
 					//	-1 (2)	| GM table
 					//
-					lua_pushstring(state, "DerivedMetatable");
+					lua_pushstring(L, "DerivedMetatable");
 					//	-3 (1)	| in_table
 					//	-2 (2)	| GM table
 					//	-1 (3)	| 'DerivedMetatable'
 					//
-					lua_insert(state, 1);
+					lua_insert(L, 1);
 					//	-3 (1)	| 'DerivedMetatable'
 					//	-2 (2)	| in_table
 					//	-1 (3)	| GM table
 					//
-					lua_insert(state, 1);
+					lua_insert(L, 1);
 					//	-3 (1)	| GM table
 					//	-2 (2)	| 'DerivedMetatable'
 					//	-1 (3)	| in_table
 					//
-					lua_settable(state, -3);
+					lua_settable(L, -3);
 					//	-1 (1)	| GM table
 					//
-					lua_settop(state, 0);
+					lua_settop(L, 0);
 					//	Stack Empty
 				}
 				return 1;
@@ -218,20 +220,20 @@ namespace WorldEngine
 			}
 
 			//	Push the current gamemode object onto the stack
-			void PushCurrentGamemode()
+			void PushCurrentGamemode(lua_State* L)
 			{
-				lua_getglobal(state, "GM");
+				lua_getglobal(L, "GM");
 				//	-1 | GM table
 				//
-				lua_pushstring(state, "DerivedMetatable");
+				lua_pushstring(L, "DerivedMetatable");
 				//	-2 | GM table
 				//	-1 | 'DerivedMetatable'
 				//
-				lua_gettable(state, -2);
+				lua_gettable(L, -2);
 				//	-2 | GM table
 				//	-1 | DerivedMetatable table
 				//
-				lua_remove(state, lua_gettop(state) - 1);
+				lua_remove(L, lua_gettop(L) - 1);
 				//	-1 | DerivedMetatable table
 				//
 			}
@@ -240,7 +242,7 @@ namespace WorldEngine
 			//	Clears the stack.
 			void Call_OnPlayerSpawn(uintmax_t ObjectID)
 			{
-				PushCurrentGamemode();
+				PushCurrentGamemode(state);
 				//	-1 (1)	|	Gamemode Table
 				//
 				lua_getfield(state, -1, "OnPlayerSpawn");
@@ -264,7 +266,6 @@ namespace WorldEngine
 					if (lua_istable(state, -1))
 					{
 						try {
-							dumpstack(state);
 							int res = lua_pcall(state, 2, 1, 0);
 							if (res != LUA_OK) throw LuaError(state);
 						}
