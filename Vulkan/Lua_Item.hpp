@@ -90,6 +90,21 @@ namespace WorldEngine
 						//	-2 (1)	| in_string
 						//	-1 (2)	| in_table
 						//
+						lua_pushstring(L, "__index");
+						//	-3 (1)	| in_string
+						//	-2 (2)	| in_table
+						//	-1 (3)	| '__index'
+						//
+						lua_pushvalue(L, -2);
+						//	-4 (1)	| in_string
+						//	-3 (2)	| in_table
+						//	-2 (3)	| '__index'
+						//	-1 (4)	| in_table copy
+						//
+						lua_settable(L, -3);
+						//	-2 (1)	| in_string
+						//	-1 (2)	| in_table
+						//
 						lua_getglobal(L, "Item");
 						//	-3 (1)	| in_string
 						//	-2 (2)	| in_table
@@ -147,7 +162,37 @@ namespace WorldEngine
 				return 1;
 			}
 
-			Item* PushNewItem(lua_State* L, const char* const Classname, uintmax_t NodeID)
+
+			void PushItem(lua_State* L, const uintmax_t NodeID)
+			{
+				lua_getglobal(state, "Item");
+				//	-1 | Main table
+				//
+				lua_pushstring(state, "Objects");
+				//	-2 | Main table
+				//	-1 | 'Objects'
+				//
+				lua_gettable(state, -2);
+				//	-2 | Main table
+				//	-1 | Objects table
+				//
+				lua_remove(state, lua_gettop(state) - 1);
+				//	-1 | Objects table
+				//
+				lua_geti(state, -1, NodeID);
+				//	-2 | Objects table
+				//	-1 | Object table (or nil)
+				//
+				if (!lua_istable(state, -1))
+				{
+					printf("[Lua] PushItem tried to retrieve a nonexistent item id (%Iu)\n", NodeID);
+				}
+				lua_remove(state, lua_gettop(state) - 1);
+				//	-1 | player table (or nil)
+				//
+			}
+
+			Item* PushNewItem(lua_State* L, uintmax_t NodeID, const char*const Classname)
 			{
 				Item* NewItem_ = new Item(NodeID, Classname);
 
@@ -181,9 +226,9 @@ namespace WorldEngine
 				return NewItem_;
 			}
 
-			Item* Create(const char* Classname, uintmax_t NodeID)
+			Item* Create(uintmax_t NodeID, const char*const Classname)
 			{
-				Item* NewItem_ = PushNewItem(state, Classname, NodeID);
+				Item* NewItem_ = PushNewItem(state, NodeID, Classname);
 				//	-1	(1)	| Object table
 				//
 				lua_getglobal(state, "Item");
@@ -369,6 +414,72 @@ namespace WorldEngine
 			void Deinitialize()
 			{
 
+			}
+
+			//
+			//	CallFunc
+			//	NodeID = item node id to call function on
+			//	FunctionName = lua function name to call
+			//	*note* only works for functions with 0 arguments
+			void CallFunc(uintmax_t NodeID, const char* const FunctionName)
+			{
+				PushItem(state, NodeID);
+				//	-1	|	Object table (or nil)
+				if (lua_istable(state, -1))
+				{
+					if (lua_getfield(state, -1, "__name") == LUA_TSTRING)
+					{
+						//	-2	|	Object table
+						//	-1	|	'__name' value
+						if (strcmp(lua_tostring(state, -1), "Item") == 0)
+						{
+							lua_remove(state, -1);
+							//	-1	|	Object table
+							//
+							int type = lua_getfield(state, -1, FunctionName);
+							if (type == LUA_TFUNCTION)
+							{
+								//	-2	|	Object table
+								//	-1	|	FunctionName function
+								//
+								lua_call(state, 0, 0);
+								//	-1	|	Object table
+								//
+								lua_remove(state, -1);
+								//	Stack Empty
+								return;
+							}
+							else {
+								printf("[Lua][CallFunc] Error: Function not a function (%s)(%i)\n", FunctionName, type);
+							}
+							//	-2	|	Object table
+							//	-1	|	something not a function
+							lua_remove(state, -1);
+							//	-1	|	Object table
+							// 
+							lua_remove(state, -1);
+							//	Stack Empty
+							return;
+						}
+						else {
+							printf("[Lua][CallFunc] Error: non-item table (3)\n");
+						}
+					}
+					else {
+						printf("[Lua][CallFunc] Error: non-item table (2)\n");
+					}
+					lua_remove(state, -1);
+					//	-1	|	Object table
+					//
+					lua_remove(state, -1);
+					//	Stack Empty
+					return;
+				}
+				else {
+					printf("[Lua][CallFunc] Error: non-item table (1)\n");
+				}
+				lua_remove(state, -1);
+				//	Stack Empty
 			}
 		}
 	}

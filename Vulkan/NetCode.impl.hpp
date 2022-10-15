@@ -329,7 +329,6 @@ namespace WorldEngine
 							//
 							if (!WorldEngine::SceneGraph::SceneNodes.count(NodeID))
 							{
-								printf("MASS %f\n", Mass);
 								//
 								//	TODO: This needs to be a character scene node..? NonLocalCharacterSceneNode..? Ugh.. :D
 								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
@@ -353,8 +352,9 @@ namespace WorldEngine
 									char Classname[255] = "";
 									_Packet->read<char>(*Classname);
 									printf("Received [Item]->[Give] Classname (%s) NodeID (%Iu)\n", Classname, NodeID);
-									Item* NewItm_ = WorldEngine::LUA::Itm::Create(Classname, NodeID);
+									Item* NewItm_ = WorldEngine::LUA::Itm::Create(NodeID, Classname);
 									WorldEngine::SceneGraph::_Character->GiveItem(NewItm_, 0);	//	TODO: SLOT?? No. This needs handled some other way.
+									WorldEngine::LUA::Itm::CallFunc(NodeID, "Initialize");
 									WorldEngine::SceneGraph::_Character->SelectItem(0);
 								}
 								break;

@@ -5,13 +5,14 @@ private:
 	uintmax_t NET_LastUpdateID = 0;
 protected:
 	const uintmax_t NodeID;
+	const std::string NodeName;
+	//
 	btRigidBody* _RigidBody = nullptr;
 	btCollisionShape* _CollisionShape = nullptr;
 public:
 	glm::mat4 Model{};
 	glm::vec3 Pos{};
 	glm::vec3 Rot{};
-	std::string Name = "N/A";
 	Camera* _Camera = nullptr;
 	bool isFrozen = false;
 	bool canPhys = true;
@@ -19,8 +20,8 @@ public:
 	//	per frame check
 	bool bNeedsUpdate[3];
 public:
-	SceneNode(const uintmax_t NodeID)
-		: NodeID(NodeID)
+	SceneNode(const uintmax_t NodeID, const char*const NodeName = "[Unnamed SceneNode]")
+		: NodeID(NodeID), NodeName(NodeName)
 	{
 		bNeedsUpdate[0] = true;
 		bNeedsUpdate[1] = true;
@@ -41,9 +42,12 @@ public:
 	inline virtual void GPUUpdatePosition(/*const uint32_t& CurFrame*/) = 0;
 	virtual void drawGUI() {}
 
-	const uintmax_t GetNodeID()
-	{
+	const uintmax_t GetNodeID() const {
 		return NodeID;
+	}
+
+	const char*const GetNodeName() const {
+		return NodeName.c_str();
 	}
 
 	const bool Net_ShouldUpdate(uintmax_t UniqueID)

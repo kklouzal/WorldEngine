@@ -74,7 +74,8 @@ namespace WorldEngine
 				Give
 			};
 
-			Item* Create(const char* Classname, uintmax_t NodeID);
+			Item* Create(uintmax_t NodeID, const char* Classname);
+			void CallFunc(uintmax_t NodeID, const char* const FunctionName);
 		}
 	}
 }

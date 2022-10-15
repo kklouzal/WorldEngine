@@ -10,10 +10,9 @@ public:
 	bool onGround = false;
 
 public:
-	CharacterSceneNode(uintmax_t NodeID, TriangleMesh* Mesh)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID)
+	CharacterSceneNode(uintmax_t NodeID, const char*const NodeName, TriangleMesh* Mesh)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID, NodeName)
 	{
-		Name = "Character";
 		canPhys = false;
 		//
 		//	Reserve 10 item slots (hotbar slots currently)
@@ -253,7 +252,7 @@ public:
 					border_col.x = 0.0f;
 				}
 				else {
-					item_text = _Item->_Name;
+					item_text = _Item->GetNodeName();
 					border_col.x = 1.0f;
 				}
 			}

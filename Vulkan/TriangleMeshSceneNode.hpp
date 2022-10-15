@@ -5,10 +5,9 @@ class TriangleMeshSceneNode : public SceneNode {
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	TriangleMeshSceneNode(uintmax_t NodeID, TriangleMesh* Mesh)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID) {
-		Name = "TriangleMeshSceneNode";
-	}
+	TriangleMeshSceneNode(uintmax_t NodeID, const char*const NodeName, TriangleMesh* Mesh)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID, NodeName)
+	{ }
 
 	~TriangleMeshSceneNode() {
 		printf("Destroy TriangleMeshSceneNode\n");

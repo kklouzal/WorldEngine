@@ -6,9 +6,9 @@ class WorldSceneNode : public SceneNode {
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	WorldSceneNode(uintmax_t NodeID, TriangleMesh* Mesh)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID) {
-		Name = "World";
+	WorldSceneNode(uintmax_t NodeID, const char*const NodeName, TriangleMesh* Mesh)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID, NodeName)
+	{
 		canPhys = false;
 	}
 
