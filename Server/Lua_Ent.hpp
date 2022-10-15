@@ -17,66 +17,49 @@ namespace WorldEngine
 			//	And adds all cFunctions to the metatable from c++
 			int RegisterBase(lua_State* L)
 			{
-				printf("[Lua:Register Base] Entity\n");
+				printf("[Lua:Register Base] Ents\n");
 				if (lua_istable(L, -1))
 				{
 					//	-1 (1)	| in_table
 					//
-					lua_getglobal(L, "Ents");
+					lua_pushstring(L, "__index");
 					//	-2 (1)	| in_table
-					//	-1 (2)	| Ents table
+					//	-1 (2)	| '__index'
 					//
-					lua_pushstring(L, "BaseMetatable");
+					lua_pushvalue(L, -2);
 					//	-3 (1)	| in_table
-					//	-2 (2)	| Ents table
+					//	-2 (2)	| '__index'
+					//	-1 (3)	| in_table copy
+					//
+					lua_settable(L, -3);
+					//	-1 (1)	| in_table
+					//
+					lua_getglobal(state, "Ents");
+					//	-2 (1)	| in_table
+					//	-1 (2)	| Main table
+					//
+					lua_pushstring(state, "BaseMetatable");
+					//	-3 (1)	| in_table
+					//	-2 (2)	| Main table
 					//	-1 (3)	| 'BaseMetatable'
 					//
-					lua_insert(L, 1);
+					lua_insert(state, 1);
 					//	-3 (1)	| 'BaseMetatable'
 					//	-2 (2)	| table_in
-					//	-1 (3)	| Ents table
+					//	-1 (3)	| Main table
 					//
-					lua_insert(L, 1);
-					//	-3 (1)	| Ents table
+					lua_insert(state, 1);
+					//	-3 (1)	| Main table
 					//	-2 (2)	| 'BaseMetatable'
 					//	-1 (3)	| table_in
 					//
-					lua_settable(L, -3);
-					//	-1 (1)	| Ents table
+					lua_settable(state, -3);
+					//	-1 (1)	| Main table
 					//
-					lua_pushstring(L, "BaseMetatable");
-					//	-2 (1)	| Ents table
-					//	-1 (2)	| 'BaseMetatable'
-					//
-					lua_gettable(L, -2);
-					//	-2 (1)	| Ents table
-					//	-1 (2)	| BaseMetatable table
-					//
-					lua_pushstring(L, "__index");
-					//	-3 (1)	| Ents table
-					//	-2 (2)	| BaseMetatable table
-					//	-1 (3)	| "__index"
-					//
-					lua_pushstring(L, "BaseMetatable");
-					//	-4 (1)	| Ents table
-					//	-3 (2)	| BaseMetatable table
-					//	-2 (3)	| "__index"
-					//	-1 (4)	| "BaseMetatable"
-					//
-					lua_gettable(L, -4);
-					//	-4 (1)	| Ents table
-					//	-3 (2)	| BaseMetatable table
-					//	-2 (3)	| "__index"
-					//	-1 (4)	| BaseMetatable table
-					//
-					lua_settable(L, -3);
-					//	-2 (1)	| Ents table
-					//	-1 (2)	| BaseMetatable table
-					//
-					lua_settop(L, 0);
+					lua_remove(state, -1);
 					//	Stack Empty
 				}
-				return 1;
+				return 0;
 			}
 
 			//
@@ -88,6 +71,21 @@ namespace WorldEngine
 				{
 					if (lua_istable(L, -1))
 					{
+						//	-2 (1)	| in_string
+						//	-1 (2)	| in_table
+						//
+						lua_pushstring(L, "__index");
+						//	-3 (1)	| in_string
+						//	-2 (2)	| in_table
+						//	-1 (3)	| '__index'
+						//
+						lua_pushvalue(L, -2);
+						//	-4 (1)	| in_string
+						//	-3 (2)	| in_table
+						//	-2 (3)	| '__index'
+						//	-1 (4)	| in_table copy
+						//
+						lua_settable(L, -3);
 						//	-2 (1)	| in_string
 						//	-1 (2)	| in_table
 						//
@@ -145,7 +143,7 @@ namespace WorldEngine
 						//	Stack Empty
 					}
 				}
-				return 1;
+				return 0;
 			}
 
 			//
