@@ -340,15 +340,42 @@ namespace WorldEngine
 						//	Item Update
 						case WorldEngine::NetCode::OPID::Item_Update:
 						{
-							uintmax_t NodeID;
-							_Packet->read<uintmax_t>(NodeID);
-							char Classname[255] = "";
-							_Packet->read<char>(*Classname);
-							printf("Received Item_Update Classname (%s) NodeID (%ud)\n", Classname, NodeID);
+							WorldEngine::LUA::Itm::OPID SubOperationID;
+							_Packet->read<WorldEngine::LUA::Itm::OPID>(SubOperationID);
+							switch (SubOperationID)
+							{
+								//
+								//	Player:Give()
+								case WorldEngine::LUA::Itm::OPID::Give:
+								{
+									uintmax_t NodeID;
+									_Packet->read<uintmax_t>(NodeID);
+									char Classname[255] = "";
+									_Packet->read<char>(*Classname);
+									printf("Received [Item]->[Give] Classname (%s) NodeID (%Iu)\n", Classname, NodeID);
+									Item* NewItm_ = WorldEngine::LUA::Itm::Create(Classname, NodeID);
+									WorldEngine::SceneGraph::_Character->GiveItem(NewItm_, 0);	//	TODO: SLOT?? No. This needs handled some other way.
+									WorldEngine::SceneGraph::_Character->SelectItem(0);
+								}
+								break;
+								//
+								//	Unhandled Operation
+								default:
+								{
+									printf("Received Unhandled Item_Update OperationID\n");
+								}
+							}
 						}
 						break;
+						//
+						//	Unhandled Operation
+						default:
+						{
+							printf("Received Unhandled Client->GetPackets() OperationID\n");
+						}
 					}
-					//handle packet
+					//
+					//	Release Packet
 					LocalPoint->ReleasePacket(_Packet);
 				}
 			}

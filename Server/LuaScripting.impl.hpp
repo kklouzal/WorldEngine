@@ -49,8 +49,7 @@ namespace WorldEngine
 		{
 			//
 			//	Paths
-
-			wxLogMessage("TopLevel Path: %s", TopLevel.generic_string().c_str());
+			wxLogMessage("TopLevel  Path: %s", TopLevel.generic_string().c_str());
 			wxLogMessage("MainLevel Path: %s", MainLevel.generic_string().c_str());
 			wxLogMessage("BaseLevel Path: %s", BaseLevel.generic_string().c_str());
 			wxLogMessage("SGmLevel  Path: %s", SGmLevel.generic_string().c_str());
@@ -81,7 +80,6 @@ namespace WorldEngine
 			//
 			//	Load main lua file
 			LoadFile((MainLevel / "init.lua").generic_string().c_str());
-
 		}
 
 		void Deinitialize()

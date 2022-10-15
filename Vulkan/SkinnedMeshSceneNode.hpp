@@ -30,8 +30,8 @@ public:
 	std::map<uint16_t, uint16_t> _OZZJointMap;
 
 public:
-	SkinnedMeshSceneNode(TriangleMesh* Mesh, std::vector<glm::mat4> Inverse, std::map<std::string, uint16_t> Joints1, std::map<uint16_t, uint16_t> Joints2)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), InverseBindMatrices_(Inverse), _GLTFJointMap(Joints1), _OZZJointMap(Joints2), SceneNode() {
+	SkinnedMeshSceneNode(uintmax_t NodeID, TriangleMesh* Mesh, std::vector<glm::mat4> Inverse, std::map<std::string, uint16_t> Joints1, std::map<uint16_t, uint16_t> Joints2)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), InverseBindMatrices_(Inverse), _GLTFJointMap(Joints1), _OZZJointMap(Joints2), SceneNode(NodeID) {
 		Name = "SkinnedMeshSceneNode";
 		printf("Loading Skeleton\n");
 		ozz::io::File file_skel("media/models/cesium_man_skeleton.ozz", "rb");

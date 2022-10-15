@@ -5,8 +5,8 @@ class TriangleMeshSceneNode : public SceneNode {
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	TriangleMeshSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode() {
+	TriangleMeshSceneNode(uintmax_t NodeID, TriangleMesh* Mesh)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID) {
 		Name = "TriangleMeshSceneNode";
 	}
 

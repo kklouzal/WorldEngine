@@ -39,6 +39,7 @@ public:
         //  TODO: Net message broadcast that this player received this item
         KNet::NetPacket_Send* Pkt1 = _Client->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Item_Update);
         if (Pkt1) {
+            Pkt1->write<WorldEngine::LUA::Itm::OPID>(WorldEngine::LUA::Itm::OPID::Give );   //  Item Operation ID
             Pkt1->write<uintmax_t>(Item->GetNodeID());          //  Item NodeID
             Pkt1->write<const char*>(Item->GetClassname());     //  Item Classname
             _Point->SendPacket(Pkt1);

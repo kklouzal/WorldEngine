@@ -5,20 +5,6 @@
 #include <lauxlib.h>
 #include <filesystem>
 
-/**
- * C++ exception class wrapper for Lua error.
- * This can be used to convert the result of a lua_pcall or
-
- * similar protected Lua C function into a C++ exception.
- * These Lua C functions place the error on the Lua stack.
- * The LuaError class maintains the error on the Lua stack until
- * all copies of the exception are destroyed (after the exception is
- * caught), at which time the Lua error object is popped from the
- * Lua stack.
- * We assume the Lua stack is identical at destruction as
- * it was at construction.
- */
-
 static void LuaError_lua_resource_delete(lua_State* L) {
 	lua_pop(L, 1);
 }
@@ -45,50 +31,7 @@ public:
 	}
 };
 
-
-class ScriptedEntityFactory {
-	//LuaTableObject* LTable;
-
-public:
-	ScriptedEntityFactory(std::string ClassName)
-	{
-		//	Create new table entry in lua global entities table
-		//	This table will be used as a metamethod attached to objects created of this type
-	}
-
-	void Create()
-	{
-		//	Called from within lua?
-		//	Returns a new scripted entity object of this type
-		//	With the appropriate metamethod table attached
-	}
-};
-
-namespace ScriptedEntityManager {
-	namespace {
-		std::unordered_map<std::string, ScriptedEntityFactory*> Entities;
-	}
-
-	void ScanForEntities(std::string Path)
-	{
-		//	Loop through all subfolders inside of Path
-		//	If a subfolder contains a init.lua file
-		//	Create a new ScriptedEntityFactory
-		//	Use functions defined inside this init.lua file as the basis for a metamethod table
-	}
-
-	void Register(std::string ClassName)
-	{
-		Entities[ClassName] = new ScriptedEntityFactory(ClassName);
-	}
-
-	//
-	//	Called from Lua, [ local NewEnt = entities.create("SomeClassName") ]
-	void CreateEntity(std::string ClassName)
-	{
-		Entities[ClassName]->Create();
-	}
-}
+class Item;
 
 namespace WorldEngine
 {
@@ -100,9 +43,10 @@ namespace WorldEngine
 			std::filesystem::path TopLevel = std::filesystem::current_path() /= "Lua";
 			std::filesystem::path MainLevel = TopLevel / "main";
 			std::filesystem::path BaseLevel = TopLevel / "base";
-			std::filesystem::path SGmLevel = TopLevel / "s_gm";
+			std::filesystem::path SGmLevel = TopLevel  / "s_gm";
+			std::filesystem::path SPlyLevel = TopLevel / "s_ply";
 			std::filesystem::path SEntLevel = TopLevel / "s_ent";
-			std::filesystem::path SWepLevel = TopLevel / "s_wep";
+			std::filesystem::path SItmLevel = TopLevel / "s_itm";
 		}
 
 		void LoadFile(const char* File)
@@ -117,6 +61,20 @@ namespace WorldEngine
 			catch (std::exception& e) {
 				printf("Lua Error: %s\n", e.what());
 			}
+		}
+
+		//
+		//	Forward Declarations
+		namespace Itm
+		{
+			//
+			//	Keep track of all our Operation IDs
+			//	This list should match the server side exactly.
+			enum class OPID : uint8_t {
+				Give
+			};
+
+			Item* Create(const char* Classname, uintmax_t NodeID);
 		}
 	}
 }

@@ -29,20 +29,6 @@ static void dumpstack(lua_State* L) {
 	}
 }
 
-/**
- * C++ exception class wrapper for Lua error.
- * This can be used to convert the result of a lua_pcall or
-
- * similar protected Lua C function into a C++ exception.
- * These Lua C functions place the error on the Lua stack.
- * The LuaError class maintains the error on the Lua stack until
- * all copies of the exception are destroyed (after the exception is
- * caught), at which time the Lua error object is popped from the
- * Lua stack.
- * We assume the Lua stack is identical at destruction as
- * it was at construction.
- */
-
 static void LuaError_lua_resource_delete(lua_State* L) {
 	lua_pop(L, 1);
 }
@@ -114,6 +100,13 @@ namespace WorldEngine
 		}
 		namespace Itm
 		{
+			//
+			//	Keep track of all our Operation IDs
+			//	This list should match the client side exactly.
+			enum class OPID : uint8_t {
+				Give
+			};
+
 			WorldEngine::Item* Create(const char* Classname);
 		}
 	}

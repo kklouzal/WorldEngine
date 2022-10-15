@@ -1,14 +1,14 @@
 #pragma once
 
-class Item
+class Item : public SceneNode
 {
 public:
 	const char* _Name;
 	const char* _Icon;
 	bool bShowGUI;
 
-	Item(const char* Name = "NoNamed", const char* Icon = "media/empty.png")
-	: _Name(Name), _Icon(Icon), bShowGUI(true) {}
+	Item(uintmax_t NodeID, const char* Name = "NoNamed", const char* Icon = "media/empty.png")
+	: _Name(Name), _Icon(Icon), bShowGUI(true), SceneNode(NodeID) {}
 	virtual ~Item() {}
 
 	virtual void StartPrimaryAction(btCollisionWorld::ClosestRayResultCallback Ray, btVector3 fireAng)
@@ -58,10 +58,13 @@ public:
 	}
 
 	virtual void DrawGUI() {};
+
+	void onTick() {}
+	void GPUUpdatePosition() {}
 };
 
 //
 //	Include individual item types
-#include "Item_Physgun.hpp"
-#include "Item_Toolgun.hpp"
-#include "Item_Hands.hpp"
+//#include "Item_Physgun.hpp"
+//#include "Item_Toolgun.hpp"
+//#include "Item_Hands.hpp"

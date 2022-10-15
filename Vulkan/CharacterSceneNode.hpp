@@ -10,8 +10,8 @@ public:
 	bool onGround = false;
 
 public:
-	CharacterSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode()
+	CharacterSceneNode(uintmax_t NodeID, TriangleMesh* Mesh)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID)
 	{
 		Name = "Character";
 		canPhys = false;
@@ -27,23 +27,23 @@ public:
 		//	Default Character Loadout
 		// 
 		//  -   Hands
-		Item_Hands* Itm0 = new Item_Hands();
-		this->GiveItem(Itm0, 0);
-		SelectItem(0);
+		//Item_Hands* Itm0 = new Item_Hands();
+		//this->GiveItem(Itm0, 0);
+		//SelectItem(0);
 		//
 		//  -   PhysGun
-		Item_Physgun* Itm1 = new Item_Physgun();
-		this->GiveItem(Itm1, 1);
+		//Item_Physgun* Itm1 = new Item_Physgun();
+		//this->GiveItem(Itm1, 1);
 		//
 		//  -   ToolGun
-		Item_Toolgun* Itm2 = new Item_Toolgun();
-		Itm2->LoadTools();
-		this->GiveItem(Itm2, 2);
+		//Item_Toolgun* Itm2 = new Item_Toolgun();
+		//Itm2->LoadTools();
+		//this->GiveItem(Itm2, 2);
 		//
-		Item* Itm3 = new Item("Item 3");
-		this->GiveItem(Itm3, 5);
-		Item* Itm7 = new Item("Item 7");
-		this->GiveItem(Itm7, 6);
+		//Item* Itm3 = new Item("Item 3");
+		//this->GiveItem(Itm3, 5);
+		//Item* Itm7 = new Item("Item 7");
+		//this->GiveItem(Itm7, 6);
 	}
 
 	~CharacterSceneNode() {

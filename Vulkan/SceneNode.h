@@ -4,7 +4,7 @@ class SceneNode {
 private:
 	uintmax_t NET_LastUpdateID = 0;
 protected:
-	uintmax_t NodeID = 0;
+	const uintmax_t NodeID;
 	btRigidBody* _RigidBody = nullptr;
 	btCollisionShape* _CollisionShape = nullptr;
 public:
@@ -19,30 +19,27 @@ public:
 	//	per frame check
 	bool bNeedsUpdate[3];
 public:
-	SceneNode()
+	SceneNode(const uintmax_t NodeID)
+		: NodeID(NodeID)
 	{
 		bNeedsUpdate[0] = true;
 		bNeedsUpdate[1] = true;
 		bNeedsUpdate[2] = true;
 	}
+
 	virtual ~SceneNode()
 	{
-		WorldEngine::VulkanDriver::dynamicsWorld->removeRigidBody(_RigidBody);
-		delete _RigidBody->getMotionState();
-		delete _RigidBody;
+		if (_RigidBody)
+		{
+			WorldEngine::VulkanDriver::dynamicsWorld->removeRigidBody(_RigidBody);
+			delete _RigidBody->getMotionState();
+			delete _RigidBody;
+		}
 		printf("Destroy Base SceneNode (%ju)\n", NodeID);
 	}
 	virtual void onTick() = 0;
 	inline virtual void GPUUpdatePosition(/*const uint32_t& CurFrame*/) = 0;
 	virtual void drawGUI() {}
-
-	void SetNodeID(const uintmax_t ID)
-	{
-		if (NodeID == 0)
-		{
-			NodeID = ID;
-		}
-	}
 
 	const uintmax_t GetNodeID()
 	{
