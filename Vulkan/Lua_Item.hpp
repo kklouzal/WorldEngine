@@ -10,6 +10,46 @@ namespace WorldEngine
 			{
 			}
 
+			//	TODO: For now this only checks if a player is the owner
+			//	(expand to other/all scenenodes)
+			//
+			//	Probably need a global entity.allObjects[NodeID] table
+			//	Store .NodeType = NODE_Player/Ent/...
+			//	Can cast to appropriate type using this method..
+			//
+			//	TODO: NO SAFETY CHECKS HERE YET...
+			int GetOwner(lua_State* L)
+			{
+				//	-1	(1)	|	Item table
+				//
+				lua_getfield(L, -1, "__pointer");
+				//	-2	(1)	|	Item table
+				//	-1	(2)	|	Item pointer
+				//
+				Item* Itm = reinterpret_cast<Item*>(lua_touserdata(L, -1));
+				SceneNode* Owner = Itm->GetOwner();
+				if (Owner)
+				{
+					Ply::PushPlayer(Owner->GetNodeID());
+				}
+				else {
+					lua_pushnil(L);
+				}
+				//	-3	(1)	|	Item table
+				//	-2	(2)	|	Item pointer
+				//	-1	(3)	|	Player table or nil
+				//
+				lua_remove(L, lua_gettop(L) - 1);
+				//	-2	(1)	|	Item table
+				//	-1	(2)	|	Player table or nil
+				//
+				lua_remove(L, lua_gettop(L) - 1);
+				//	-1	(1)	|	Player table or nil
+				//
+				return 1;
+			}
+
+			//	TODO: NO SAFETY CHECKS HERE YET...
 			int GetPos(lua_State* L)
 			{
 				//	-1	(1)	|	Item table
@@ -21,7 +61,8 @@ namespace WorldEngine
 				Item* Itm = reinterpret_cast<Item*>(lua_touserdata(L, -1));
 				size_t DataSize = sizeof(glm::vec3);
 				void* Data = lua_newuserdata(L, DataSize);
-				memcpy(Data, &Itm->Pos, DataSize);
+				//glm::vec3(Itm->Model[3]);
+				memcpy(Data, &Itm->GetPosition(), DataSize);
 				//	-1	(1)	|	vec3 userdata
 				//
 				lua_getglobal(L, "WorldEngine_Vector3Metatable");
@@ -265,6 +306,18 @@ namespace WorldEngine
 				//	-3	| Object table
 				//	-2	| 'GetPos'
 				//	-1	| GetPos function
+				//
+				lua_settable(state, -3);
+				//	-1	| Object table
+				//
+				lua_pushstring(state, "GetOwner");
+				//	-2	| Object table
+				//	-1	| 'GetOwner'
+				//
+				lua_pushcfunction(state, GetOwner);
+				//	-3	| Object table
+				//	-2	| 'GetOwner'
+				//	-1	| GetOwner function
 				//
 				lua_settable(state, -3);
 				//	-1	| Object table

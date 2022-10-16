@@ -38,9 +38,9 @@ namespace WorldEngine
 										lua_remove(L, lua_gettop(L));
 										//	Stack Returned
 										glm::vec3* Vec = reinterpret_cast<glm::vec3*>(lua_touserdata(L, -4));
-										Vec->x = lua_tonumber(L, -3);
-										Vec->y = lua_tonumber(L, -2);
-										Vec->z = lua_tonumber(L, -1);
+										Vec->x = static_cast<float>(lua_tonumber(L, -3));
+										Vec->y = static_cast<float>(lua_tonumber(L, -2));
+										Vec->z = static_cast<float>(lua_tonumber(L, -1));
 									}
 									else {
 										printf("[Lua][Vector3:SetValue()] Not a Vector3\n");

@@ -2,6 +2,7 @@
 
 class Item : public SceneNode
 {
+	SceneNode* Owner = nullptr;
 public:
 	const char* _Icon;
 	bool bShowGUI;
@@ -10,6 +11,14 @@ public:
 	: _Icon(Icon), bShowGUI(true), SceneNode(NodeID, NodeName) {
 	}
 	virtual ~Item() {}
+
+	void SetOwner(SceneNode*const NewOwner) {
+		Owner = NewOwner;
+	}
+
+	SceneNode*const GetOwner() const {
+		return Owner;
+	}
 
 	virtual void StartPrimaryAction(btCollisionWorld::ClosestRayResultCallback Ray, btVector3 fireAng)
 	{

@@ -1,6 +1,9 @@
+#pragma once
+
 #include "Lua_Vector3.hpp"
 #include "Lua_Utility.hpp"
 #include "Lua_GameMode.hpp"
+#include "Lua_Player.hpp"
 #include "Lua_Ent.hpp"
 #include "Lua_Item.hpp"
 
@@ -41,6 +44,7 @@ namespace WorldEngine
 			printf("MainLevel Path: %s\n", MainLevel.generic_string().c_str());
 			printf("BaseLevel Path: %s\n", BaseLevel.generic_string().c_str());
 			printf("SGmLevel  Path: %s\n", SGmLevel.generic_string().c_str());
+			printf("SPlyLevel Path: %s\n", SPlyLevel.generic_string().c_str());
 			printf("SEntLevel Path: %s\n", SEntLevel.generic_string().c_str());
 			printf("SItmLevel Path: %s\n", SItmLevel.generic_string().c_str());
 
@@ -55,11 +59,13 @@ namespace WorldEngine
 			Vector3::Initialize();
 			Util::Initialize();
 			GM::Initialize();
+			Ply::Initialize();
 			Ent::Initialize();
 			Itm::Initialize();
 			//
 			//	Load core scripted objects
 			GM::Load("test_gamemode");
+			Ply::Load();
 			Ent::Load();
 			Itm::Load();
 

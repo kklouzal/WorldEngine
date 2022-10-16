@@ -122,6 +122,8 @@ namespace WorldEngine
 			//	Load World/Charater/Etc..
 			_Character = createCharacterSceneNode(NodeID, CharacterFile, CharacterPosition);
 			_Character->_Camera = _Camera;
+			WorldEngine::LUA::Ply::Create(_Character, "ply_default");
+			//WorldEngine::LUA::GM::Call_OnPlayerSpawn();
 		}
 
 		void SceneGraph::cleanupWorld(const bool& bForce)

@@ -57,9 +57,8 @@ public:
 		_SceneNode->bNeedsUpdate[1] = true;
 		_SceneNode->bNeedsUpdate[2] = true;
 		const btVector3 Pos = _btPos.getOrigin();
-		_SceneNode->Pos = glm::vec3(Pos.x(), Pos.y(), Pos.z());
 		if (_SceneNode->_Camera) {
-			_SceneNode->_Camera->SetPosition(_SceneNode->Pos + _SceneNode->_Camera->getOffset());
+			_SceneNode->_Camera->SetPosition(glm::vec3(Pos.x(), Pos.y(), Pos.z()) + _SceneNode->_Camera->getOffset());
 		}
 		//
 		_SceneNode->GPUUpdatePosition();

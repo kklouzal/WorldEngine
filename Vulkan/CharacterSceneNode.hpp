@@ -16,33 +16,13 @@ public:
 		canPhys = false;
 		//
 		//	Reserve 10 item slots (hotbar slots currently)
+		//	TODO: This has got to go.. replace with html gui hotbar
+		//	(items go into inventory, user drags to hotbar)
 		for (int i = 0; i < 10; i++)
 		{
 			Items.push_back(nullptr);
 			HotBar_Items.push_back(nullptr);
 		}
-		//
-		//
-		//	Default Character Loadout
-		// 
-		//  -   Hands
-		//Item_Hands* Itm0 = new Item_Hands();
-		//this->GiveItem(Itm0, 0);
-		//SelectItem(0);
-		//
-		//  -   PhysGun
-		//Item_Physgun* Itm1 = new Item_Physgun();
-		//this->GiveItem(Itm1, 1);
-		//
-		//  -   ToolGun
-		//Item_Toolgun* Itm2 = new Item_Toolgun();
-		//Itm2->LoadTools();
-		//this->GiveItem(Itm2, 2);
-		//
-		//Item* Itm3 = new Item("Item 3");
-		//this->GiveItem(Itm3, 5);
-		//Item* Itm7 = new Item("Item 7");
-		//this->GiveItem(Itm7, 6);
 	}
 
 	~CharacterSceneNode() {
@@ -156,7 +136,8 @@ public:
 		}
 	}
 
-	// TODO: ICON MANAGEMENT
+	//	TODO: Move into SceneNode?
+	//	(all nodes can potentially hold items?)
 	void GiveItem(Item* NewItem, unsigned int Slot)
 	{
 		Items[Slot] = NewItem;
@@ -169,8 +150,11 @@ public:
 		{
 			Items[CurItem]->ShowGUI();
 		}
+		NewItem->SetOwner(this);
 	}
 
+	//	TODO: Move into SceneNode?
+	//	(all nodes can potentially be controlled?)
 	void moveForward(const btScalar& Speed) {
 		btTransform Trans = _RigidBody->getWorldTransform();
 		const btVector3 Forward = Trans(btVector3(1 * Speed, 0, 0));

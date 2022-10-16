@@ -6,7 +6,9 @@ end
 
 function ITEM:StartPrimaryAction()
 	print("Start Primary")
-	local pos = self:GetPos()
+	local Owner = self:GetOwner()	--should be a player table object
+	local pos = Owner:GetPos()  --should be the correct position
+	--local ang = Owner:GetFireAng()	--not implemented yet..
 	print("pos "..tostring(pos))
 end
 

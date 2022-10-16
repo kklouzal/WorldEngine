@@ -11,8 +11,6 @@ protected:
 	btCollisionShape* _CollisionShape = nullptr;
 public:
 	glm::mat4 Model{};
-	glm::vec3 Pos{};
-	glm::vec3 Rot{};
 	Camera* _Camera = nullptr;
 	bool isFrozen = false;
 	bool canPhys = true;
@@ -42,12 +40,26 @@ public:
 	inline virtual void GPUUpdatePosition(/*const uint32_t& CurFrame*/) = 0;
 	virtual void drawGUI() {}
 
-	const uintmax_t GetNodeID() const {
+	inline const uintmax_t GetNodeID() const {
 		return NodeID;
 	}
 
-	const char*const GetNodeName() const {
+	inline const char*const GetNodeName() const {
 		return NodeName.c_str();
+	}
+
+	inline const glm::vec4& GetPosition() const {
+		return Model[3];
+	}
+
+	//	TODO: Using camera angle is a placeholder
+	//	Will need to get aim vector based on model Y rotation & x/z rotation of pelvis/spine maybe head? You get the idea..
+	inline const glm::vec3& GetAimVector() const {
+		if (_Camera) {
+			return _Camera->Ang;
+		}
+		//	TODO: Get aim vector for non camera attached scenenodes
+		return glm::vec3(0, 0, 0);
 	}
 
 	const bool Net_ShouldUpdate(uintmax_t UniqueID)

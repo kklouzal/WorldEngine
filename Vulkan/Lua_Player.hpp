@@ -11,6 +11,33 @@ namespace WorldEngine
 
 			}
 
+			//	TODO: NO SAFETY CHECKS HERE YET...
+			//	TODO: I still think players should technically be able to be any scenenode.. need to look into this..
+			int GetPos(lua_State* L)
+			{
+				//	-1	(1)	|	Item table
+				//
+				lua_getfield(L, -1, "__pointer");
+				//	-2	(1)	|	Item table
+				//	-1	(2)	|	Item pointer
+				//
+				CharacterSceneNode* Itm = reinterpret_cast<CharacterSceneNode*>(lua_touserdata(L, -1));
+				size_t DataSize = sizeof(glm::vec3);
+				void* Data = lua_newuserdata(L, DataSize);
+				//glm::vec3(Itm->Model[3]);
+				memcpy(Data, &Itm->GetPosition(), DataSize);
+				//	-1	(1)	|	vec3 userdata
+				//
+				lua_getglobal(L, "WorldEngine_Vector3Metatable");
+				//	-2	(1)	|	vec3 userdata
+				//	-1	(2)	|	metatable
+				//
+				lua_setmetatable(L, -2);
+				//	-1	(1)	|	vec3 userdata
+				//
+				return 1;
+			}
+
 			//
 			//	Registers Base Class metatable into global object table
 			//	Sets the base metatable __index to itself
@@ -149,7 +176,7 @@ namespace WorldEngine
 			//
 			//	Returns a Player* from a player table index on the stack
 			//	returns nullptr if the function fails in any way
-			Player* GetPlayer(lua_State* L, const int index)
+			CharacterSceneNode* GetPlayer(lua_State* L, const int index)
 			{
 				//	?		|	?
 				//	index	|	player object table
@@ -173,7 +200,7 @@ namespace WorldEngine
 								//	?		|	?
 								//	-1		|	__pointer lightuserdata
 								//
-								Player* Player_ = reinterpret_cast<Player*>(lua_touserdata(L, -1));
+								CharacterSceneNode* Player_ = reinterpret_cast<CharacterSceneNode*>(lua_touserdata(L, -1));
 								lua_remove(L, lua_gettop(L));
 								//	?		|	?
 								//	index	|	player object table
@@ -182,50 +209,24 @@ namespace WorldEngine
 								return Player_;
 							}
 							else {
-								wxLogMessage("[LUA:Cerr] GetPlayer (code 4)");
+								printf("[LUA:Cerr] GetPlayer (code 4)\n");
 							}
 						}
 						else {
-							wxLogMessage("[LUA:Cerr] GetPlayer (code 3)");
+							printf("[LUA:Cerr] GetPlayer (code 3)\n");
 						}
 					}
 					else {
-						wxLogMessage("[LUA:Cerr] GetPlayer (code 2)");
+						printf("[LUA:Cerr] GetPlayer (code 2)\n");
 					}
 				}
 				else {
-					wxLogMessage("[LUA:Cerr] GetPlayer (code 1)");
+					printf("[LUA:Cerr] GetPlayer (code 1)\n");
 				}
 				return nullptr;
 			}
 
-			//
-			//	Player:Give(item_class (string))
-			//	-2	(1)	|	player object table
-			//	-1	(2)	|	item_class string
-			int Player_Give(lua_State* L)
-			{
-				const int args = lua_gettop(L);
-				if (args == 2) {
-					if (lua_isstring(L, -1)) {
-						Player* Ply_ = GetPlayer(L, -2);
-						Item* NewItm_ = Itm::Create(lua_tostring(L, -1));
-						Ply_->GiveItem(NewItm_);
-						wxLogMessage("Gave player (%u) item (%u)", Ply_->GetNodeID(), NewItm_->GetNodeID());
-					}
-					else {
-						wxLogMessage("Player:Give() argument 1 must be a valid item type string");
-						lua_settop(L, 0);	//	Empty Stack
-					}
-				}
-				else {
-					wxLogMessage("Player:Give() invalid argument count");
-					lua_settop(L, 0);	//	Empty Stack
-				}
-				return 0;
-			}
-
-			void PushNewPlayer(lua_State* L, Player* NewPlayer)
+			void PushNewPlayer(lua_State* L, CharacterSceneNode* NewPlayer)
 			{
 				lua_newtable(L);
 				//	-1	| Player table
@@ -254,21 +255,21 @@ namespace WorldEngine
 				lua_settable(L, -3);
 				//	-1	| Player table
 				//
-				lua_pushstring(L, "Give");
-				//	-2	| Player table
-				//	-1	| 'Give'
+				lua_pushstring(state, "GetPos");
+				//	-2	| Object table
+				//	-1	| 'GetPos'
 				//
-				lua_pushcfunction(L, Player_Give);
-				//	-3	| Player table
-				//	-2	| 'Give'
-				//	-1	| Player_Give function
+				lua_pushcfunction(state, GetPos);
+				//	-3	| Object table
+				//	-2	| 'GetPos'
+				//	-1	| GetPos function
 				//
-				lua_settable(L, -3);
-				//	-1	| Player table
+				lua_settable(state, -3);
+				//	-1	| Object table
 				//
 			}
 
-			void Create(Player* NewPlayer, const char* Classname)
+			void Create(CharacterSceneNode* NewPlayer, const char* Classname)
 			{
 				PushNewPlayer(state, NewPlayer);
 				//	-1	(1)	| Player table
@@ -301,7 +302,7 @@ namespace WorldEngine
 				//
 				if (!lua_istable(state, -1))
 				{
-					wxLogMessage("[LUA] Attempted to create player object with nonexistent classname (%s), falling back to (ply_default).", Classname);
+					printf("[LUA] Attempted to create player object with nonexistent classname (%s), falling back to (ply_default).\n", Classname);
 					lua_settop(state, -2);
 					//	-3 (1)	| Player table
 					//	-2 (2)	| Ply table
@@ -450,7 +451,7 @@ namespace WorldEngine
 				//	Ply.RegisterBase(table)					|	CFunction - table metatable
 				//	Ply.Register(string, table)				|	CFunction - string classname, table metatable
 			}
-			
+
 			//	Push the player userdata onto the stack (or nil)
 			void PushPlayer(uintmax_t ObjectID)
 			{
@@ -474,7 +475,7 @@ namespace WorldEngine
 				//
 				if (!lua_istable(state, -1))
 				{
-					wxLogMessage("[Lua] PushPlayer tried to retrieve a nonexistent player id %i", ObjectID);
+					printf("[Lua] PushPlayer tried to retrieve a nonexistent player id %i\n", ObjectID);
 				}
 				lua_remove(state, lua_gettop(state) - 1);
 				//	-1 | player table (or nil)
