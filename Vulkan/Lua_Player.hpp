@@ -37,6 +37,54 @@ namespace WorldEngine
 				//
 				return 1;
 			}
+			//	TODO: NO SAFETY CHECKS HERE YET...
+			int GetFireAng(lua_State* L)
+			{
+				//	-1	(1)	|	Item table
+				//
+				lua_getfield(L, -1, "__pointer");
+				//	-2	(1)	|	Item table
+				//	-1	(2)	|	Item pointer
+				//
+				CharacterSceneNode* Itm = reinterpret_cast<CharacterSceneNode*>(lua_touserdata(L, -1));
+				size_t DataSize = sizeof(glm::vec3);
+				void* Data = lua_newuserdata(L, DataSize);
+				memcpy(Data, &Itm->GetAimVector(), DataSize);
+				//	-1	(1)	|	vec3 userdata
+				//
+				lua_getglobal(L, "WorldEngine_Vector3Metatable");
+				//	-2	(1)	|	vec3 userdata
+				//	-1	(2)	|	metatable
+				//
+				lua_setmetatable(L, -2);
+				//	-1	(1)	|	vec3 userdata
+				//
+				return 1;
+			}
+			//	TODO: NO SAFETY CHECKS HERE YET...
+			int GetFirePos(lua_State* L)
+			{
+				//	-1	(1)	|	Item table
+				//
+				lua_getfield(L, -1, "__pointer");
+				//	-2	(1)	|	Item table
+				//	-1	(2)	|	Item pointer
+				//
+				CharacterSceneNode* Itm = reinterpret_cast<CharacterSceneNode*>(lua_touserdata(L, -1));
+				size_t DataSize = sizeof(glm::vec3);
+				void* Data = lua_newuserdata(L, DataSize);
+				memcpy(Data, &Itm->GetAimPosition(), DataSize);
+				//	-1	(1)	|	vec3 userdata
+				//
+				lua_getglobal(L, "WorldEngine_Vector3Metatable");
+				//	-2	(1)	|	vec3 userdata
+				//	-1	(2)	|	metatable
+				//
+				lua_setmetatable(L, -2);
+				//	-1	(1)	|	vec3 userdata
+				//
+				return 1;
+			}
 
 			//
 			//	Registers Base Class metatable into global object table
@@ -256,14 +304,17 @@ namespace WorldEngine
 				//	-1	| Player table
 				//
 				lua_pushstring(state, "GetPos");
-				//	-2	| Object table
-				//	-1	| 'GetPos'
-				//
 				lua_pushcfunction(state, GetPos);
-				//	-3	| Object table
-				//	-2	| 'GetPos'
-				//	-1	| GetPos function
+				lua_settable(state, -3);
+				//	-1	| Object table
 				//
+				lua_pushstring(state, "GetFireAng");
+				lua_pushcfunction(state, GetFireAng);
+				lua_settable(state, -3);
+				//	-1	| Object table
+				//
+				lua_pushstring(state, "GetFirePos");
+				lua_pushcfunction(state, GetFirePos);
 				lua_settable(state, -3);
 				//	-1	| Object table
 				//

@@ -6,6 +6,251 @@ namespace WorldEngine
 	{
 		namespace Vector3
 		{
+			int Mul(lua_State* L)
+			{
+				//	-2	|	Vector3 userdata (left)
+				//	-1	|	Vector3 userdata (right)
+				//
+				lua_getfield(L, -2, "__name");
+				//	-3	|	Vector3 userdata (left)
+				//	-2	|	Vector3 userdata (right)
+				//	-1	|	__name
+				if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+				{
+					lua_remove(L, lua_gettop(L));
+					//	-2	|	Vector3 userdata (left)
+					//	-1	|	Vector3 userdata (right)
+					//
+					lua_getfield(L, -1, "__name");
+					//	-3	|	Vector3 userdata (left)
+					//	-2	|	Vector3 userdata (right)
+					//	-1	|	__name
+					if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+					{
+						lua_remove(L, lua_gettop(L));
+						//	-2	|	Vector3 userdata (left)
+						//	-1	|	Vector3 userdata (right)
+						//
+						size_t DataSize = sizeof(glm::vec3);
+						//
+						glm::vec3 VecLhs{};
+						memcpy(&VecLhs, lua_touserdata(L, -2), DataSize);
+						glm::vec3 VecRhs{};
+						memcpy(&VecRhs, lua_touserdata(L, -1), DataSize);
+						glm::vec3 Res{ VecLhs * VecRhs };
+						//lua_remove(L, lua_gettop(L));
+						//lua_remove(L, lua_gettop(L));
+						//	Stack Empty
+						//
+						void* Data = lua_newuserdata(L, DataSize);
+						memcpy(Data, &Res, DataSize);
+						//	-3	|	Vector3 userdata (left)
+						//	-2	|	Vector3 userdata (right)
+						//	-1	|	vec3 userdata (result)
+						//
+						lua_getglobal(L, "WorldEngine_Vector3Metatable");
+						//	-4	|	Vector3 userdata (left)
+						//	-3	|	Vector3 userdata (right)
+						//	-2	|	vec3 userdata (result)
+						//	-1	|	metatable
+						//
+						lua_setmetatable(L, -2);
+						//	-3	|	Vector3 userdata (left)
+						//	-2	|	Vector3 userdata (right)
+						//	-1	|	vec3 userdata (result)
+						//
+						return 1;
+					}
+					else {
+						printf("[Lua][Vector3] Add Error: Right operand not a Vector3\n");	//	TODO: Allow right operand to be a single number
+					}
+				}
+				else {
+					printf("[Lua][Vector3] Add Error: Left operand not a Vector3\n");
+				}
+				lua_remove(L, lua_gettop(L));
+				lua_remove(L, lua_gettop(L));
+				//	Stack Empty
+				return 0;
+			}
+
+			int Div(lua_State* L)
+			{
+				//	-2	|	Vector3 userdata (left)
+				//	-1	|	Vector3 userdata (right)
+				//
+				lua_getfield(L, -2, "__name");
+				//	-3	|	Vector3 userdata (left)
+				//	-2	|	Vector3 userdata (right)
+				//	-1	|	__name
+				if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+				{
+					lua_remove(L, lua_gettop(L));
+					//	-2	|	Vector3 userdata (left)
+					//	-1	|	Vector3 userdata (right)
+					//
+					lua_getfield(L, -1, "__name");
+					//	-3	|	Vector3 userdata (left)
+					//	-2	|	Vector3 userdata (right)
+					//	-1	|	__name
+					if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+					{
+						lua_remove(L, lua_gettop(L));
+						//	-2	|	Vector3 userdata (left)
+						//	-1	|	Vector3 userdata (right)
+						//
+						size_t DataSize = sizeof(glm::vec3);
+						//
+						glm::vec3 VecLhs{};
+						memcpy(&VecLhs, lua_touserdata(L, -2), DataSize);
+						glm::vec3 VecRhs{};
+						memcpy(&VecRhs, lua_touserdata(L, -1), DataSize);
+						glm::vec3 Res{ VecLhs / VecRhs };
+						//lua_remove(L, lua_gettop(L));
+						//lua_remove(L, lua_gettop(L));
+						//	Stack Empty
+						//
+						void* Data = lua_newuserdata(L, DataSize);
+						memcpy(Data, &Res, DataSize);
+						//	-3	|	Vector3 userdata (left)
+						//	-2	|	Vector3 userdata (right)
+						//	-1	|	vec3 userdata (result)
+						//
+						lua_getglobal(L, "WorldEngine_Vector3Metatable");
+						//	-4	|	Vector3 userdata (left)
+						//	-3	|	Vector3 userdata (right)
+						//	-2	|	vec3 userdata (result)
+						//	-1	|	metatable
+						//
+						lua_setmetatable(L, -2);
+						//	-3	|	Vector3 userdata (left)
+						//	-2	|	Vector3 userdata (right)
+						//	-1	|	vec3 userdata (result)
+						//
+						return 1;
+					}
+					else {
+						printf("[Lua][Vector3] Add Error: Right operand not a Vector3\n");	//	TODO: Allow right operand to be a single number
+					}
+				}
+				else {
+					printf("[Lua][Vector3] Add Error: Left operand not a Vector3\n");
+				}
+				lua_remove(L, lua_gettop(L));
+				lua_remove(L, lua_gettop(L));
+				//	Stack Empty
+				return 0;
+			}
+
+			int Add(lua_State* L)
+			{
+				//	-2	|	Vector3 userdata (left)
+				//	-1	|	Vector3 userdata (right)
+
+				lua_getfield(L, -2, "__name");
+				//	-1	|	__name
+				if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+				{
+					lua_remove(L, lua_gettop(L));
+					//	Stack Returned
+					//
+					lua_getfield(L, -1, "__name");
+					//	-1	|	__name
+					if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+					{
+						lua_remove(L, lua_gettop(L));
+						//	Stack Returned
+						//
+						size_t DataSize = sizeof(glm::vec3);
+						//
+						glm::vec3 VecLhs{};
+						memcpy(&VecLhs, lua_touserdata(L, -2), DataSize);
+						glm::vec3 VecRhs{};
+						memcpy(&VecRhs, lua_touserdata(L, -1), DataSize);
+						glm::vec3 Res{ VecLhs + VecRhs };
+						//lua_remove(L, lua_gettop(L));
+						//lua_remove(L, lua_gettop(L));
+						//	Stack Empty
+						//
+						void* Data = lua_newuserdata(L, DataSize);
+						memcpy(Data, &Res, DataSize);
+						//	-1	(1)	|	vec3 userdata
+						//
+						lua_getglobal(L, "WorldEngine_Vector3Metatable");
+						//	-2	(1)	|	vec3 userdata
+						//	-1	(2)	|	metatable
+						//
+						lua_setmetatable(L, -2);
+						//	-1	(1)	|	
+						return 1;
+					}
+					else {
+						printf("[Lua][Vector3] Add Error: Right operand not a Vector3\n");	//	TODO: Allow right operand to be a single number
+					}
+				}
+				else {
+					printf("[Lua][Vector3] Add Error: Left operand not a Vector3\n");
+				}
+				lua_remove(L, lua_gettop(L));
+				lua_remove(L, lua_gettop(L));
+				//	Stack Empty
+				return 0;
+			}
+			int Sub(lua_State* L)
+			{
+				//	-2	|	Vector3 userdata (left)
+				//	-1	|	Vector3 userdata (right)
+
+				lua_getfield(L, -2, "__name");
+				//	-1	|	__name
+				if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+				{
+					lua_remove(L, lua_gettop(L));
+					//	Stack Returned
+					//
+					lua_getfield(L, -1, "__name");
+					//	-1	|	__name
+					if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+					{
+						lua_remove(L, lua_gettop(L));
+						//	Stack Returned
+						//
+						size_t DataSize = sizeof(glm::vec3);
+						//
+						glm::vec3 VecLhs{};
+						memcpy(&VecLhs, lua_touserdata(L, -2), DataSize);
+						glm::vec3 VecRhs{};
+						memcpy(&VecRhs, lua_touserdata(L, -1), DataSize);
+						glm::vec3 Res{ VecLhs - VecRhs };
+						//lua_remove(L, lua_gettop(L));
+						//lua_remove(L, lua_gettop(L));
+						//	Stack Empty
+						//
+						void* Data = lua_newuserdata(L, DataSize);
+						memcpy(Data, &Res, DataSize);
+						//	-1	(1)	|	vec3 userdata
+						//
+						lua_getglobal(L, "WorldEngine_Vector3Metatable");
+						//	-2	(1)	|	vec3 userdata
+						//	-1	(2)	|	metatable
+						//
+						lua_setmetatable(L, -2);
+						//	-1	(1)	|	
+						return 1;
+					}
+					else {
+						printf("[Lua][Vector3] Add Error: Right operand not a Vector3\n");	//	TODO: Allow right operand to be a single number
+					}
+				}
+				else {
+					printf("[Lua][Vector3] Add Error: Left operand not a Vector3\n");
+				}
+				lua_remove(L, lua_gettop(L));
+				lua_remove(L, lua_gettop(L));
+				//	Stack Empty
+				return 0;
+			}
+
 			int ToString(lua_State* L)
 			{
 				glm::vec3* Vec = reinterpret_cast<glm::vec3*>(lua_touserdata(L, -1));
@@ -58,9 +303,26 @@ namespace WorldEngine
 
 			int Vector3(lua_State* L)
 			{
+				glm::vec3 Init{};
+				//
+				if (lua_gettop(L) == 3) {
+					if (lua_isnumber(L, -3))
+					{
+						if (lua_isnumber(L, -2))
+						{
+							if (lua_isnumber(L, -1))
+							{
+								Init.x = static_cast<float>(lua_tonumber(L, -3));
+								Init.y = static_cast<float>(lua_tonumber(L, -2));
+								Init.z = static_cast<float>(lua_tonumber(L, -1));
+							}
+						}
+					}
+				}
+				//
 				size_t DataSize = sizeof(glm::vec3);
 				void* Data = lua_newuserdata(L, DataSize);
-				new(Data) glm::vec3;
+				memcpy(Data, &Init, DataSize);
 				//	-1	(1)	|	vec3 userdata
 				//
 				lua_getglobal(L, "WorldEngine_Vector3Metatable");
@@ -104,6 +366,26 @@ namespace WorldEngine
 				//
 				lua_pushstring(state, "__name");
 				lua_pushstring(state, "Vector3");
+				lua_settable(state, -3);
+				//	-1	(1)	|	metatable
+				//
+				lua_pushstring(state, "__add");
+				lua_pushcfunction(state, Add);
+				lua_settable(state, -3);
+				//	-1	(1)	|	metatable
+				//
+				lua_pushstring(state, "__sub");
+				lua_pushcfunction(state, Sub);
+				lua_settable(state, -3);
+				//	-1	(1)	|	metatable
+				//
+				lua_pushstring(state, "__mul");
+				lua_pushcfunction(state, Mul);
+				lua_settable(state, -3);
+				//	-1	(1)	|	metatable
+				//
+				lua_pushstring(state, "__div");
+				lua_pushcfunction(state, Div);
 				lua_settable(state, -3);
 				//	-1	(1)	|	metatable
 				//

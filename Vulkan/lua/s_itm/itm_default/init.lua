@@ -6,10 +6,17 @@ end
 
 function ITEM:StartPrimaryAction()
 	print("Start Primary")
-	local Owner = self:GetOwner()	--should be a player table object
-	local pos = Owner:GetPos()  --should be the correct position
-	--local ang = Owner:GetFireAng()	--not implemented yet..
+	local Owner = self:GetOwner()
+	local pos = Owner:GetFirePos()
+	local ang = Owner:GetFireAng()
 	print("pos "..tostring(pos))
+	print("ang "..tostring(ang))
+	--	pos + ang * dist
+	local to = pos + ang * Vector3(1000, 1000, 1000) 
+	print("to  "..tostring(to))
+	
+	local res = Util.TraceLine(pos, to)
+	print ("Trace Result Hit: "..tostring(res.HasHit))
 end
 
 function ITEM:EndPrimaryAction()

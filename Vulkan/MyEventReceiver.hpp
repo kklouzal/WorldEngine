@@ -256,22 +256,15 @@ public:
 						if (CurItem)
 						{
 							//
-							//	Calculate Ray
-							Camera* Cam = WorldEngine::SceneGraph::GetCamera();
-							auto CamPos = Cam->Pos;
-							btVector3 From(CamPos.x, CamPos.y, CamPos.z);
-							auto CamDir = CamPos + Cam->Ang * 1000.0f;
-							btVector3 To(CamDir.x, CamDir.y, CamDir.z);
-							//
 							//	Item Action
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
-								CurItem->StartPrimaryAction(WorldEngine::SceneGraph::castRay(From, To), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
+								CurItem->StartPrimaryAction();
 								isPrimary = true;
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT) 
 							{
-								CurItem->StartSecondaryAction(WorldEngine::SceneGraph::castRay(From, To), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
+								CurItem->StartSecondaryAction();
 								isSecondary = true;
 							}
 						}

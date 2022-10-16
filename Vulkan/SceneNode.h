@@ -59,7 +59,17 @@ public:
 			return _Camera->Ang;
 		}
 		//	TODO: Get aim vector for non camera attached scenenodes
-		return glm::vec3(0, 0, 0);
+		return std::move(glm::vec3(0, 0, 0));
+	}
+
+	//	TODO: Using camera position is a placeholder
+	//	Will need to get aim position based on weapon fire position attacment location
+	inline const glm::vec3& GetAimPosition() const {
+		if (_Camera) {
+			return _Camera->Pos;
+		}
+		//	TODO: Get aim pos for non camera attached scenenodes
+		return std::move(glm::vec3(0, 0, 0));
 	}
 
 	const bool Net_ShouldUpdate(uintmax_t UniqueID)

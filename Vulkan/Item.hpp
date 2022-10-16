@@ -20,13 +20,13 @@ public:
 		return Owner;
 	}
 
-	virtual void StartPrimaryAction(btCollisionWorld::ClosestRayResultCallback Ray, btVector3 fireAng)
+	virtual void StartPrimaryAction()
 	{
 		printf("Start Item Primary - %s\n", GetNodeName());
 		WorldEngine::LUA::Itm::CallFunc(GetNodeID(), "StartPrimaryAction");
 	}
 
-	virtual void StartSecondaryAction(btCollisionWorld::ClosestRayResultCallback Ray, btVector3 fireAng)
+	virtual void StartSecondaryAction()
 	{
 		printf("Start Item Secondary - %s\n", GetNodeName());
 		WorldEngine::LUA::Itm::CallFunc(GetNodeID(), "StartSecondaryAction");
