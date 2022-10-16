@@ -277,6 +277,12 @@
     <ClInclude Include="Lua_Item.hpp">
       <Filter>Header Files\Lua</Filter>
     </ClInclude>
+    <ClInclude Include="Lua_Utility.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_Vector3.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\Fragment_GUI.frag">

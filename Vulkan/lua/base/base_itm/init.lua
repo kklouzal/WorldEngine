@@ -1,43 +1,39 @@
 local BASE = {}
 
-BASE.Test = function()
-	print("Test")
+function BASE:Initialize()
+	print("Initialize - Base")
 end
 
-BASE.Initialize = function()
-	print("Initialize")
+function BASE:StartPrimaryAction()
+	print("Start Primary - Base")
 end
 
-BASE.StartPrimaryAction = function(RayTrace)
-	print("Start Primary")
+function BASE:EndPrimaryAction()
+	print("End Primary - Base")
 end
 
-BASE.EndPrimaryAction = function()
-	print("End Primary")
+function BASE:StartSecondaryAction()
+	print("Start Secondary - Base")
 end
 
-BASE.StartSecondaryAction = function(RayTrace)
-	print("Start Secondary")
+function BASE:EndSecondaryAction()
+	print("EndSecondary - Base")
 end
 
-BASE.EndSecondaryAction = function()
-	print("EndSecondary")
+function BASE:ReloadAction()
+	print("Reload - Base")
 end
 
-BASE.ReloadAction = function()
-	print("Reload")
+function BASE:OnSelect()
+	print("Select - Base")
 end
 
-BASE.OnSelect = function()
-	print("Select")
+function BASE:OnDeselect()
+	print("Deselect - Base")
 end
 
-BASE.OnDeselect = function()
-	print("Deselect")
-end
-
-BASE.OnTick = function()
-	print("Think")
+function BASE:OnTick()
+	print("Think - Base")
 end
 
 Item.RegisterBase(BASE)

@@ -10,6 +10,30 @@ namespace WorldEngine
 			{
 			}
 
+			int GetPos(lua_State* L)
+			{
+				//	-1	(1)	|	Item table
+				//
+				lua_getfield(L, -1, "__pointer");
+				//	-2	(1)	|	Item table
+				//	-1	(2)	|	Item pointer
+				//
+				Item* Itm = reinterpret_cast<Item*>(lua_touserdata(L, -1));
+				size_t DataSize = sizeof(glm::vec3);
+				void* Data = lua_newuserdata(L, DataSize);
+				memcpy(Data, &Itm->Pos, DataSize);
+				//	-1	(1)	|	vec3 userdata
+				//
+				lua_getglobal(L, "WorldEngine_Vector3Metatable");
+				//	-2	(1)	|	vec3 userdata
+				//	-1	(2)	|	metatable
+				//
+				lua_setmetatable(L, -2);
+				//	-1	(1)	|	vec3 userdata
+				//
+				return 1;
+			}
+
 			//
 			//	Registers Base Class metatable into global object table
 			//	Sets the base metatable __index to itself
@@ -29,6 +53,18 @@ namespace WorldEngine
 					//	-3 (1)	| in_table
 					//	-2 (2)	| '__index'
 					//	-1 (3)	| in_table copy
+					//
+					lua_settable(L, -3);
+					//	-1 (1)	| in_table
+					//
+					lua_pushstring(L, "GetPos");
+					//	-2 (1)	| in_table
+					//	-1 (2)	| 'GetPos'
+					//
+					lua_pushcfunction(L, GetPos);
+					//	-3 (1)	| in_table
+					//	-2 (2)	| 'GetPos'
+					//	-1 (3)	| GetPos function
 					//
 					lua_settable(L, -3);
 					//	-1 (1)	| in_table
@@ -85,6 +121,21 @@ namespace WorldEngine
 						//	-1 (4)	| in_table copy
 						//
 						lua_settable(L, -3);
+						//	-2 (1)	| in_string
+						//	-1 (2)	| in_table
+						//
+						//lua_pushstring(L, "GetPos");
+						//	-3 (1)	| in_string
+						//	-2 (2)	| in_table
+						//	-1 (3)	| 'GetPos'
+						//
+						//lua_pushcfunction(L, GetPos);
+						//	-4 (1)	| in_string
+						//	-3 (2)	| in_table
+						//	-2 (3)	| 'GetPos'
+						//	-1 (4)	| GetPos function
+						//
+						//lua_settable(L, -3);
 						//	-2 (1)	| in_string
 						//	-1 (2)	| in_table
 						//
@@ -204,6 +255,18 @@ namespace WorldEngine
 				//	-1	| 'Item'
 				//
 				lua_settable(L, -3);
+				//	-1	| Object table
+				//
+				lua_pushstring(state, "GetPos");
+				//	-2	| Object table
+				//	-1	| 'GetPos'
+				//
+				lua_pushcfunction(state, GetPos);
+				//	-3	| Object table
+				//	-2	| 'GetPos'
+				//	-1	| GetPos function
+				//
+				lua_settable(state, -3);
 				//	-1	| Object table
 				//
 				return NewItem_;
@@ -425,11 +488,13 @@ namespace WorldEngine
 								//	-2	|	Object table
 								//	-1	|	FunctionName function
 								//
-								lua_call(state, 0, 0);
+								lua_insert(state, lua_gettop(state) - 1);
+								//	-2	|	FunctionName function
 								//	-1	|	Object table
 								//
-								lua_remove(state, -1);
+								lua_call(state, 1, 0);
 								//	Stack Empty
+								//
 								return;
 							}
 							else {

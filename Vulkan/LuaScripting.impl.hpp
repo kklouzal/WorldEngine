@@ -1,3 +1,5 @@
+#include "Lua_Vector3.hpp"
+#include "Lua_Utility.hpp"
 #include "Lua_GameMode.hpp"
 #include "Lua_Ent.hpp"
 #include "Lua_Item.hpp"
@@ -50,6 +52,8 @@ namespace WorldEngine
 
 			//
 			//	Initialize bindings
+			Vector3::Initialize();
+			Util::Initialize();
 			GM::Initialize();
 			Ent::Initialize();
 			Itm::Initialize();

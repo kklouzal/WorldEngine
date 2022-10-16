@@ -1,42 +1,40 @@
 local ITEM = {}
 
-ITEM.Test = function()
-	print("Test")
-end
-
-ITEM.Initialize = function()
+function ITEM:Initialize()
 	print("Initialize")
 end
 
-ITEM.StartPrimaryAction = function(RayTrace)
+function ITEM:StartPrimaryAction()
 	print("Start Primary")
+	local pos = self:GetPos()
+	print("pos "..tostring(pos))
 end
 
-ITEM.EndPrimaryAction = function()
+function ITEM:EndPrimaryAction()
 	print("End Primary")
 end
 
-ITEM.StartSecondaryAction = function(RayTrace)
+function ITEM:StartSecondaryAction()
 	print("Start Secondary")
 end
 
-ITEM.EndSecondaryAction = function()
+function ITEM:EndSecondaryAction()
 	print("EndSecondary")
 end
 
-ITEM.ReloadAction = function()
+function ITEM:ReloadAction()
 	print("Reload")
 end
 
-ITEM.OnSelect = function()
+function ITEM:OnSelect()
 	print("Select")
 end
 
-ITEM.OnDeselect = function()
+function ITEM:OnDeselect()
 	print("Deselect")
 end
 
-ITEM.OnTick = function()
+function ITEM:OnTick()
 	print("Think")
 end
 

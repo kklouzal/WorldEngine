@@ -189,6 +189,8 @@
     <ClInclude Include="Lua_Ent.hpp" />
     <ClInclude Include="Lua_GameMode.hpp" />
     <ClInclude Include="Lua_Item.hpp" />
+    <ClInclude Include="Lua_Utility.hpp" />
+    <ClInclude Include="Lua_Vector3.hpp" />
     <ClInclude Include="Menu.hpp" />
     <ClInclude Include="NetCode.hpp" />
     <ClInclude Include="NetCode.impl.hpp" />

@@ -5,6 +5,29 @@
 #include <lauxlib.h>
 #include <filesystem>
 
+static void dumpstack(lua_State* L) {
+	int top = lua_gettop(L);
+	for (int i = 1; i <= top; i++) {
+		switch (lua_type(L, i)) {
+		case LUA_TNUMBER:
+			printf("[%d] %s\t%g\n", i, luaL_typename(L, i), lua_tonumber(L, i));
+			break;
+		case LUA_TSTRING:
+			printf("[%d] %s\t%s\n", i, luaL_typename(L, i), lua_tostring(L, i));
+			break;
+		case LUA_TBOOLEAN:
+			printf("[%d] %s\t%s\n", i, luaL_typename(L, i), (lua_toboolean(L, i) ? "true" : "false"));
+			break;
+		case LUA_TNIL:
+			printf("[%d] %s\t%s\n", i, luaL_typename(L, i), "nil");
+			break;
+		default:
+			printf("[%d] %s\t%p\n", i, luaL_typename(L, i), lua_topointer(L, i));
+			break;
+		}
+	}
+}
+
 static void LuaError_lua_resource_delete(lua_State* L) {
 	lua_pop(L, 1);
 }

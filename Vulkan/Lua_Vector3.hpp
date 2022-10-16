@@ -1,0 +1,121 @@
+#pragma once
+
+namespace WorldEngine
+{
+	namespace LUA
+	{
+		namespace Vector3
+		{
+			int ToString(lua_State* L)
+			{
+				glm::vec3* Vec = reinterpret_cast<glm::vec3*>(lua_touserdata(L, -1));
+				std::string Out("Vector3 X:" + std::to_string(Vec->x) + " Y:" + std::to_string(Vec->y) + " Z:" + std::to_string(Vec->z));
+				lua_remove(L, lua_gettop(L)-1);
+				lua_pushstring(L, Out.c_str());
+				return 1;
+			}
+
+			int SetValue(lua_State* L)
+			{
+				//	-4	(1)	|	Vector3 userdata
+				//	-3	(2)	|	X number
+				//	-2	(3)	|	Y number
+				//	-1	(4)	|	Z number
+				if (lua_gettop(L) == 4)
+				{
+					if (lua_isuserdata(L, -4))
+					{
+						if (lua_isnumber(L, -3))
+						{
+							if (lua_isnumber(L, -2))
+							{
+								if (lua_isnumber(L, -1))
+								{
+									lua_getfield(L, -4, "__name");
+									//	-1	(5)	|	__name
+									if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+									{
+										lua_remove(L, lua_gettop(L));
+										//	Stack Returned
+										glm::vec3* Vec = reinterpret_cast<glm::vec3*>(lua_touserdata(L, -4));
+										Vec->x = lua_tonumber(L, -3);
+										Vec->y = lua_tonumber(L, -2);
+										Vec->z = lua_tonumber(L, -1);
+									}
+									else {
+										printf("[Lua][Vector3:SetValue()] Not a Vector3\n");
+									}
+								}
+							}
+						}
+					}
+				}
+				else {
+					printf("[Lua][Vector3:SetValue(X, Y, Z)] Error: Invalid function arguments\n");
+				}
+				return 0;
+			}
+
+			int Vector3(lua_State* L)
+			{
+				size_t DataSize = sizeof(glm::vec3);
+				void* Data = lua_newuserdata(L, DataSize);
+				new(Data) glm::vec3;
+				//	-1	(1)	|	vec3 userdata
+				//
+				lua_getglobal(L, "WorldEngine_Vector3Metatable");
+				//	-2	(1)	|	vec3 userdata
+				//	-1	(2)	|	metatable
+				//
+				lua_setmetatable(L, -2);
+				//	-1	(1)	|	vec3 userdata
+				//
+
+				return 1;
+			}
+
+			void Initialize()
+			{
+
+				lua_newtable(state);
+				//	-1	(1)	|	metatable
+				//
+				lua_pushstring(state, "__index");
+				//	-2 (1)	|	metatable
+				//	-1 (2)	|	'__index'
+				//
+				lua_pushvalue(state, -2);
+				//	-3 (1)	|	metatable
+				//	-2 (2)	|	'__index'
+				//	-1 (3)	|	metatable copy
+				//
+				lua_settable(state, -3);
+				//	-1 (1)	|	metatable
+				//
+				lua_pushstring(state, "SetValue");
+				lua_pushcfunction(state, SetValue);
+				lua_settable(state, -3);
+				//	-1	(1)	|	metatable
+				//
+				lua_pushstring(state, "__tostring");
+				lua_pushcfunction(state, ToString);
+				lua_settable(state, -3);
+				//	-1	(1)	|	metatable
+				//
+				lua_pushstring(state, "__name");
+				lua_pushstring(state, "Vector3");
+				lua_settable(state, -3);
+				//	-1	(1)	|	metatable
+				//
+				lua_setglobal(state, "WorldEngine_Vector3Metatable");
+				//	Stack Empty
+				//
+				lua_pushcfunction(state, Vector3);
+				//	-1	(1)	|	Vector3 function
+				//
+				lua_setglobal(state, "Vector3");
+				//	Stack Empty
+			}
+		}
+	}
+}
