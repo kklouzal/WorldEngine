@@ -62,13 +62,11 @@ namespace WorldEngine
 			return _Character;
 		}
 
-		void updateUniformBuffer(const uint32_t& currentImage);
-
 		//
 		//	Create SceneNode Functions
 		WorldSceneNode* createWorldSceneNode(uintmax_t NodeID, const char* File);
 		CharacterSceneNode* createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position);
-		TriangleMeshSceneNode* createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
+		TriangleMeshSceneNode* createTriangleMeshSceneNode(uintmax_t NodeID, const char* Classname, const char* File, const float& Mass, const btVector3& Position);
 		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
 
 		const bool& ShouldCleanupWorld()
@@ -99,6 +97,21 @@ namespace WorldEngine
 {
 	namespace SceneGraph
 	{
+		void AddSceneNode(SceneNode*const Node, const uintmax_t NodeID)
+		{
+			SceneNodes[NodeID] = Node;
+		}
+
+		//
+		//	OnTick
+		void OnTick()
+		{
+			for (auto& Node : SceneNodes)
+			{
+				Node.second->onTick();
+			}
+		}
+
 		void SceneGraph::initWorld(uintmax_t NodeID, const char* MapFile)
 		{
 			if (isWorld) { printf("initWorld: Cannot initialize more than 1 world!\n"); return; }
@@ -114,6 +127,8 @@ namespace WorldEngine
 			//	Load World/Charater/Etc..
 			_Character = createCharacterSceneNode(NodeID, CharacterFile, CharacterPosition);
 			_Character->_Camera = _Camera;
+			WorldEngine::LUA::Ply::Create(_Character, "ply_default");
+			//WorldEngine::LUA::GM::Call_OnPlayerSpawn();
 		}
 
 		void SceneGraph::cleanupWorld(const bool& bForce)
@@ -179,7 +194,7 @@ namespace WorldEngine
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, false);
 			//
-			WorldSceneNode* MeshNode = new WorldSceneNode(Mesh);
+			WorldSceneNode* MeshNode = new WorldSceneNode(NodeID, "World", Mesh);
 
 			btCollisionShape* ColShape;
 			btTriangleMesh* trimesh = new btTriangleMesh();
@@ -215,14 +230,14 @@ namespace WorldEngine
 
 		//
 		//	TriangleMesh Create Function
-		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
+		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* Classname, const char* File, const float& Mass, const btVector3& Position)
 		{
 			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, true);
 			//
-			TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(Mesh);
+			TriangleMeshSceneNode* MeshNode = new TriangleMeshSceneNode(NodeID, "TriangleMesh Node", Mesh);
 			//
 			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			MeshNode->_CollisionShape = ColShape;
@@ -245,8 +260,11 @@ namespace WorldEngine
 			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
 			//
+			//	TODO: Not sure if this is where/how I want to initialize scripted entities
+			WorldEngine::LUA::Ent::Create(MeshNode, Classname);
+
+			//
 			//	Push new SceneNode into the SceneGraph
-			MeshNode->SetNodeID(NodeID);
 			SceneNodes[NodeID] = MeshNode;
 			return MeshNode;
 		}
@@ -255,36 +273,36 @@ namespace WorldEngine
 		//	SkinnedMesh Create Function
 		SkinnedMeshSceneNode* SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
 		{
-			//Pipeline::Animated* Pipe = WorldEngine::MaterialCache::GetPipe_Animated();
-			//GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
-			//btCollisionShape* ColShape = LoadDecomp(Infos, File);
-			////
-			//TriangleMesh* Mesh = new TriangleMesh(Pipe, Infos, Infos->DiffuseTex, Infos->DiffuseTex);
-			//SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(Mesh, Infos->InverseBindMatrices, Infos->JointMap);
-			////
-			//MeshNode->_CollisionShape = ColShape;
-			//btTransform Transform;
-			//Transform.setIdentity();
-			//Transform.setOrigin(Position);
+			Pipeline::Animated* Pipe = MaterialCache::GetPipe_Animated();
+			//
+			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
+			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, false);
+			//
+			SkinnedMeshSceneNode* MeshNode = new SkinnedMeshSceneNode(NodeID, "SkinnedMesh Node", Mesh, Infos->InverseBindMatrices, Infos->JointMap_, Infos->JointMap_OZZ);
+			//
+			btCollisionShape* ColShape = LoadDecomp(Infos, File);
+			MeshNode->_CollisionShape = ColShape;
+			btTransform Transform;
+			Transform.setIdentity();
+			Transform.setOrigin(Position);
 
-			//bool isDynamic = (Mass != 0.f);
+			bool isDynamic = (Mass != 0.f);
 
-			//btVector3 localInertia(0, 0, 0);
-			//if (isDynamic) {
-			//	MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
-			//}
+			btVector3 localInertia(0, 0, 0);
+			if (isDynamic) {
+				MeshNode->_CollisionShape->calculateLocalInertia(Mass, localInertia);
+			}
 
-			//SkinnedMeshSceneNodeMotionState* MotionState = new SkinnedMeshSceneNodeMotionState(MeshNode, Transform);
-			//btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
-			//MeshNode->_RigidBody = new btRigidBody(rbInfo);
-			//MeshNode->_RigidBody->setUserPointer(MeshNode);
-			//WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+			SkinnedMeshSceneNodeMotionState* MotionState = new SkinnedMeshSceneNodeMotionState(MeshNode, Transform);
+			btRigidBody::btRigidBodyConstructionInfo rbInfo(Mass, MotionState, MeshNode->_CollisionShape, localInertia);
+			MeshNode->_RigidBody = new btRigidBody(rbInfo);
+			MeshNode->_RigidBody->setUserPointer(MeshNode);
+			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
 
-			////
-			////	Push new SceneNode into the SceneGraph
-			//SceneNodes[NodeID] = MeshNode;
-			//return MeshNode;
-			return nullptr;
+			//
+			//	Push new SceneNode into the SceneGraph
+			SceneNodes[NodeID] = MeshNode;
+			return MeshNode;
 		}
 
 		//
@@ -296,7 +314,7 @@ namespace WorldEngine
 			GLTFInfo* Infos = MaterialCache::_ImportGLTF->loadModel(File, Pipe);
 			TriangleMesh* Mesh = Pipe->createMesh(File, Infos, false);
 			//
-			CharacterSceneNode* MeshNode = new CharacterSceneNode(Mesh);
+			CharacterSceneNode* MeshNode = new CharacterSceneNode(NodeID, "Character Node", Mesh);
 			//
 			btCollisionShape* ColShape = LoadDecomp(Infos, File);
 			MeshNode->_CollisionShape = ColShape;

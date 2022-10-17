@@ -5,12 +5,10 @@ layout(location = 0) in vec4 inPosition;
 layout(location = 2) in vec2 inTexCoord;
 layout(location = 3) in vec3 inNormal;
 layout(location = 4) in vec3 inTangent;
+//
+layout(location = 5) in mat4 inInstanceMat; //  location 5,6,7,8
 
-layout(std140, binding = 0) readonly buffer InstanceData {
-    mat4 model[];
-} ssbo;
-
-layout (binding = 1) uniform UBO {
+layout (binding = 0) uniform UBO {
     mat4 view_proj;
 } ubo;
 
@@ -26,13 +24,14 @@ layout(location = 4) out vec3 outTangent;
 //};
 
 void main() {
-    outWorldPos = ssbo.model[gl_InstanceIndex] * inPosition;
+    outWorldPos = inInstanceMat * inPosition;
     outUV = inTexCoord;
     //outColor = inColor;
 
-    gl_Position = ubo.view_proj * ssbo.model[gl_InstanceIndex] * inPosition;
+    //gl_Position = ubo.view_proj * ssbo.model[gl_InstanceIndex] * inPosition;
+    gl_Position = ubo.view_proj * inInstanceMat * inPosition;
     
-	mat3 mNormal = transpose(inverse(mat3(ssbo.model[gl_InstanceIndex])));
+	mat3 mNormal = transpose(inverse(mat3(inInstanceMat)));
 	outNormal = mNormal * normalize(inNormal);
     outTangent = mNormal * normalize(inTangent);
 }

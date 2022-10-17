@@ -43,8 +43,6 @@
 #include "BulletDynamics/Dynamics/btDiscreteDynamicsWorldMt.h"
 #include "BulletDynamics/ConstraintSolver/btSequentialImpulseConstraintSolverMt.h"
 
-#include "LuaScripting.hpp"
-
 #include "imgui.h"
 
 #include <functional>
@@ -60,6 +58,8 @@
 //	Include Vulkan Helpers
 #include <iostream>
 #include <vector>
+
+constexpr auto DOUBLE_TRIPLE_BUFFER = 1; //	0 == Single, 1 == Double, 2 == Triple. (probably)
 
 #include "VulkanInitializers.hpp"
 #include "VulkanDevice.hpp"
@@ -127,8 +127,10 @@ struct DComposition {
 };
 struct DShadow {
 	glm::mat4 mvp[LIGHT_COUNT];
-	glm::mat4 instancePos[1024];
 };
+//struct DAnimated {
+//	glm::mat4 
+//};
 
 // G-Buffer framebuffer attachments
 struct FrameBufferAttachment {
@@ -176,14 +178,24 @@ struct CameraUniformBuffer {
 };
 //
 //	Model Uniform Buffer Object
-struct UniformBufferObject {
-	glm::mat4 model{};
-	//ozz::math::Float4x4 bones[32]{};
-};
+//struct UniformBufferObject {
+//	glm::mat4 model{};
+//	//ozz::math::Float4x4 bones[32]{};
+//};
 
 //
 struct InstanceData {
 	glm::mat4 model{};
+};
+struct InstanceData_Animation {
+	glm::mat4 bones[32]{};
+	InstanceData_Animation()
+	{
+		for (int i = 0; i < 32; i++)
+		{
+			bones[i] = glm::identity<glm::mat4>();
+		}
+	}
 };
 
 struct DescriptorObject {

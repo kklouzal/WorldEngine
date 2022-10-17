@@ -84,27 +84,27 @@ void main()
 	vec4 albedo = subpassLoad(samplerAlbedo);
 	
 	// Debug display
-//	if (ubo.displayDebugTarget > 0) {
-//		switch (ubo.displayDebugTarget) {
-//			case 1:	//F2
-//				outFragcolor.rgb = shadow(vec3(1.0), fragPos).rgb;
-//				break;
-//			case 2: //F3
-//				outFragcolor.rgb = fragPos;
-//				break;
-//			case 3: //F4
-//				outFragcolor.rgb = normal;
-//				break;
-//			case 4: //F5
-//				outFragcolor.rgb = albedo.rgb;
-//				break;
-//			case 5: //F6
-//				outFragcolor.rgb = albedo.aaa;
-//				break;
-//		}		
-//		outFragcolor.a = 1.0;
-//		return;
-//	}
+	if (ubo.displayDebugTarget > 0) {
+		switch (ubo.displayDebugTarget) {
+			case 1:	//F2
+				outFragcolor.rgb = shadow(vec3(1.0), fragPos).rgb;
+				break;
+			case 2: //F3
+				outFragcolor.rgb = fragPos;
+				break;
+			case 3: //F4
+				outFragcolor.rgb = normal;
+				break;
+			case 4: //F5
+				outFragcolor.rgb = albedo.rgb;
+				break;
+			case 5: //F6
+				outFragcolor.rgb = albedo.aaa;
+				break;
+		}		
+		outFragcolor.a = 1.0;
+		return;
+	}
 	
 	// Ambient part
 	vec3 fragcolor  = albedo.rgb * AMBIENT_LIGHT;

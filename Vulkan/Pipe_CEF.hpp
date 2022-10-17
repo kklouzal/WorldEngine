@@ -123,7 +123,7 @@ namespace Pipeline {
 			}
 		}
 
-		void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers)
+		inline void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers)
 		{
 			for (size_t i = 0; i < CommandBuffers.size(); i++)
 			{

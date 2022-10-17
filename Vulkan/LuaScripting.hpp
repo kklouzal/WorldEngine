@@ -1,22 +1,32 @@
-#pragma once
+﻿#pragma once
 #include <stdexcept>
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include <filesystem>
 
-/**
- * C++ exception class wrapper for Lua error.
- * This can be used to convert the result of a lua_pcall or
-
- * similar protected Lua C function into a C++ exception.
- * These Lua C functions place the error on the Lua stack.
- * The LuaError class maintains the error on the Lua stack until
- * all copies of the exception are destroyed (after the exception is
- * caught), at which time the Lua error object is popped from the
- * Lua stack.
- * We assume the Lua stack is identical at destruction as
- * it was at construction.
- */
+static void dumpstack(lua_State* L) {
+	int top = lua_gettop(L);
+	for (int i = 1; i <= top; i++) {
+		switch (lua_type(L, i)) {
+		case LUA_TNUMBER:
+			printf("[%d] %s\t%g\n", i, luaL_typename(L, i), lua_tonumber(L, i));
+			break;
+		case LUA_TSTRING:
+			printf("[%d] %s\t%s\n", i, luaL_typename(L, i), lua_tostring(L, i));
+			break;
+		case LUA_TBOOLEAN:
+			printf("[%d] %s\t%s\n", i, luaL_typename(L, i), (lua_toboolean(L, i) ? "true" : "false"));
+			break;
+		case LUA_TNIL:
+			printf("[%d] %s\t%s\n", i, luaL_typename(L, i), "nil");
+			break;
+		default:
+			printf("[%d] %s\t%p\n", i, luaL_typename(L, i), lua_topointer(L, i));
+			break;
+		}
+	}
+}
 
 static void LuaError_lua_resource_delete(lua_State* L) {
 	lua_pop(L, 1);
@@ -44,5 +54,63 @@ public:
 	}
 };
 
+class SceneNode;
+class Item;
+class CharacterSceneNode;
 
+namespace WorldEngine
+{
+	namespace LUA
+	{
+		namespace
+		{
+			lua_State* state;
+			std::filesystem::path TopLevel = std::filesystem::current_path() /= "Lua";
+			std::filesystem::path MainLevel = TopLevel / "main";
+			std::filesystem::path BaseLevel = TopLevel / "base";
+			std::filesystem::path SGmLevel = TopLevel  / "s_gm";
+			std::filesystem::path SPlyLevel = TopLevel / "s_ply";
+			std::filesystem::path SEntLevel = TopLevel / "s_ent";
+			std::filesystem::path SItmLevel = TopLevel / "s_itm";
+		}
 
+		void LoadFile(const char* File)
+		{
+			try {
+				int res = luaL_loadfile(state, File);
+				if (res != LUA_OK) throw LuaError(state);
+
+				res = lua_pcall(state, 0, LUA_MULTRET, 0);
+				if (res != LUA_OK) throw LuaError(state);
+			}
+			catch (std::exception& e) {
+				printf("Lua Error: %s\n", e.what());
+			}
+		}
+
+		//
+		//	Forward Declarations
+		namespace Ent
+		{
+			void Create(SceneNode* NewObject, const char* Classname);
+			void PushEntity(uintmax_t ObjectID);
+		}
+		namespace Ply
+		{
+			void Create(CharacterSceneNode* NewPlayer, const char* Classname);
+			void PushPlayer(uintmax_t ObjectID);
+		}
+		namespace Itm
+		{
+			//
+			//	Keep track of all our Operation IDs
+			//	This list should match the server side exactly.
+			enum class OPID : uint8_t {
+				Give
+			};
+
+			Item* Create(uintmax_t NodeID, const char* Classname);
+			void CallFunc(uintmax_t NodeID, const char* const FunctionName);
+		}
+	}
+}

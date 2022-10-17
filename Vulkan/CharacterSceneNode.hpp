@@ -10,64 +10,43 @@ public:
 	bool onGround = false;
 
 public:
-	CharacterSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode()
+	CharacterSceneNode(uintmax_t NodeID, const char*const NodeName, TriangleMesh* Mesh)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID, NodeName)
 	{
-		Name = "Character";
 		canPhys = false;
 		//
 		//	Reserve 10 item slots (hotbar slots currently)
+		//	TODO: This has got to go.. replace with html gui hotbar
+		//	(items go into inventory, user drags to hotbar)
 		for (int i = 0; i < 10; i++)
 		{
 			Items.push_back(nullptr);
 			HotBar_Items.push_back(nullptr);
 		}
-		//
-		//
-		//	Default Character Loadout
-		// 
-		//  -   Hands
-		Item_Hands* Itm0 = new Item_Hands();
-		this->GiveItem(Itm0, 0);
-		SelectItem(0);
-		//
-		//  -   PhysGun
-		Item_Physgun* Itm1 = new Item_Physgun();
-		this->GiveItem(Itm1, 1);
-		//
-		//  -   ToolGun
-		Item_Toolgun* Itm2 = new Item_Toolgun();
-		Itm2->LoadTools();
-		this->GiveItem(Itm2, 2);
-		//
-		Item* Itm3 = new Item("Item 3");
-		this->GiveItem(Itm3, 5);
-		Item* Itm7 = new Item("Item 7");
-		this->GiveItem(Itm7, 6);
 	}
 
 	~CharacterSceneNode() {
 		printf("Destroy CharacterSceneNode\n");
 	}
 
-	void drawFrame(const uint32_t& CurFrame) {
-		if (bNeedsUpdate[CurFrame])
-		{
-			_Mesh->instanceData[instanceIndex].model = Model;
-			bNeedsUpdate[CurFrame] = false;
-		}
+	void onTick() {
+
 	}
 
-	void GPUUpdatePosition()
+	inline void GPUUpdatePosition(/*const uint32_t& CurFrame*/) final
 	{
+		//if (bNeedsUpdate[CurFrame])
+		//{
 		_Mesh->instanceData[instanceIndex].model = Model;
-		if (_Mesh->bCastsShadows)
+		/*if (_Mesh->bCastsShadows)
 		{
 			if (_Mesh->instanceData_Shadow[instanceIndex] != NULL)
 			{
 				*_Mesh->instanceData_Shadow[instanceIndex] = Model;
 			}
-		}
+		}*/
+		//bNeedsUpdate[CurFrame] = false;
+	//}
 	}
 
 	Item* GetCurrentItem() const
@@ -157,7 +136,8 @@ public:
 		}
 	}
 
-	// TODO: ICON MANAGEMENT
+	//	TODO: Move into SceneNode?
+	//	(all nodes can potentially hold items?)
 	void GiveItem(Item* NewItem, unsigned int Slot)
 	{
 		Items[Slot] = NewItem;
@@ -170,8 +150,11 @@ public:
 		{
 			Items[CurItem]->ShowGUI();
 		}
+		NewItem->SetOwner(this);
 	}
 
+	//	TODO: Move into SceneNode?
+	//	(all nodes can potentially be controlled?)
 	void moveForward(const btScalar& Speed) {
 		btTransform Trans = _RigidBody->getWorldTransform();
 		const btVector3 Forward = Trans(btVector3(1 * Speed, 0, 0));
@@ -231,7 +214,7 @@ public:
 		//
 		//	Item Hot Bar
 		ImGui::SetNextWindowSize(ImVec2(550, 80));
-		ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 272, WorldEngine::VulkanDriver::HEIGHT - 80));
+		ImGui::SetNextWindowPos(ImVec2(static_cast<float>(WorldEngine::VulkanDriver::WIDTH / 2 - 272), static_cast<float>(WorldEngine::VulkanDriver::HEIGHT - 80)));
 		ImGui::Begin("Hotbar", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
 
 		ImVec2 uv_min = ImVec2(0.0f, 0.0f);                 // Top-left
@@ -253,7 +236,7 @@ public:
 					border_col.x = 0.0f;
 				}
 				else {
-					item_text = _Item->_Name;
+					item_text = _Item->GetNodeName();
 					border_col.x = 1.0f;
 				}
 			}
@@ -284,13 +267,13 @@ class CharacterSceneNodeMotionState : public btDefaultMotionState {
 public:
 	CharacterSceneNodeMotionState(CharacterSceneNode* Node, const btTransform& initialPos) : _SceneNode(Node), _btPos(initialPos), ModelPtr(glm::value_ptr(_SceneNode->Model)) {}
 
-	void getWorldTransform(btTransform& worldTrans) const {
+	inline void getWorldTransform(btTransform& worldTrans) const final {
 		worldTrans = _btPos;
 		_btPos.getOpenGLMatrix(ModelPtr);
 		_SceneNode->GPUUpdatePosition();
 	}
 
-	void setWorldTransform(const btTransform& worldTrans) {
+	inline void setWorldTransform(const btTransform& worldTrans) final {
 		_btPos = worldTrans;
 		_btPos.getOpenGLMatrix(ModelPtr);
 		_SceneNode->bNeedsUpdate[0] = true;

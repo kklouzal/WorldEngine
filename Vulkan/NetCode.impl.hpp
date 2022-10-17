@@ -6,26 +6,34 @@ namespace WorldEngine
 	{
 		void Initialize(const char* LocalIP, const unsigned int LocalSendPort, const unsigned int LocalRecvPort)
 		{
-			KNet::Initialize();
-			LocalSendAddr = KNet::AddressPool->GetFreeObject();
-			LocalRecvAddr = KNet::AddressPool->GetFreeObject();
-			LocalSendAddr->Resolve(LocalIP, LocalSendPort);
-			LocalRecvAddr->Resolve(LocalIP, LocalRecvPort);
-			//
-			//	Start Listening
-			LocalPoint = new KNet::NetPoint(LocalSendAddr, LocalRecvAddr);
-			//
-			RemoteAddr = KNet::AddressPool->GetFreeObject();
+			if (!bInitialized)
+			{
+				KNet::Initialize();
+				LocalSendAddr = KNet::AddressPool->GetFreeObject();
+				LocalRecvAddr = KNet::AddressPool->GetFreeObject();
+				LocalSendAddr->Resolve(LocalIP, LocalSendPort);
+				LocalRecvAddr->Resolve(LocalIP, LocalRecvPort);
+				//
+				//	Start Listening
+				LocalPoint = new KNet::NetPoint(LocalSendAddr, LocalRecvAddr);
+				//
+				RemoteAddr = KNet::AddressPool->GetFreeObject();
+				bInitialized = true;
+			}
 		}
 
 		void Deinitialize()
 		{
-			delete LocalPoint;
-			KNet::Deinitialize();
+			if (bInitialized)
+			{
+				delete LocalPoint;
+				KNet::Deinitialize();
+			}
 		}
 
 		void ConnectToServer(const char* RemoteIP, const unsigned int RemotePort)
 		{
+			if (!bInitialized) { return; }
 			printf("[NET] ConnectToServer %s %u\n", RemoteIP, RemotePort);
 			RemoteAddr->Resolve(RemoteIP, RemotePort);
 			//
@@ -42,6 +50,7 @@ namespace WorldEngine
 
 		void TrySpawn_TriangleMeshSceneNode(const char* File, float Mass, btVector3 Position)
 		{
+			if (!bInitialized) { return; }
 			KNet::NetPacket_Send* Pkt = _Server->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Spawn_TriangleMeshSceneNode);
 			if (Pkt)
 			{
@@ -56,6 +65,7 @@ namespace WorldEngine
 
 		void Tick(std::chrono::time_point<std::chrono::steady_clock>& CurTime)
 		{
+			if (!bInitialized) { return; }
 			//
 			//  Check for timeouts every 1 second
 			if (LastTimeoutCheck + std::chrono::seconds(1) <= CurTime)
@@ -89,6 +99,7 @@ namespace WorldEngine
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_SceneNode);
 				Client->RegisterChannel<KNet::ChannelID::Unreliable_Any>((uint8_t)NetCode::OPID::Update_PlayerNode);
 				Client->RegisterChannel<KNet::ChannelID::Reliable_Any>((uint8_t)NetCode::OPID::Request_PlayerNode);
+				Client->RegisterChannel<KNet::ChannelID::Reliable_Ordered>((uint8_t)NetCode::OPID::Item_Update);
 				ConnectedClients.push_back(Client);
 			}
 			//
@@ -147,6 +158,8 @@ namespace WorldEngine
 							_Packet->read<bool>(bSuccess);
 							uintmax_t NodeID;
 							_Packet->read<uintmax_t>(NodeID);
+							char Classname[255] = "";
+							_Packet->read<char>(*Classname);
 							char File[255] = "";
 							_Packet->read<char>(*File);
 							float Mass;
@@ -162,7 +175,7 @@ namespace WorldEngine
 							//
 							if (bSuccess && !WorldEngine::SceneGraph::SceneNodes.count(NodeID))
 							{
-								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
+								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, Classname, File, Mass, Position);
 							}
 						}
 						break;
@@ -232,8 +245,10 @@ namespace WorldEngine
 							//	NodeID doesn't exist, request it from the server
 							else {
 								auto Out_Packet = _Server->GetFreePacket((uint8_t)NetCode::OPID::Request_SceneNode);
-								Out_Packet->write<uintmax_t>(NodeID);
-								LocalPoint->SendPacket(Out_Packet);
+								if (Out_Packet) {
+									Out_Packet->write<uintmax_t>(NodeID);
+									LocalPoint->SendPacket(Out_Packet);
+								}
 							}
 						}
 						break;
@@ -316,15 +331,55 @@ namespace WorldEngine
 							//
 							if (!WorldEngine::SceneGraph::SceneNodes.count(NodeID))
 							{
-								printf("MASS %f\n", Mass);
 								//
 								//	TODO: This needs to be a character scene node..? NonLocalCharacterSceneNode..? Ugh.. :D
-								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
+								//	HACK: non-localplayers classified as 'prop_physics' that needs fixed..
+								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, "prop_physics", File, Mass, Position);
 							}
 						}
 						break;
+						//
+						//	Item Update
+						case WorldEngine::NetCode::OPID::Item_Update:
+						{
+							WorldEngine::LUA::Itm::OPID SubOperationID;
+							_Packet->read<WorldEngine::LUA::Itm::OPID>(SubOperationID);
+							switch (SubOperationID)
+							{
+								//
+								//	Player:Give()
+								case WorldEngine::LUA::Itm::OPID::Give:
+								{
+									uintmax_t NodeID;
+									_Packet->read<uintmax_t>(NodeID);
+									char Classname[255] = "";
+									_Packet->read<char>(*Classname);
+									printf("Received [Item]->[Give] Classname (%s) NodeID (%Iu)\n", Classname, NodeID);
+									Item* NewItm_ = WorldEngine::LUA::Itm::Create(NodeID, Classname);
+									WorldEngine::SceneGraph::_Character->GiveItem(NewItm_, 0);	//	TODO: SLOT?? No. This needs handled some other way.
+									WorldEngine::LUA::Itm::CallFunc(NodeID, "Initialize");
+									WorldEngine::SceneGraph::_Character->SelectItem(0);
+									WorldEngine::SceneGraph::AddSceneNode(NewItm_, NodeID);
+								}
+								break;
+								//
+								//	Unhandled Operation
+								default:
+								{
+									printf("Received Unhandled Item_Update OperationID\n");
+								}
+							}
+						}
+						break;
+						//
+						//	Unhandled Operation
+						default:
+						{
+							printf("Received Unhandled Client->GetPackets() OperationID\n");
+						}
 					}
-					//handle packet
+					//
+					//	Release Packet
 					LocalPoint->ReleasePacket(_Packet);
 				}
 			}

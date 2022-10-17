@@ -57,6 +57,9 @@
     <Filter Include="Source Files\Shaders\Geom">
       <UniqueIdentifier>{08b39d4b-ea76-4a8a-864b-002655b05e1d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Lua">
+      <UniqueIdentifier>{abb24386-1061-451c-8a16-98b66c573be0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -117,9 +120,6 @@
     </ClInclude>
     <ClInclude Include="Pipe_Static.hpp">
       <Filter>Header Files\Pipelines</Filter>
-    </ClInclude>
-    <ClInclude Include="LuaScripting.hpp">
-      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MyEventReceiver.hpp">
       <Filter>Header Files\Client Implementations</Filter>
@@ -261,6 +261,30 @@
     </ClInclude>
     <ClInclude Include="Pipe_Transparent.hpp">
       <Filter>Header Files\Pipelines</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaScripting.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_Ent.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="LuaScripting.impl.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_GameMode.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_Item.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_Utility.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_Vector3.hpp">
+      <Filter>Header Files\Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="Lua_Player.hpp">
+      <Filter>Header Files\Lua</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

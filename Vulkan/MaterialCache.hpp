@@ -8,6 +8,7 @@ namespace WorldEngine
 	}
 }
 //
+class TriangleMesh;	//	Forward Declaration
 #include "PipelineObject.hpp"
 //
 #include "Import_GLTF.hpp"

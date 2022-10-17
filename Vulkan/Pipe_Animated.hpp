@@ -3,8 +3,31 @@
 namespace Pipeline {
 	struct Animated : public PipelineObject
 	{
+		std::vector<TriangleMesh*> MeshCache;
 
-		~Animated() {}
+		TriangleMesh* createMesh(const char* FileName, GLTFInfo* GLTFInfo_, bool bCastsShadows)
+		{
+			//
+			//	Return mesh if already exists
+			for (auto& Mesh : MeshCache) {
+				if (Mesh->FileName == FileName) {
+					return Mesh;
+				}
+			}
+			//
+			//	Create mesh if not exists
+			TriangleMesh* Mesh = new TriangleMesh(this, FileName, GLTFInfo_, GLTFInfo_->DiffuseTex, GLTFInfo_->NormalTex, bCastsShadows, true);
+			Mesh->Name = "Animated";
+			MeshCache.push_back(Mesh);
+			return Mesh;
+		}
+
+		~Animated()
+		{
+			for (auto& Mesh : MeshCache) {
+				delete Mesh;
+			}
+		}
 
 		Animated(VkPipelineCache PipelineCache)
 			: PipelineObject()
@@ -12,14 +35,16 @@ namespace Pipeline {
 			//
 			//	DescriptorSetLayout
 			std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-				//	Binding 0 : Vertex UBO
+				//	Binding 0 : Camera UBO
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 0),
 				//	Binding 1 : Joint Matrices
 				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 1),
-				//	Binding 2 : Position/Color texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2),
-				//	Binding 3 : Normal texture target
-				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3)
+				//	Binding 2 : Joint Matrices
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, 2),
+				//	Binding 3 : Color texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 3),
+				//	Binding 4 : Normal texture target
+				vks::initializers::descriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 4)
 			};
 			VkDescriptorSetLayoutCreateInfo descriptorLayout = vks::initializers::descriptorSetLayoutCreateInfo(setLayoutBindings);
 			VK_CHECK_RESULT(vkCreateDescriptorSetLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorLayout, nullptr, &descriptorSetLayout));
@@ -27,12 +52,6 @@ namespace Pipeline {
 			//
 			//	Pipeline Layout
 			VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = vks::initializers::pipelineLayoutCreateInfo(&descriptorSetLayout, 1);
-			VkPushConstantRange push_constant;
-			push_constant.offset = 0;
-			push_constant.size = sizeof(CameraPushConstant);
-			push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-			pipelineLayoutCreateInfo.pPushConstantRanges = &push_constant;
-			pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
 			VK_CHECK_RESULT(vkCreatePipelineLayout(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout));
 
 			//
@@ -100,7 +119,8 @@ namespace Pipeline {
 		//	Create Descriptor
 		//
 		//
-		DescriptorObject* createDescriptor(const TextureObject* TextureColor, const TextureObject* TextureNormal, const std::vector<VkBuffer>& UniformBuffers, const std::vector<VkBuffer>& StorageBuffers, const size_t SSBOSize) {
+		//	TODO: Pass in StorageBuffers payload instead of vector so we can send in multiple buffer 'pools'.
+		DescriptorObject*const createDescriptor(const TriangleMesh*const Mesh) {
 			DescriptorObject* NewDescriptor = new DescriptorObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice);
 			//
 			//	Create Descriptor Pool
@@ -113,42 +133,51 @@ namespace Pipeline {
 			VK_CHECK_RESULT(vkCreateDescriptorPool(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &descriptorPoolInfo, nullptr, &NewDescriptor->DescriptorPool));
 			//
 			//	Create and Update individual Descriptor sets
-			NewDescriptor->DescriptorSets.resize(WorldEngine::VulkanDriver::swapChain.images.size());
-			for (size_t i = 0; i < WorldEngine::VulkanDriver::swapChain.images.size(); i++) {
+			size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
+			NewDescriptor->DescriptorSets.resize(SwapChainSize);
+			for (size_t i = 0; i < SwapChainSize; i++) {
 				VkDescriptorSetAllocateInfo allocInfo = vks::initializers::descriptorSetAllocateInfo(NewDescriptor->DescriptorPool, &descriptorSetLayout, 1);
 				VK_CHECK_RESULT(vkAllocateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &allocInfo, &NewDescriptor->DescriptorSets[i]));
 
-				VkDescriptorBufferInfo bufferInfo = {};
-				bufferInfo.buffer = UniformBuffers[i];
-				bufferInfo.offset = 0;
-				bufferInfo.range = sizeof(UniformBufferObject);
-
-				VkDescriptorBufferInfo bufferInfo2 = {};
-				bufferInfo2.buffer = StorageBuffers[i];
-				bufferInfo2.offset = 0;
-				bufferInfo2.range = SSBOSize;
+				//
+				VkDescriptorBufferInfo bufferInfo_camera = {};
+				bufferInfo_camera.buffer = WorldEngine::SceneGraph::GetCamera()->uboCamBuff[i];
+				bufferInfo_camera.offset = 0;
+				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
+				//
+				VkDescriptorBufferInfo bufferInfo_InstanceData_Animation = {};
+				bufferInfo_InstanceData_Animation.buffer = Mesh->instanceStorageSpaceBuffers[i+SwapChainSize];
+				bufferInfo_InstanceData_Animation.offset = 0;
+				bufferInfo_InstanceData_Animation.range = VK_WHOLE_SIZE;
+				//
+				VkDescriptorBufferInfo bufferInfo_IBP = {};
+				bufferInfo_IBP.buffer = Mesh->IBP_Buffer;
+				bufferInfo_IBP.offset = 0;
+				bufferInfo_IBP.range = VK_WHOLE_SIZE;
 
 				VkDescriptorImageInfo textureImageColor =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureColor->ImageView,
+						Mesh->Texture_Albedo->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				VkDescriptorImageInfo textureImageNormal =
 					vks::initializers::descriptorImageInfo(
 						Sampler,
-						TextureNormal->ImageView,
+						Mesh->Texture_Normal->ImageView,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-					// Binding 0 : vertex data
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo),
+					// Binding 0 : Camera UBO
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferInfo_camera),
 					// Binding 1 : Joint Matrices Storage Buffer
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &bufferInfo2),
-					// Binding 2 : color
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &textureImageColor),
-					// Binding 3 : normal
-					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageNormal)
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &bufferInfo_InstanceData_Animation),
+					// Binding 2 : Joint Inverse Bind Poses Buffer
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &bufferInfo_IBP),
+					// Binding 3 : color
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3, &textureImageColor),
+					// Binding 4 : normal
+					vks::initializers::writeDescriptorSet(NewDescriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textureImageNormal)
 				};
 
 				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
@@ -158,247 +187,100 @@ namespace Pipeline {
 		}
 		//
 		//
-		//	Create Texture
+		//	Update Descriptor
 		//
 		//
-		TextureObject* createTextureImage(const std::string& File) {
-			//printf("[Pipe][Default]: CreateTextureImage (%s)\n", File.c_str());
-			if (_Textures.count(File) == 1) {
-				//printf("\tReusing Existing Texture\n");
-				return _Textures[File];
-			}
-			else {
-				auto Tex = _Textures.emplace(File, new TextureObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, WorldEngine::VulkanDriver::allocator)).first->second;
-				//printf("\tLoad New Texture: %s\n", File.c_str());
-				const unsigned int error = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, File);
-
-				if (error) {
-					//printf("\t\tPNG Decode Error: (%i) %s\n\t\tUsing Default (missingimage.png)\n", error, lodepng_error_text(error));
-					const unsigned int error2 = lodepng::decode(Tex->Pixels, Tex->Width, Tex->Height, "media/missingimage.png");
-					if (error2) {
-						_Textures.erase(File);
-						delete Tex;
-						return nullptr;
-					}
-				}
-
-				const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
-
+		inline void updateDescriptor(DescriptorObject*const Descriptor, const TriangleMesh*const Mesh) final
+		{
+			size_t SwapChainSize = WorldEngine::VulkanDriver::swapChain.images.size();
+			for (size_t i = 0; i < SwapChainSize; i++) {
+				VkDescriptorBufferInfo bufferInfo_InstanceData = {};
+				bufferInfo_InstanceData.buffer = Mesh->instanceStorageSpaceBuffers[i];
+				bufferInfo_InstanceData.offset = 0;
+				bufferInfo_InstanceData.range = VK_WHOLE_SIZE;
 				//
-				//	Image Staging Buffer
-				VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-				stagingBufferInfo.size = imageSize;
-				stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-				stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-				VmaAllocationCreateInfo allocInfo = {};
-				allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-				allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-				VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
-				VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
-				vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
-
-				memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
-				Tex->Pixels.clear();
-				Tex->Pixels.shrink_to_fit();
-
-				VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-				imageInfo.imageType = VK_IMAGE_TYPE_2D;
-				imageInfo.extent.width = static_cast<uint32_t>(Tex->Width);
-				imageInfo.extent.height = static_cast<uint32_t>(Tex->Height);
-				imageInfo.extent.depth = 1;
-				imageInfo.mipLevels = 1;
-				imageInfo.arrayLayers = 1;
-				imageInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-				imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-				imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-				imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-				imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-
-				allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-				vmaCreateImage(WorldEngine::VulkanDriver::allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
+				VkDescriptorBufferInfo bufferInfo_camera = {};
+				bufferInfo_camera.buffer = WorldEngine::SceneGraph::GetCamera()->uboCamBuff[i];
+				bufferInfo_camera.offset = 0;
+				bufferInfo_camera.range = sizeof(CameraUniformBuffer);
 				//
-				//	CPU->GPU Copy
-				VkCommandBuffer commandBuffer = WorldEngine::VulkanDriver::beginSingleTimeCommands();
-				VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-				imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-				imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				imgMemBarrier.subresourceRange.baseMipLevel = 0;
-				imgMemBarrier.subresourceRange.levelCount = 1;
-				imgMemBarrier.subresourceRange.baseArrayLayer = 0;
-				imgMemBarrier.subresourceRange.layerCount = 1;
-				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				imgMemBarrier.image = Tex->Image;
-				imgMemBarrier.srcAccessMask = 0;
-				imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				VkDescriptorBufferInfo bufferInfo_InstanceData_Animation = {};
+				bufferInfo_InstanceData_Animation.buffer = Mesh->instanceStorageSpaceBuffers[i+SwapChainSize];
+				bufferInfo_InstanceData_Animation.offset = 0;
+				bufferInfo_InstanceData_Animation.range = VK_WHOLE_SIZE;
+				//
+				VkDescriptorBufferInfo bufferInfo_IBP = {};
+				bufferInfo_IBP.buffer = Mesh->IBP_Buffer;
+				bufferInfo_IBP.offset = 0;
+				bufferInfo_IBP.range = VK_WHOLE_SIZE;
 
-				vkCmdPipelineBarrier(
-					commandBuffer,
-					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-					VK_PIPELINE_STAGE_TRANSFER_BIT,
-					0,
-					0, nullptr,
-					0, nullptr,
-					1, &imgMemBarrier);
+				VkDescriptorImageInfo textureImageColor =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						Mesh->Texture_Albedo->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-				VkBufferImageCopy region = {};
-				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-				region.imageSubresource.layerCount = 1;
-				region.imageExtent.width = static_cast<uint32_t>(Tex->Width);
-				region.imageExtent.height = static_cast<uint32_t>(Tex->Height);
-				region.imageExtent.depth = 1;
+				VkDescriptorImageInfo textureImageNormal =
+					vks::initializers::descriptorImageInfo(
+						Sampler,
+						Mesh->Texture_Normal->ImageView,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-				vkCmdCopyBufferToImage(commandBuffer, stagingImageBuffer, Tex->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+				std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
+					// Binding 0 : Instancing SSBO
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferInfo_InstanceData),
+					// Binding 1 : Camera UBO
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, &bufferInfo_camera),
+					// Binding 2 : Joint Matrices Storage Buffer
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &bufferInfo_InstanceData_Animation),
+					// Binding 3 : Joint Inverse Bind Poses Buffer
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 3, &bufferInfo_IBP),
+					// Binding 4 : color
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 4, &textureImageColor),
+					// Binding 5 : normal
+					vks::initializers::writeDescriptorSet(Descriptor->DescriptorSets[i], VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 5, &textureImageNormal)
+				};
 
-				imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-				imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-				imgMemBarrier.image = Tex->Image;
-				imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-				imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-				vkCmdPipelineBarrier(
-					commandBuffer,
-					VK_PIPELINE_STAGE_TRANSFER_BIT,
-					VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-					0,
-					0, nullptr,
-					0, nullptr,
-					1, &imgMemBarrier);
-
-				WorldEngine::VulkanDriver::endSingleTimeCommands(commandBuffer);
-
-				vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingImageBuffer, stagingImageBufferAlloc);
-
-				VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-				textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-				textureImageViewInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
-				textureImageViewInfo.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-				textureImageViewInfo.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-				textureImageViewInfo.image = Tex->Image;
-				vkCreateImageView(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Tex->ImageView);
-
-				return Tex;
+				vkUpdateDescriptorSets(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()), writeDescriptorSets.data(), 0, nullptr);
 			}
 		}
+		//
+		//
+		//	Reset Command Pools
+		//
+		//
+		inline void ResetCommandPools(std::vector<VkCommandBuffer>& CommandBuffers, std::vector<TriangleMesh*>& MeshCache)
+		{
+			for (size_t i = 0; i < CommandBuffers.size(); i++)
+			{
+				//
+				//	Secondary CommandBuffer Inheritance Info
+				VkCommandBufferInheritanceInfo inheritanceInfo = vks::initializers::commandBufferInheritanceInfo();
+				inheritanceInfo.renderPass = WorldEngine::VulkanDriver::renderPass;
+				inheritanceInfo.framebuffer = WorldEngine::VulkanDriver::frameBuffers_Main[i];
+				inheritanceInfo.subpass = 1;
+				//
+				//	Secondary CommandBuffer Begin Info
+				VkCommandBufferBeginInfo commandBufferBeginInfo = vks::initializers::commandBufferBeginInfo();
+				commandBufferBeginInfo.pInheritanceInfo = &inheritanceInfo;
+				commandBufferBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+				VK_CHECK_RESULT(vkBeginCommandBuffer(CommandBuffers[i], &commandBufferBeginInfo));
 
-		TextureObject* createTextureImage2(tinygltf::Image& ImgData) {
-			//printf("[Pipe][Default]: CreateTextureImage (%s)\n", File.c_str());
-
-			auto Tex = new TextureObject(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, WorldEngine::VulkanDriver::allocator);
-			Tex->Width = ImgData.width;
-			Tex->Height = ImgData.height;
-			Tex->Pixels = ImgData.image;
-
-			const VkDeviceSize imageSize = Tex->Width * Tex->Height * 4;
-
-			//
-			//	Image Staging Buffer
-			VkBufferCreateInfo stagingBufferInfo = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-			stagingBufferInfo.size = imageSize;
-			stagingBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-			stagingBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-			VmaAllocationCreateInfo allocInfo = {};
-			allocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-			allocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-			VkBuffer stagingImageBuffer = VK_NULL_HANDLE;
-			VmaAllocation stagingImageBufferAlloc = VK_NULL_HANDLE;
-			vmaCreateBuffer(WorldEngine::VulkanDriver::allocator, &stagingBufferInfo, &allocInfo, &stagingImageBuffer, &stagingImageBufferAlloc, nullptr);
-
-			memcpy(stagingImageBufferAlloc->GetMappedData(), Tex->Pixels.data(), static_cast<size_t>(imageSize));
-			Tex->Pixels.clear();
-			Tex->Pixels.shrink_to_fit();
-
-			VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
-			imageInfo.imageType = VK_IMAGE_TYPE_2D;
-			imageInfo.extent.width = static_cast<uint32_t>(Tex->Width);
-			imageInfo.extent.height = static_cast<uint32_t>(Tex->Height);
-			imageInfo.extent.depth = 1;
-			imageInfo.mipLevels = 1;
-			imageInfo.arrayLayers = 1;
-			imageInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
-			imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-			imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-			imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-
-			allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-			vmaCreateImage(WorldEngine::VulkanDriver::allocator, &imageInfo, &allocInfo, &Tex->Image, &Tex->Allocation, nullptr);
-			//
-			//	CPU->GPU Copy
-			VkCommandBuffer commandBuffer = WorldEngine::VulkanDriver::beginSingleTimeCommands();
-			VkImageMemoryBarrier imgMemBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-			imgMemBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			imgMemBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			imgMemBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			imgMemBarrier.subresourceRange.baseMipLevel = 0;
-			imgMemBarrier.subresourceRange.levelCount = 1;
-			imgMemBarrier.subresourceRange.baseArrayLayer = 0;
-			imgMemBarrier.subresourceRange.layerCount = 1;
-			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			imgMemBarrier.image = Tex->Image;
-			imgMemBarrier.srcAccessMask = 0;
-			imgMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &imgMemBarrier);
-
-			VkBufferImageCopy region = {};
-			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			region.imageSubresource.layerCount = 1;
-			region.imageExtent.width = static_cast<uint32_t>(Tex->Width);
-			region.imageExtent.height = static_cast<uint32_t>(Tex->Height);
-			region.imageExtent.depth = 1;
-
-			vkCmdCopyBufferToImage(commandBuffer, stagingImageBuffer, Tex->Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-			imgMemBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-			imgMemBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imgMemBarrier.image = Tex->Image;
-			imgMemBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			imgMemBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-				0,
-				0, nullptr,
-				0, nullptr,
-				1, &imgMemBarrier);
-
-			WorldEngine::VulkanDriver::endSingleTimeCommands(commandBuffer);
-
-			vmaDestroyBuffer(WorldEngine::VulkanDriver::allocator, stagingImageBuffer, stagingImageBufferAlloc);
-
-			VkImageViewCreateInfo textureImageViewInfo = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
-			textureImageViewInfo.image = Tex->Image;
-			textureImageViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			textureImageViewInfo.format = VK_FORMAT_B8G8R8A8_UNORM;
-			textureImageViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			textureImageViewInfo.subresourceRange.baseMipLevel = 0;
-			textureImageViewInfo.subresourceRange.levelCount = 1;
-			textureImageViewInfo.subresourceRange.baseArrayLayer = 0;
-			textureImageViewInfo.subresourceRange.layerCount = 1;
-			vkCreateImageView(WorldEngine::VulkanDriver::_VulkanDevice->logicalDevice, &textureImageViewInfo, nullptr, &Tex->ImageView);
-
-			_Textures2.push_back(Tex);
-			return Tex;
+				//
+				//	Begin recording commandbuffer				
+				vkCmdBindPipeline(CommandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+				vkCmdSetViewport(CommandBuffers[i], 0, 1, &WorldEngine::VulkanDriver::viewport_Deferred);
+				vkCmdSetScissor(CommandBuffers[i], 0, 1, &WorldEngine::VulkanDriver::scissor_Deferred);
+				//
+				//	Draw all SceneNodes
+				for (auto& Mesh : MeshCache)
+				{
+					Mesh->draw(CommandBuffers[i], static_cast<uint32_t>(i));
+				}
+				//
+				//	End scene node pass
+				VK_CHECK_RESULT(vkEndCommandBuffer(CommandBuffers[i]));
+			}
 		}
 	};
 }

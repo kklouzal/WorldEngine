@@ -77,6 +77,7 @@ namespace WorldEngine
 
 		std::vector<VkCommandBuffer> commandBuffers_SDW;	//	shadow	//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_NDE;	//	node	//	Doesnt Need Cleanup
+		std::vector<VkCommandBuffer> commandBuffers_ANI;	//	animated//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_CMP;	//	comp	//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_TPT;	//	trans	//	Doesnt Need Cleanup
 		std::vector<VkCommandBuffer> commandBuffers_GUI;	//	gui		//	Doesnt Need Cleanup
@@ -102,10 +103,6 @@ namespace WorldEngine
 
 		void Initialize();
 		void Deinitialize();
-		//
-		//	Lua
-		lua_State* state;
-		void initLua();
 		//
 		//	Main Loop
 		inline void mainLoop();
@@ -175,19 +172,22 @@ namespace WorldEngine
 	}
 }
 
+#include "LuaScripting.hpp"
+//
 #include "EventReceiver.hpp"
 #include "NetCode.hpp"
-
+//
 #include "CEF.hpp"
 #include "Camera.hpp"
 #include "MaterialCache.hpp"
 #include "GUI.hpp"
 
-
 #include "SceneGraph.hpp"
-
+//
 #include "NetCode.impl.hpp"
 #include "EventReceiver.impl.hpp"
+//
+#include "LuaScripting.impl.hpp"
 
 namespace WorldEngine
 {
@@ -263,6 +263,14 @@ namespace WorldEngine
 			{
 				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
 				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers_NDE[i]));
+			}
+			//
+			//	Per-Frame Secondary Animated Node Command Buffers
+			commandBuffers_ANI.resize(frameBuffers_Main.size());
+			for (int i = 0; i < frameBuffers_Main.size(); i++)
+			{
+				VkCommandBufferAllocateInfo cmdBufAllocateInfo = vks::initializers::commandBufferAllocateInfo(commandPools[i], VK_COMMAND_BUFFER_LEVEL_SECONDARY, 1);
+				VK_CHECK_RESULT(vkAllocateCommandBuffers(_VulkanDevice->logicalDevice, &cmdBufAllocateInfo, &commandBuffers_ANI[i]));
 			}
 			//
 			//	Per-Frame Secondary Composition Command Buffers
@@ -378,11 +386,8 @@ namespace WorldEngine
 			//	CEF Post Initialization
 			CEF::PostInitialize();
 			//
-			//	KNet Initialization
-			NetCode::Initialize("192.168.1.98", 8002, 8003);
-			//
 			//	LUA Initialization
-			initLua();
+			LUA::Initialize();
 			//
 			//	Core Classes
 			SceneGraph::Initialize();
@@ -395,7 +400,7 @@ namespace WorldEngine
 		//	Deinitialize
 		void Deinitialize()
 		{
-			lua_close(state);
+			LUA::Deinitialize();
 			CEF::Deinitialize();
 			SceneGraph::Deinitialize();
 			MaterialCache::Deinitialize();
@@ -464,7 +469,7 @@ namespace WorldEngine
 				//	Mark Frame Start Time and Calculate Previous Frame Statistics
 				//
 				//	Push previous delta to rolling average
-				auto Now = std::chrono::steady_clock::now();
+				const auto Now = std::chrono::steady_clock::now();
 				deltaFrame = std::chrono::duration<float, std::milli>(Now - startFrame).count() / 1000.f;
 				startFrame = Now;
 				PushFrameDelta(deltaFrame);
@@ -487,9 +492,10 @@ namespace WorldEngine
 				//printf("Delta Frame %f\n", deltaFrame);
 				if (deltaFrame > 0.0f)
 				{
-					//if (isWorld) {
-						dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
-					//}
+					//
+					//	Tick Scene Nodes
+					SceneGraph::OnTick();
+					dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
 					updateUniformBufferComposition(currentFrame);
 					//
 					//	Frustum Culling
@@ -616,14 +622,20 @@ namespace WorldEngine
 			if (MaterialCache::bRecordBuffers)
 			{
 				MaterialCache::GetPipe_Static()->ResetCommandPools(commandBuffers_NDE, MaterialCache::GetPipe_Static()->MeshCache);
+				MaterialCache::GetPipe_Animated()->ResetCommandPools(commandBuffers_ANI, MaterialCache::GetPipe_Animated()->MeshCache);
 				//MaterialCache::bRecordBuffers = false;
 			}
 			for (auto& Mesh : MaterialCache::GetPipe_Static()->MeshCache)
 			{
 				Mesh->updateSSBuffer(currentFrame);
 			}
+			for (auto& Mesh : MaterialCache::GetPipe_Animated()->MeshCache)
+			{
+				Mesh->updateSSBuffer(currentFrame);
+			}
 			//==================================================
 			vkCmdExecuteCommands(primaryCommandBuffers_Final[currentFrame], 1, &commandBuffers_NDE[currentFrame]);
+			vkCmdExecuteCommands(primaryCommandBuffers_Final[currentFrame], 1, &commandBuffers_ANI[currentFrame]);
 			vkCmdNextSubpass(primaryCommandBuffers_Final[currentFrame], VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
 			//==================================================
@@ -643,7 +655,7 @@ namespace WorldEngine
 			std::vector<VkCommandBuffer> secondaryCommandBuffers_Final;
 			if (MaterialCache::bRecordBuffers)
 			{
-				MaterialCache::GetPipe_Transparent()->ResetCommandPools(commandBuffers_TPT, MaterialCache::GetPipe_Static()->MeshCache);
+				MaterialCache::GetPipe_Transparent()->ResetCommandPools(commandBuffers_TPT, MaterialCache::GetPipe_Transparent()->MeshCache);
 				MaterialCache::bRecordBuffers = false;
 			}
 			secondaryCommandBuffers_Final.push_back(commandBuffers_TPT[currentFrame]);
@@ -687,7 +699,7 @@ namespace WorldEngine
 				//	Crosshairs
 				if (!_EventReceiver->IsCursorActive()) {
 					ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-					ImGui::SetNextWindowPos(ImVec2(WorldEngine::VulkanDriver::WIDTH / 2 - 15, WorldEngine::VulkanDriver::HEIGHT / 2 - 15));
+					ImGui::SetNextWindowPos(ImVec2(static_cast<float>(WorldEngine::VulkanDriver::WIDTH / 2 - 15), static_cast<float>(WorldEngine::VulkanDriver::HEIGHT / 2 - 15)));
 					ImGui::SetNextWindowBgAlpha(0.f);
 					ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
 					ImGui::Begin("Example: Simple overlay", 0, window_flags);
@@ -763,23 +775,7 @@ namespace WorldEngine
 			//	Physically upload buffers to GPU
 			WorldEngine::MaterialCache::GetPipe_Composition()->UploadBuffersToGPU(CurFrame);
 			WorldEngine::MaterialCache::GetPipe_Shadow()->UploadBuffersToGPU(CurFrame);
-			SceneGraph::GetCamera()->UpdateCameraUBO(CurFrame, WIDTH, HEIGHT, 0.1f, 1024.f, 90.f);
-		}
-
-		void initLua()
-		{
-			state = luaL_newstate();
-			luaL_openlibs(state);
-			try {
-				int res = luaL_loadfile(state, "lua/main/main.lua");
-				if (res != LUA_OK) throw LuaError(state);
-
-				res = lua_pcall(state, 0, LUA_MULTRET, 0);
-				if (res != LUA_OK) throw LuaError(state);
-			}
-			catch (std::exception& e) {
-				printf("Lua Error: %s\n", e.what());
-			}
+			SceneGraph::GetCamera()->UpdateCameraUBO(CurFrame, static_cast<float>(WIDTH), static_cast<float>(HEIGHT), 0.1f, 1024.f, 90.f);
 		}
 
 		void setEventReceiver(EventReceiver* _EventRcvr)
@@ -1021,9 +1017,9 @@ namespace WorldEngine
 		void createGBufferAttachments()
 		{
 			attachments.shadow.layerCount = LIGHT_COUNT;
-			createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, &attachments.shadow);				// shadows
+			createAttachment(depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, &attachments.shadow);						// shadows
 			createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, &attachments.position);	// (World space) Positions
-			createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, &attachments.normal);		// (World space) Normals
+			createAttachment(VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, &attachments.normal);	// (World space) Normals
 			createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT, &attachments.albedo);			// Albedo (color)
 		}
 		void createRenderPass()

@@ -6,15 +6,33 @@ public:
 
 	bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception)
 	{
-		if (name == "myfunc")
+		if (name == "ServerConnect")
 		{
 			if (arguments.size() == 2)
 			{
 				std::string RemoteIP = arguments[0]->GetStringValue().ToString();
 				unsigned int RemotePort = arguments[1]->GetUIntValue();
-				printf("[SUBPROCESS] MYFUNC %s %u\n", RemoteIP.c_str(), RemotePort);
+				printf("[SUBPROCESS] ServerConnect %s %u\n", RemoteIP.c_str(), RemotePort);
 
-				CefRefPtr<CefProcessMessage> msg = CefProcessMessage::Create("My_Message");
+				CefRefPtr<CefProcessMessage> msg = CefProcessMessage::Create("ServerConnect");
+				CefRefPtr<CefListValue> args = msg->GetArgumentList();
+				args->SetString(0, arguments[0]->GetStringValue());
+				args->SetInt(1, arguments[1]->GetIntValue());
+
+				CefRefPtr<CefV8Context> context = CefV8Context::GetCurrentContext();
+				context->GetBrowser()->GetMainFrame()->SendProcessMessage(PID_BROWSER, msg);
+				return true;
+			}
+		}
+		else if (name == "NetListen")
+		{
+			if (arguments.size() == 2)
+			{
+				std::string LocalIP = arguments[0]->GetStringValue().ToString();
+				unsigned int LocalPort = arguments[1]->GetUIntValue();
+				printf("[SUBPROCESS] NetListen %s %u\n", LocalIP.c_str(), LocalPort);
+
+				CefRefPtr<CefProcessMessage> msg = CefProcessMessage::Create("NetListen");
 				CefRefPtr<CefListValue> args = msg->GetArgumentList();
 				args->SetString(0, arguments[0]->GetStringValue());
 				args->SetInt(1, arguments[1]->GetIntValue());
@@ -60,20 +78,29 @@ public:
 	void OnWebKitInitialized()
 	{
 		std::string extensionCode =
-			"var test;"
-			"if (!test)"
-			"test = {};"
+			"var WorldEngine;"
+			"if (!WorldEngine)"
+			"WorldEngine = {};"
 			"(function() {"
-			"test.myfunc = function(RemoteAddr, RemotePort) {"
-			"native function myfunc(RemoteAddr, RemotePort);"
-			"return myfunc(RemoteAddr, RemotePort);"
-			"};"
+				//	JS --> C++
+				"WorldEngine.ServerConnect = function(RemoteAddr, RemotePort) {"
+					"native function ServerConnect(RemoteAddr, RemotePort);"
+					"return ServerConnect(RemoteAddr, RemotePort);"
+				"};"
+				"WorldEngine.NetListen = function(LocalAddr, LocalPort) {"
+					"native function NetListen(LocalAddr, LocalPort);"
+					"return NetListen(LocalAddr, LocalPort);"
+				"};"
+				//	C++ --> JS
+				"WorldEngine.PrepareFrame = function(URL) {"
+					"prepareFrame('mainmenu.html');"
+				"};"
 			"})();";
 
 		CefRefPtr<CefV8Handler> handler = new MyV8Handler();
-		CefRegisterExtension("v8/test", extensionCode, handler);
+		CefRegisterExtension("v8/WorldEngine", extensionCode, handler);
 	}
-
+	//prepareFrame('mainmenu.html')
 	IMPLEMENT_REFCOUNTING(MyApp);
 };
 

@@ -175,15 +175,19 @@ public:
 					//
 					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
 					if (!IsCursorActive() && IsWorldInitialized()) {
-						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0.0f, 15.0f, 0.0f));
+						WorldEngine::NetCode::TrySpawn_TriangleMeshSceneNode("media/models/box.gltf", 10.f, btVector3(0.0f, -80.0f, 0.0f));
 					}
 				}
 				else if (NewEvent.Key == GLFW_KEY_Z) {
 					//
 					//	Only keyboard-spawn-objects when menus are closed and the world is initialized
 					if (!IsCursorActive() && IsWorldInitialized()) {
-						//WorldEngine::SceneGraph::createSkinnedMeshSceneNode("media/models/cesium_man.gltf", 10.f, ndVector(0.0f, 15.0f, 0.0f, 1.0f));
+						WorldEngine::SceneGraph::createSkinnedMeshSceneNode(250, "media/models/cesium_man.gltf", 10.f, btVector3(50.0f, -80.0f, 50.0f));
 					}
+				}
+				else if (NewEvent.Key == GLFW_KEY_J) {
+					std::string JS("WorldEngine.PrepareFrame('MainMenu.html');");
+					WorldEngine::CEF::ExecuteJS(JS.c_str());
 				}
 			}
 			//
@@ -252,22 +256,15 @@ public:
 						if (CurItem)
 						{
 							//
-							//	Calculate Ray
-							Camera* Cam = WorldEngine::SceneGraph::GetCamera();
-							auto CamPos = Cam->Pos;
-							btVector3 From(CamPos.x, CamPos.y, CamPos.z);
-							auto CamDir = CamPos + Cam->Ang * 1000.0f;
-							btVector3 To(CamDir.x, CamDir.y, CamDir.z);
-							//
 							//	Item Action
 							if (NewEvent.Key == GLFW_MOUSE_BUTTON_LEFT)
 							{
-								CurItem->StartPrimaryAction(WorldEngine::SceneGraph::castRay(From, To), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
+								CurItem->StartPrimaryAction();
 								isPrimary = true;
 							}
 							else if (NewEvent.Key == GLFW_MOUSE_BUTTON_RIGHT) 
 							{
-								CurItem->StartSecondaryAction(WorldEngine::SceneGraph::castRay(From, To), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
+								CurItem->StartSecondaryAction();
 								isSecondary = true;
 							}
 						}
@@ -329,14 +326,14 @@ public:
 					{
 						if (Character->GetCurrentItem())
 						{
-							Character->GetCurrentItem()->ReceiveMouseMovement(m_PosX_Delta, m_PosY_Delta, btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
+							Character->GetCurrentItem()->ReceiveMouseMovement(static_cast<float>(m_PosX_Delta), static_cast<float>(m_PosY_Delta), btVector3(Cam->Ang.x, Cam->Ang.y, Cam->Ang.z));
 						}
 					}
 					else
 					{
 						//
 						//	Rotate the camera via mouse movement
-						Cam->DoLook(m_PosX_Delta, m_PosY_Delta);
+						Cam->DoLook(static_cast<float>(m_PosX_Delta), static_cast<float>(m_PosY_Delta));
 						//
 						//	Rotate the character via camera movement
 						

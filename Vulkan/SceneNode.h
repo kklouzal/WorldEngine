@@ -4,14 +4,13 @@ class SceneNode {
 private:
 	uintmax_t NET_LastUpdateID = 0;
 protected:
-	uintmax_t NodeID = 0;
+	const uintmax_t NodeID;
+	const std::string NodeName;
+	//
 	btRigidBody* _RigidBody = nullptr;
 	btCollisionShape* _CollisionShape = nullptr;
 public:
 	glm::mat4 Model{};
-	glm::vec3 Pos{};
-	glm::vec3 Rot{};
-	std::string Name = "N/A";
 	Camera* _Camera = nullptr;
 	bool isFrozen = false;
 	bool canPhys = true;
@@ -19,33 +18,70 @@ public:
 	//	per frame check
 	bool bNeedsUpdate[3];
 public:
-	SceneNode()
+	SceneNode(const uintmax_t NodeID, const char*const NodeName = "[Unnamed SceneNode]")
+		: NodeID(NodeID), NodeName(NodeName)
 	{
 		bNeedsUpdate[0] = true;
 		bNeedsUpdate[1] = true;
 		bNeedsUpdate[2] = true;
 	}
+
 	virtual ~SceneNode()
 	{
-		WorldEngine::VulkanDriver::dynamicsWorld->removeRigidBody(_RigidBody);
-		delete _RigidBody->getMotionState();
-		delete _RigidBody;
+		if (_RigidBody)
+		{
+			WorldEngine::VulkanDriver::dynamicsWorld->removeRigidBody(_RigidBody);
+			delete _RigidBody->getMotionState();
+			delete _RigidBody;
+		}
 		printf("Destroy Base SceneNode (%ju)\n", NodeID);
 	}
-	virtual void drawFrame(const uint32_t &CurFrame) = 0;
+	virtual void onTick() = 0;
+	inline virtual void GPUUpdatePosition(/*const uint32_t& CurFrame*/) = 0;
 	virtual void drawGUI() {}
 
-	void SetNodeID(const uintmax_t ID)
-	{
-		if (NodeID == 0)
-		{
-			NodeID = ID;
-		}
+	inline const uintmax_t GetNodeID() const {
+		return NodeID;
 	}
 
-	const uintmax_t GetNodeID()
-	{
-		return NodeID;
+	inline const char*const GetNodeName() const {
+		return NodeName.c_str();
+	}
+
+	inline const glm::vec4& GetPosition() const {
+		return Model[3];
+	}
+
+	inline void SetPosition(const glm::vec3& Pos) {
+		btTransform trans = _RigidBody->getWorldTransform();
+		trans.setOrigin(btVector3(Pos.x, Pos.y, Pos.z));
+		_RigidBody->setWorldTransform(trans);
+	}
+
+	inline void SetRotation(const glm::vec3& Rot) {
+		btTransform trans = _RigidBody->getWorldTransform();
+		trans.setRotation(btQuaternion(Rot.x, Rot.y, Rot.z));
+		_RigidBody->setWorldTransform(trans);
+	}
+
+	//	TODO: Using camera angle is a placeholder
+	//	Will need to get aim vector based on model Y rotation & x/z rotation of pelvis/spine maybe head? You get the idea..
+	inline const glm::vec3& GetAimVector() const {
+		if (_Camera) {
+			return _Camera->Ang;
+		}
+		//	TODO: Get aim vector for non camera attached scenenodes
+		return std::move(glm::vec3(0, 0, 0));
+	}
+
+	//	TODO: Using camera position is a placeholder
+	//	Will need to get aim position based on weapon fire position attacment location
+	inline const glm::vec3& GetAimPosition() const {
+		if (_Camera) {
+			return _Camera->Pos;
+		}
+		//	TODO: Get aim pos for non camera attached scenenodes
+		return std::move(glm::vec3(0, 0, 0));
 	}
 
 	const bool Net_ShouldUpdate(uintmax_t UniqueID)
@@ -88,8 +124,6 @@ public:
 		bNeedsUpdate[2] = true;
 	}
 
-	virtual void GPUUpdatePosition() {}
-
 	btVector3 GetLinearVelocity()
 	{
 		return _RigidBody->getLinearVelocity();
@@ -108,7 +142,7 @@ public:
 	friend WorldSceneNode* WorldEngine::SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* File);
 	friend CharacterSceneNode* WorldEngine::SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position);
 	friend SkinnedMeshSceneNode* WorldEngine::SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
-	friend TriangleMeshSceneNode* WorldEngine::SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
+	friend TriangleMeshSceneNode* WorldEngine::SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* Classname, const char* File, const float& Mass, const btVector3& Position);
 };
 
 //
@@ -123,7 +157,7 @@ public:
 
 	//
 	//	Sets our initial spawn position
-	void getWorldTransform(btTransform& worldTrans) const {
+	inline void getWorldTransform(btTransform& worldTrans) const final {
 		worldTrans = _btPos;
 		worldTrans.getOpenGLMatrix(ModelPtr);
 		_SceneNode->GPUUpdatePosition();
@@ -131,7 +165,7 @@ public:
 
 	//
 	//	Called whenever the physics representation of this SceneNode is finished moving
-	void setWorldTransform(const btTransform& worldTrans) {
+	inline void setWorldTransform(const btTransform& worldTrans) final {
 		worldTrans.getOpenGLMatrix(ModelPtr);
 		_SceneNode->bNeedsUpdate[0] = true;
 		_SceneNode->bNeedsUpdate[1] = true;

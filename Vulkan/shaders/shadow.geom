@@ -5,21 +5,19 @@
 layout (triangles, invocations = LIGHT_COUNT) in;
 layout (triangle_strip, max_vertices = 3) out;
 
+layout (location = 0) in mat4 inInstanceMat[]; //  location 0,1,2,3
+
 layout (binding = 0) uniform UBO
 {
 	mat4 mvp[LIGHT_COUNT];
-	mat4 instancePos[1024];
 } ubo;
-
-layout (location = 0) in int inInstanceIndex[];
 
 void main()
 {
-	//mat4 instancedPos = ubo.instancePos[inInstanceIndex[0]]; 
 	for (int i = 0; i < gl_in.length(); i++)
 	{
 		gl_Layer = gl_InvocationID;
-		gl_Position = ubo.mvp[gl_InvocationID] * ubo.instancePos[inInstanceIndex[0]] * gl_in[i].gl_Position;
+		gl_Position = ubo.mvp[gl_InvocationID] * inInstanceMat[0] * gl_in[i].gl_Position;
 		EmitVertex();
 	}
 	EndPrimitive();

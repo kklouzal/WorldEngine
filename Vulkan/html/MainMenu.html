@@ -10,9 +10,14 @@
 		
 		<script type="text/javascript">
 		
+			function BindLocalSocket()
+			{
+				WorldEngine.NetListen(document.getElementById("IP_Local").value, Number(document.getElementById("PORT_Local").value));
+			}
+			
 			function ConnectToServer()
 			{
-				test.myfunc(document.getElementById("IP_IN").value, Number(document.getElementById("PORT_IN").value));
+				WorldEngine.ServerConnect(document.getElementById("IP_Remote").value, Number(document.getElementById("PORT_Remote").value));
 			}
 		
 		</script>
@@ -20,11 +25,16 @@
 	
 	<body>
 		<center>
+			<h1>Bind Socket</h1>
+			<input type="text" id="IP_Local" value="192.168.1.98" size=12><input type="text" id="PORT_Local" value="8000" size=3>
+			<br>
+			<input type="button" value="Bind" onclick="BindLocalSocket()">
+			<br>
+			<br>
 			<h1>Connect To Server</h1>
-			<input type="text" id="IP_IN" value="192.168.1.98" size=12><input type="text" id="PORT_IN" value="9001" size=3>
+			<input type="text" id="IP_Remote" value="192.168.1.98" size=12><input type="text" id="PORT_Remote" value="9001" size=3>
 			<br>
 			<input type="button" value="Connect To Server" onclick="ConnectToServer()">
 		</center>
 	</body>
 </html>
-	

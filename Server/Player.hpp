@@ -15,6 +15,7 @@ class Player : public SceneNode
     std::string Model;
     //
     //
+    std::vector<WorldEngine::Item*> Items_;
 public:
     Player(KNet::NetClient* Client, KNet::NetPoint* Point, btVector3 Position = btVector3(50.0f, -100.0f, 50.0f));
     ~Player();
@@ -30,6 +31,21 @@ public:
     const char* GetModelFile()
     {
         return Model.c_str();
+    }
+
+    void GiveItem(WorldEngine::Item* Item)
+    {
+        Items_.push_back(Item);
+        //  TODO: Net message broadcast that this player received this item
+        KNet::NetPacket_Send* Pkt1 = _Client->GetFreePacket((uint8_t)WorldEngine::NetCode::OPID::Item_Update);
+        if (Pkt1) {
+            Pkt1->write<WorldEngine::LUA::Itm::OPID>(WorldEngine::LUA::Itm::OPID::Give );   //  Item Operation ID
+            Pkt1->write<uintmax_t>(Item->GetNodeID());          //  Item NodeID
+            Pkt1->write<const char*>(Item->GetClassname());     //  Item Classname
+            _Point->SendPacket(Pkt1);
+            wxLogMessage("[Player] Send Item Update");
+        }
+        else { wxLogMessage("[Player] Packet UNAVAILABLE!"); }
     }
 };
 
@@ -188,6 +204,7 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
                         {
                             Pkt->write<bool>(true);                         //  true == successfully spawned
                             Pkt->write<uintmax_t>(NewNode->GetNodeID());    //  SceneNode ID
+                            Pkt->write<const char*>("prop_physics");        //  Scripted Classname
                             Pkt->write<const char*>(File);                  //  Model File
                             Pkt->write<float>(Mass);                        //  Mass
                             Pkt->write<float>(Position.x());                //  Position X
@@ -215,6 +232,7 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
                         {
                             Out_Packet->write<bool>(true);                          //  true == successfully spawned
                             Out_Packet->write<uintmax_t>(NodeID);                   //  SceneNode ID
+                            Out_Packet->write<const char*>("prop_physics");        //  Scripted Classname
                             Out_Packet->write<const char*>(Node->GetModelFile());   //  Model File
                             Out_Packet->write<float>(Node->GetMass());              //  Mass
                             //

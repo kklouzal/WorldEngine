@@ -6,9 +6,9 @@ class WorldSceneNode : public SceneNode {
 public:
 	TriangleMesh* _Mesh = nullptr;
 public:
-	WorldSceneNode(TriangleMesh* Mesh)
-		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode() {
-		Name = "World";
+	WorldSceneNode(uintmax_t NodeID, const char*const NodeName, TriangleMesh* Mesh)
+		: _Mesh(Mesh), instanceIndex(Mesh->RegisterInstanceIndex()), SceneNode(NodeID, NodeName)
+	{
 		canPhys = false;
 	}
 
@@ -16,23 +16,23 @@ public:
 		printf("Destroy WorldSceneNode\n");
 	}
 
-	void drawFrame(const uint32_t& CurFrame) {
-		if (bNeedsUpdate[CurFrame])
-		{
-			_Mesh->instanceData[instanceIndex].model = Model;
-			bNeedsUpdate[CurFrame] = false;
-		}
+	void onTick() {
+
 	}
 
-	void GPUUpdatePosition()
+	inline void GPUUpdatePosition(/*const uint32_t& CurFrame*/) final
 	{
+		//if (bNeedsUpdate[CurFrame])
+		//{
 		_Mesh->instanceData[instanceIndex].model = Model;
-		if (_Mesh->bCastsShadows)
+		/*if (_Mesh->bCastsShadows)
 		{
 			if (_Mesh->instanceData_Shadow[instanceIndex] != NULL)
 			{
 				*_Mesh->instanceData_Shadow[instanceIndex] = Model;
 			}
-		}
+		}*/
+		//bNeedsUpdate[CurFrame] = false;
+	//}
 	}
 };
