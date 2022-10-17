@@ -492,10 +492,10 @@ namespace WorldEngine
 				//printf("Delta Frame %f\n", deltaFrame);
 				if (deltaFrame > 0.0f)
 				{
-					dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
 					//
 					//	Tick Scene Nodes
 					SceneGraph::OnTick();
+					dynamicsWorld->stepSimulation(deltaFrame, 5, 1.f/66.f);
 					updateUniformBufferComposition(currentFrame);
 					//
 					//	Frustum Culling

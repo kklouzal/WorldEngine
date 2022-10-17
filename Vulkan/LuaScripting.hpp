@@ -54,6 +54,7 @@ public:
 	}
 };
 
+class SceneNode;
 class Item;
 class CharacterSceneNode;
 
@@ -89,9 +90,15 @@ namespace WorldEngine
 
 		//
 		//	Forward Declarations
+		namespace Ent
+		{
+			void Create(SceneNode* NewObject, const char* Classname);
+			void PushEntity(uintmax_t ObjectID);
+		}
 		namespace Ply
 		{
 			void Create(CharacterSceneNode* NewPlayer, const char* Classname);
+			void PushPlayer(uintmax_t ObjectID);
 		}
 		namespace Itm
 		{

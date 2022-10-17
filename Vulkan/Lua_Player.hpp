@@ -24,7 +24,6 @@ namespace WorldEngine
 				CharacterSceneNode* Itm = reinterpret_cast<CharacterSceneNode*>(lua_touserdata(L, -1));
 				size_t DataSize = sizeof(glm::vec3);
 				void* Data = lua_newuserdata(L, DataSize);
-				//glm::vec3(Itm->Model[3]);
 				memcpy(Data, &Itm->GetPosition(), DataSize);
 				//	-1	(1)	|	vec3 userdata
 				//

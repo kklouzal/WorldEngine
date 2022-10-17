@@ -6,6 +6,58 @@ namespace WorldEngine
 	{
 		namespace Vector3
 		{
+			int Distance(lua_State* L)
+			{
+				//	-2	|	Vector3 userdata (left)
+				//	-1	|	Vector3 userdata (right)
+				//
+				lua_getfield(L, -2, "__name");
+				//	-3	|	Vector3 userdata (left)
+				//	-2	|	Vector3 userdata (right)
+				//	-1	|	__name
+				if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+				{
+					lua_remove(L, lua_gettop(L));
+					//	-2	|	Vector3 userdata (left)
+					//	-1	|	Vector3 userdata (right)
+					//
+					lua_getfield(L, -1, "__name");
+					//	-3	|	Vector3 userdata (left)
+					//	-2	|	Vector3 userdata (right)
+					//	-1	|	__name
+					if (strcmp(lua_tostring(L, -1), "Vector3") == 0)
+					{
+						lua_remove(L, lua_gettop(L));
+						//	-2	|	Vector3 userdata (left)
+						//	-1	|	Vector3 userdata (right)
+						//
+						size_t DataSize = sizeof(glm::vec3);
+						//
+						glm::vec3 VecLhs{};
+						memcpy(&VecLhs, lua_touserdata(L, -2), DataSize);
+						glm::vec3 VecRhs{};
+						memcpy(&VecRhs, lua_touserdata(L, -1), DataSize);
+						//
+						lua_pushnumber(L, glm::distance(VecLhs, VecRhs));
+						//lua_remove(L, lua_gettop(L));
+						//lua_remove(L, lua_gettop(L));
+						//	Stack Empty
+						//
+						return 1;
+					}
+					else {
+						printf("[Lua][Vector3] Add Error: Right operand not a Vector3\n");	//	TODO: Allow right operand to be a single number
+					}
+				}
+				else {
+					printf("[Lua][Vector3] Add Error: Left operand not a Vector3\n");
+				}
+				lua_remove(L, lua_gettop(L));
+				lua_remove(L, lua_gettop(L));
+				//	Stack Empty
+				return 0;
+			}
+
 			int Mul(lua_State* L)
 			{
 				//	-2	|	Vector3 userdata (left)
@@ -386,6 +438,11 @@ namespace WorldEngine
 				//
 				lua_pushstring(state, "__div");
 				lua_pushcfunction(state, Div);
+				lua_settable(state, -3);
+				//	-1	(1)	|	metatable
+				//
+				lua_pushstring(state, "Distance");
+				lua_pushcfunction(state, Distance);
 				lua_settable(state, -3);
 				//	-1	(1)	|	metatable
 				//

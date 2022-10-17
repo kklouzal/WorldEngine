@@ -66,7 +66,7 @@ namespace WorldEngine
 		//	Create SceneNode Functions
 		WorldSceneNode* createWorldSceneNode(uintmax_t NodeID, const char* File);
 		CharacterSceneNode* createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position);
-		TriangleMeshSceneNode* createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
+		TriangleMeshSceneNode* createTriangleMeshSceneNode(uintmax_t NodeID, const char* Classname, const char* File, const float& Mass, const btVector3& Position);
 		SkinnedMeshSceneNode* createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
 
 		const bool& ShouldCleanupWorld()
@@ -97,6 +97,11 @@ namespace WorldEngine
 {
 	namespace SceneGraph
 	{
+		void AddSceneNode(SceneNode*const Node, const uintmax_t NodeID)
+		{
+			SceneNodes[NodeID] = Node;
+		}
+
 		//
 		//	OnTick
 		void OnTick()
@@ -225,7 +230,7 @@ namespace WorldEngine
 
 		//
 		//	TriangleMesh Create Function
-		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position)
+		TriangleMeshSceneNode* SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* Classname, const char* File, const float& Mass, const btVector3& Position)
 		{
 			Pipeline::Static* Pipe = MaterialCache::GetPipe_Static();
 			//
@@ -253,6 +258,10 @@ namespace WorldEngine
 			MeshNode->_RigidBody->setUserPointer(MeshNode);
 			MeshNode->_RigidBody->setDamping(0.33f, 0.33f);
 			WorldEngine::VulkanDriver::dynamicsWorld->addRigidBody(MeshNode->_RigidBody);
+
+			//
+			//	TODO: Not sure if this is where/how I want to initialize scripted entities
+			WorldEngine::LUA::Ent::Create(MeshNode, Classname);
 
 			//
 			//	Push new SceneNode into the SceneGraph

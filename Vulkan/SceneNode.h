@@ -52,6 +52,18 @@ public:
 		return Model[3];
 	}
 
+	inline void SetPosition(const glm::vec3& Pos) {
+		btTransform trans = _RigidBody->getWorldTransform();
+		trans.setOrigin(btVector3(Pos.x, Pos.y, Pos.z));
+		_RigidBody->setWorldTransform(trans);
+	}
+
+	inline void SetRotation(const glm::vec3& Rot) {
+		btTransform trans = _RigidBody->getWorldTransform();
+		trans.setRotation(btQuaternion(Rot.x, Rot.y, Rot.z));
+		_RigidBody->setWorldTransform(trans);
+	}
+
 	//	TODO: Using camera angle is a placeholder
 	//	Will need to get aim vector based on model Y rotation & x/z rotation of pelvis/spine maybe head? You get the idea..
 	inline const glm::vec3& GetAimVector() const {
@@ -130,7 +142,7 @@ public:
 	friend WorldSceneNode* WorldEngine::SceneGraph::createWorldSceneNode(uintmax_t NodeID, const char* File);
 	friend CharacterSceneNode* WorldEngine::SceneGraph::createCharacterSceneNode(uintmax_t NodeID, const char* File, const btVector3& Position);
 	friend SkinnedMeshSceneNode* WorldEngine::SceneGraph::createSkinnedMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
-	friend TriangleMeshSceneNode* WorldEngine::SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* File, const float& Mass, const btVector3& Position);
+	friend TriangleMeshSceneNode* WorldEngine::SceneGraph::createTriangleMeshSceneNode(uintmax_t NodeID, const char* Classname, const char* File, const float& Mass, const btVector3& Position);
 };
 
 //

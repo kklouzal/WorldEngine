@@ -9,18 +9,21 @@ function ITEM:StartPrimaryAction()
 	local Owner = self:GetOwner()
 	local pos = Owner:GetFirePos()
 	local ang = Owner:GetFireAng()
-	print("pos "..tostring(pos))
-	print("ang "..tostring(ang))
-	--	pos + ang * dist
-	local to = pos + ang * Vector3(1000, 1000, 1000) 
-	print("to  "..tostring(to))
+	local to = pos + ang * Vector3(1000, 1000, 1000)
 	
 	local res = Util.TraceLine(pos, to)
 	print ("Trace Result Hit: "..tostring(res.HasHit))
+	if (res.HasHit) then
+		local hitEnt = res.HitEntity
+		self.TargetDistance = pos:Distance(hitEnt:GetPos())
+		print("Hit Entity: "..tostring(hitEnt).." Distance: "..tostring(self.TargetDistance))
+		self.SelectedEntity = hitEnt
+	end
 end
 
 function ITEM:EndPrimaryAction()
 	print("End Primary")
+	self.SelectedEntity = nil
 end
 
 function ITEM:StartSecondaryAction()
@@ -44,7 +47,15 @@ function ITEM:OnDeselect()
 end
 
 function ITEM:OnTick()
-	print("Think")
+	if (self.SelectedEntity ~= nil) then
+		local Owner = self:GetOwner()
+		local pos = Owner:GetFirePos()
+		local ang = Owner:GetFireAng()
+		
+		local Dist = self.TargetDistance
+		local DestinationPos = pos + ang * Vector3(Dist,Dist,Dist)
+		self.SelectedEntity:SetPos(DestinationPos)
+	end
 end
 
 Item.Register("itm_default", ITEM)

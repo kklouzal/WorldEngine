@@ -158,6 +158,8 @@ namespace WorldEngine
 							_Packet->read<bool>(bSuccess);
 							uintmax_t NodeID;
 							_Packet->read<uintmax_t>(NodeID);
+							char Classname[255] = "";
+							_Packet->read<char>(*Classname);
 							char File[255] = "";
 							_Packet->read<char>(*File);
 							float Mass;
@@ -173,7 +175,7 @@ namespace WorldEngine
 							//
 							if (bSuccess && !WorldEngine::SceneGraph::SceneNodes.count(NodeID))
 							{
-								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
+								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, Classname, File, Mass, Position);
 							}
 						}
 						break;
@@ -331,7 +333,8 @@ namespace WorldEngine
 							{
 								//
 								//	TODO: This needs to be a character scene node..? NonLocalCharacterSceneNode..? Ugh.. :D
-								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, File, Mass, Position);
+								//	HACK: non-localplayers classified as 'prop_physics' that needs fixed..
+								TriangleMeshSceneNode* Node = WorldEngine::SceneGraph::createTriangleMeshSceneNode(NodeID, "prop_physics", File, Mass, Position);
 							}
 						}
 						break;
@@ -356,6 +359,7 @@ namespace WorldEngine
 									WorldEngine::SceneGraph::_Character->GiveItem(NewItm_, 0);	//	TODO: SLOT?? No. This needs handled some other way.
 									WorldEngine::LUA::Itm::CallFunc(NodeID, "Initialize");
 									WorldEngine::SceneGraph::_Character->SelectItem(0);
+									WorldEngine::SceneGraph::AddSceneNode(NewItm_, NodeID);
 								}
 								break;
 								//

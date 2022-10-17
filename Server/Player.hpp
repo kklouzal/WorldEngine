@@ -204,6 +204,7 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
                         {
                             Pkt->write<bool>(true);                         //  true == successfully spawned
                             Pkt->write<uintmax_t>(NewNode->GetNodeID());    //  SceneNode ID
+                            Pkt->write<const char*>("prop_physics");        //  Scripted Classname
                             Pkt->write<const char*>(File);                  //  Model File
                             Pkt->write<float>(Mass);                        //  Mass
                             Pkt->write<float>(Position.x());                //  Position X
@@ -231,6 +232,7 @@ void Player::Tick(std::chrono::time_point<std::chrono::steady_clock> CurTime)
                         {
                             Out_Packet->write<bool>(true);                          //  true == successfully spawned
                             Out_Packet->write<uintmax_t>(NodeID);                   //  SceneNode ID
+                            Out_Packet->write<const char*>("prop_physics");        //  Scripted Classname
                             Out_Packet->write<const char*>(Node->GetModelFile());   //  Model File
                             Out_Packet->write<float>(Node->GetMass());              //  Mass
                             //
